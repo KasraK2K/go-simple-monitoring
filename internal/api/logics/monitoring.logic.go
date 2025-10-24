@@ -22,13 +22,13 @@ import (
 )
 
 var (
-	monitoringConfig     *models.MonitoringConfig
-	serversConfigOnce    sync.Once
-	serversConfigErr     error
-	serversConfigMutex   sync.RWMutex
-	lastConfigModTime    time.Time
-	loggingTicker        *time.Ticker
-	loggingStopChan      chan struct{}
+	monitoringConfig   *models.MonitoringConfig
+	serversConfigOnce  sync.Once
+	serversConfigErr   error
+	serversConfigMutex sync.RWMutex
+	lastConfigModTime  time.Time
+	loggingTicker      *time.Ticker
+	loggingStopChan    chan struct{}
 )
 
 // InitServersConfig loads the servers configuration once at startup
@@ -49,16 +49,16 @@ func InitServersConfigCLI() {
 // It automatically checks if the config file has been modified and reloads if needed
 func GetServersConfig() []models.ServerConfig {
 	InitServersConfig() // Ensure config is loaded
-	
+
 	// Check if we should reload (every 30 seconds max)
 	serversConfigMutex.RLock()
 	shouldCheck := time.Since(lastConfigModTime) > 30*time.Second
 	serversConfigMutex.RUnlock()
-	
+
 	if shouldCheck {
 		checkAndReloadConfig()
 	}
-	
+
 	serversConfigMutex.RLock()
 	defer serversConfigMutex.RUnlock()
 	if monitoringConfig != nil {
@@ -70,7 +70,7 @@ func GetServersConfig() []models.ServerConfig {
 // GetMonitoringConfig returns the full monitoring configuration
 func GetMonitoringConfig() *models.MonitoringConfig {
 	InitServersConfig() // Ensure config is loaded
-	
+
 	serversConfigMutex.RLock()
 	defer serversConfigMutex.RUnlock()
 	return monitoringConfig
@@ -83,10 +83,10 @@ func ReloadServersConfig() {
 
 func reloadServersConfig() {
 	newConfig, err := readConfigFromFile()
-	
+
 	serversConfigMutex.Lock()
 	defer serversConfigMutex.Unlock()
-	
+
 	if err != nil {
 		// Keep existing config on error, or use empty config if first load
 		if monitoringConfig == nil {
@@ -102,10 +102,10 @@ func reloadServersConfig() {
 		if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
 			stopAutoLogging()
 		}
-		
+
 		monitoringConfig = newConfig
 		serversConfigErr = nil
-		
+
 		// Initialize logger and start auto-logging
 		utils.InitLogger(monitoringConfig)
 		startAutoLogging()
@@ -115,10 +115,10 @@ func reloadServersConfig() {
 
 func reloadServersConfigCLI() {
 	newConfig, err := readConfigFromFile()
-	
+
 	serversConfigMutex.Lock()
 	defer serversConfigMutex.Unlock()
-	
+
 	if err != nil {
 		// Keep existing config on error, or use empty config if first load
 		if monitoringConfig == nil {
@@ -132,7 +132,7 @@ func reloadServersConfigCLI() {
 	} else {
 		monitoringConfig = newConfig
 		serversConfigErr = nil
-		
+
 		// CLI mode: DO NOT start auto-logging
 	}
 	lastConfigModTime = time.Now()
@@ -144,19 +144,19 @@ func checkAndReloadConfig() {
 	if err != nil {
 		return
 	}
-	
+
 	projectRoot := findProjectRoot(cwd)
 	configPath := filepath.Join(projectRoot, "configs.json")
-	
+
 	fileInfo, err := os.Stat(configPath)
 	if err != nil {
 		return // File doesn't exist or can't be read
 	}
-	
+
 	serversConfigMutex.RLock()
 	lastCheck := lastConfigModTime
 	serversConfigMutex.RUnlock()
-	
+
 	// If file is newer than our last reload, reload it
 	if fileInfo.ModTime().After(lastCheck) {
 		reloadServersConfig()
@@ -414,10 +414,25 @@ func getRAMUsageFallback() (models.RAM, error) {
 }
 
 func checkServerHeartbeats(servers []models.ServerConfig) []models.ServerCheck {
-	var results []models.ServerCheck
+	if len(servers) == 0 {
+		return []models.ServerCheck{}
+	}
 
+	// Use channels to collect results from parallel goroutines
+	resultChan := make(chan models.ServerCheck, len(servers))
+
+	// Launch all requests in parallel
 	for _, server := range servers {
-		result := checkSingleServer(server)
+		go func(s models.ServerConfig) {
+			result := checkSingleServer(s)
+			resultChan <- result
+		}(server)
+	}
+
+	// Collect all results
+	var results []models.ServerCheck
+	for range servers {
+		result := <-resultChan
 		results = append(results, result)
 	}
 
@@ -575,21 +590,21 @@ func startAutoLogging() {
 	if monitoringConfig == nil {
 		return
 	}
-	
+
 	// Stop existing ticker if running
 	stopAutoLogging()
-	
+
 	// Parse refresh time
 	refreshDuration, err := time.ParseDuration(monitoringConfig.RefreshTime)
 	if err != nil {
 		fmt.Printf("Warning: invalid refresh_time '%s', using default 2s\n", monitoringConfig.RefreshTime)
 		refreshDuration = 2 * time.Second
 	}
-	
+
 	// Start new ticker
 	loggingTicker = time.NewTicker(refreshDuration)
 	loggingStopChan = make(chan struct{})
-	
+
 	go func() {
 		for {
 			select {
