@@ -36,6 +36,13 @@ func InitServersConfig() {
 	})
 }
 
+// InitServersConfigCLI loads configuration for CLI mode without auto-logging
+func InitServersConfigCLI() {
+	serversConfigOnce.Do(func() {
+		reloadServersConfigCLI()
+	})
+}
+
 // GetServersConfig returns the cached servers configuration
 // It automatically checks if the config file has been modified and reloads if needed
 func GetServersConfig() []models.ServerConfig {
@@ -100,6 +107,31 @@ func reloadServersConfig() {
 		// Initialize logger and start auto-logging
 		utils.InitLogger(monitoringConfig)
 		startAutoLogging()
+	}
+	lastConfigModTime = time.Now()
+}
+
+func reloadServersConfigCLI() {
+	newConfig, err := readConfigFromFile()
+	
+	serversConfigMutex.Lock()
+	defer serversConfigMutex.Unlock()
+	
+	if err != nil {
+		// Keep existing config on error, or use empty config if first load
+		if monitoringConfig == nil {
+			monitoringConfig = &models.MonitoringConfig{
+				Path:        "./logs",
+				RefreshTime: "2s",
+				Servers:     []models.ServerConfig{},
+			}
+		}
+		serversConfigErr = nil // Don't propagate errors for monitoring
+	} else {
+		monitoringConfig = newConfig
+		serversConfigErr = nil
+		
+		// CLI mode: DO NOT start auto-logging
 	}
 	lastConfigModTime = time.Now()
 }

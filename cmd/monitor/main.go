@@ -72,8 +72,8 @@ func parseFlags() Config {
 }
 
 func runLocalMonitoring(config Config, state *DisplayState) {
-	// Initialize servers configuration
-	logics.InitServersConfig()
+	// Initialize servers configuration for CLI mode (no auto-logging)
+	logics.InitServersConfigCLI()
 
 	ticker := time.NewTicker(config.RefreshRate)
 	defer ticker.Stop()
