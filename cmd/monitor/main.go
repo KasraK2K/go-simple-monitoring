@@ -196,7 +196,7 @@ func drawInitialLayout(config Config) {
 	fmt.Printf("🖥️  CPU:        %%     │ Cores:        │ Arch:         │ Goroutines:    \n")
 	fmt.Printf("💾 RAM:        %%     │ Total:        │ Used:         │ Available:     \n")
 	fmt.Printf("💽 DISK:       %%     │ Total:        │ Used:         │ Available:     \n")
-	fmt.Printf("🔗 LOAD AVG:           │\n")
+	fmt.Printf("🔗 LOAD AVG:         │\n")
 	fmt.Println()
 
 	// Heartbeat section
@@ -276,12 +276,12 @@ func updateRAMMetrics(ram models.RAM, _ Config) {
 	fmt.Printf("%8s", formatShort(ram.Total))
 
 	// Used
-	moveCursor(8, 43)
-	fmt.Printf("%-9s", formatShort(ram.Used))
+	moveCursor(8, 39)
+	fmt.Printf(" Used: %s", formatShort(ram.Used))
 
 	// Available
-	moveCursor(8, 67)
-	fmt.Printf("%8s", formatShort(ram.Available))
+	moveCursor(8, 55)
+	fmt.Printf(" Available: %s", formatShort(ram.Available))
 }
 
 func updateDiskMetrics(disk models.DiskSpace, _ Config) {
@@ -295,12 +295,12 @@ func updateDiskMetrics(disk models.DiskSpace, _ Config) {
 	fmt.Printf("%8s", formatShort(disk.Total))
 
 	// Used
-	moveCursor(9, 43)
-	fmt.Printf("%-9s", formatShort(disk.Used))
+	moveCursor(9, 39)
+	fmt.Printf(" Used: %s", formatShort(disk.Used))
 
 	// Available
-	moveCursor(9, 67)
-	fmt.Printf("%8s", formatShort(disk.Available))
+	moveCursor(9, 55)
+	fmt.Printf(" Available: %s", formatShort(disk.Available))
 }
 
 func updateLoadAverage(cpu models.CPU) {

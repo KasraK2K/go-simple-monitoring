@@ -17,6 +17,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/shirou/gopsutil/v3/mem"
 )
 
 var (
@@ -352,11 +354,40 @@ func getDiskSpace(path string) (models.DiskSpace, error) {
 }
 
 func getRAMUsage() (models.RAM, error) {
+	// Use gopsutil for accurate system memory stats in production
+	vmem, err := mem.VirtualMemory()
+	if err != nil {
+		// Fallback to Go runtime stats if gopsutil fails
+		return getRAMUsageFallback()
+	}
+
+	totalBytes := vmem.Total
+	usedBytes := vmem.Used
+	availableBytes := vmem.Available
+	usedPct := vmem.UsedPercent
+	bufferCacheBytes := vmem.Buffers + vmem.Cached
+
+	// Convert to human-readable format
+	totalGB := bytesToGB(totalBytes)
+	usedGB := bytesToGB(usedBytes)
+	availGB := bytesToGB(availableBytes)
+
+	return models.RAM{
+		Total:       formatBytes(totalBytes),
+		Used:        formatBytes(usedBytes),
+		Available:   formatBytes(availableBytes),
+		UsedPct:     math.Round(usedPct*100) / 100, // Round to 2 decimal places
+		BufferCache: formatBytes(bufferCacheBytes),
+		TotalGB:     totalGB,
+		UsedGB:      usedGB,
+		AvailGB:     availGB,
+	}, nil
+}
+
+// getRAMUsageFallback provides fallback RAM monitoring using Go runtime stats
+func getRAMUsageFallback() (models.RAM, error) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
-
-	// For cross-platform compatibility, we'll use Go's runtime stats
-	// In production, consider using a library like gopsutil for more accurate system stats
 
 	// Using Go runtime memory stats as approximation
 	totalBytes := m.Sys  // Total memory obtained from system
