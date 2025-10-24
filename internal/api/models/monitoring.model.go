@@ -19,13 +19,13 @@ type CPU struct {
 }
 
 type DiskSpace struct {
-	Total     string  `json:"total"`      // Total disk space (e.g., "500 GB")
-	Used      string  `json:"used"`       // Used disk space (e.g., "450 GB")
-	Available string  `json:"available"`  // Available disk space (e.g., "50 GB")
-	UsedPct   float64 `json:"used_pct"`   // Used percentage
-	TotalGB   float64 `json:"total_gb"`   // Total in GB for easy reference
-	UsedGB    float64 `json:"used_gb"`    // Used in GB for easy reference
-	AvailGB   float64 `json:"avail_gb"`   // Available in GB for easy reference
+	Total     string  `json:"total"`     // Total disk space (e.g., "500 GB")
+	Used      string  `json:"used"`      // Used disk space (e.g., "450 GB")
+	Available string  `json:"available"` // Available disk space (e.g., "50 GB")
+	UsedPct   float64 `json:"used_pct"`  // Used percentage
+	TotalGB   float64 `json:"total_gb"`  // Total in GB for easy reference
+	UsedGB    float64 `json:"used_gb"`   // Used in GB for easy reference
+	AvailGB   float64 `json:"avail_gb"`  // Available in GB for easy reference
 }
 
 type RAM struct {
@@ -57,11 +57,18 @@ const (
 )
 
 type MonitoringConfig struct {
-	Servers []ServerConfig `json:"servers"`
+	Path        string         `json:"path"`         // Log file destination path
+	RefreshTime string         `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
+	Servers     []ServerConfig `json:"servers"`
 }
 
 type ServerConfig struct {
 	Name    string `json:"name"`
 	URL     string `json:"url"`
 	Timeout int    `json:"timeout"` // Timeout in seconds
+}
+
+type MonitoringLogEntry struct {
+	Time string         `json:"time"`
+	Body map[string]any `json:"body"`
 }

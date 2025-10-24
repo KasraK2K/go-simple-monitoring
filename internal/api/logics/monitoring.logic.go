@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"go-log/internal/utils"
 	"math"
 	"net/http"
 	"os"
@@ -19,11 +20,13 @@ import (
 )
 
 var (
-	serversConfig     []models.ServerConfig
-	serversConfigOnce sync.Once
-	serversConfigErr  error
-	serversConfigMutex sync.RWMutex
-	lastConfigModTime time.Time
+	monitoringConfig     *models.MonitoringConfig
+	serversConfigOnce    sync.Once
+	serversConfigErr     error
+	serversConfigMutex   sync.RWMutex
+	lastConfigModTime    time.Time
+	loggingTicker        *time.Ticker
+	loggingStopChan      chan struct{}
 )
 
 // InitServersConfig loads the servers configuration once at startup
@@ -49,7 +52,19 @@ func GetServersConfig() []models.ServerConfig {
 	
 	serversConfigMutex.RLock()
 	defer serversConfigMutex.RUnlock()
-	return serversConfig
+	if monitoringConfig != nil {
+		return monitoringConfig.Servers
+	}
+	return []models.ServerConfig{}
+}
+
+// GetMonitoringConfig returns the full monitoring configuration
+func GetMonitoringConfig() *models.MonitoringConfig {
+	InitServersConfig() // Ensure config is loaded
+	
+	serversConfigMutex.RLock()
+	defer serversConfigMutex.RUnlock()
+	return monitoringConfig
 }
 
 // ReloadServersConfig forces a reload of the servers configuration
@@ -58,20 +73,33 @@ func ReloadServersConfig() {
 }
 
 func reloadServersConfig() {
-	newConfig, err := readServersFromFile()
+	newConfig, err := readConfigFromFile()
 	
 	serversConfigMutex.Lock()
 	defer serversConfigMutex.Unlock()
 	
 	if err != nil {
-		// Keep existing config on error, or use empty array if first load
-		if len(serversConfig) == 0 {
-			serversConfig = []models.ServerConfig{}
+		// Keep existing config on error, or use empty config if first load
+		if monitoringConfig == nil {
+			monitoringConfig = &models.MonitoringConfig{
+				Path:        "./logs",
+				RefreshTime: "2s",
+				Servers:     []models.ServerConfig{},
+			}
 		}
 		serversConfigErr = nil // Don't propagate errors for monitoring
 	} else {
-		serversConfig = newConfig
+		// Stop existing logging if refresh time changed
+		if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
+			stopAutoLogging()
+		}
+		
+		monitoringConfig = newConfig
 		serversConfigErr = nil
+		
+		// Initialize logger and start auto-logging
+		utils.InitLogger(monitoringConfig)
+		startAutoLogging()
 	}
 	lastConfigModTime = time.Now()
 }
@@ -84,7 +112,7 @@ func checkAndReloadConfig() {
 	}
 	
 	projectRoot := findProjectRoot(cwd)
-	configPath := filepath.Join(projectRoot, "servers.json")
+	configPath := filepath.Join(projectRoot, "configs.json")
 	
 	fileInfo, err := os.Stat(configPath)
 	if err != nil {
@@ -394,7 +422,7 @@ func checkSingleServer(server models.ServerConfig) models.ServerCheck {
 	}
 }
 
-func readServersFromFile() ([]models.ServerConfig, error) {
+func readConfigFromFile() (*models.MonitoringConfig, error) {
 	// Get the current working directory to find the root folder
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -403,22 +431,22 @@ func readServersFromFile() ([]models.ServerConfig, error) {
 
 	// Find the project root (look for go.mod file)
 	projectRoot := findProjectRoot(cwd)
-	configPath := filepath.Join(projectRoot, "servers.json")
+	configPath := filepath.Join(projectRoot, "configs.json")
 
 	// Read the configuration file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read servers.json: %w", err)
+		return nil, fmt.Errorf("failed to read configs.json: %w", err)
 	}
 
 	// Parse the JSON
 	var config models.MonitoringConfig
 	err = json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse servers.json: %w", err)
+		return nil, fmt.Errorf("failed to parse configs.json: %w", err)
 	}
 
-	return config.Servers, nil
+	return &config, nil
 }
 
 func findProjectRoot(startPath string) string {
@@ -475,4 +503,60 @@ func formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%dns", d.Nanoseconds())
 	}
+}
+
+// Auto-logging functions
+
+// startAutoLogging starts the automatic logging based on refresh_time
+func startAutoLogging() {
+	if monitoringConfig == nil {
+		return
+	}
+	
+	// Stop existing ticker if running
+	stopAutoLogging()
+	
+	// Parse refresh time
+	refreshDuration, err := time.ParseDuration(monitoringConfig.RefreshTime)
+	if err != nil {
+		fmt.Printf("Warning: invalid refresh_time '%s', using default 2s\n", monitoringConfig.RefreshTime)
+		refreshDuration = 2 * time.Second
+	}
+	
+	// Start new ticker
+	loggingTicker = time.NewTicker(refreshDuration)
+	loggingStopChan = make(chan struct{})
+	
+	go func() {
+		for {
+			select {
+			case <-loggingTicker.C:
+				// Generate monitoring data and log it
+				if data, err := MonitoringDataGenerator(); err == nil {
+					if logErr := utils.LogMonitoringData(data); logErr != nil {
+						fmt.Printf("Warning: failed to log monitoring data: %v\n", logErr)
+					}
+				}
+			case <-loggingStopChan:
+				return
+			}
+		}
+	}()
+}
+
+// stopAutoLogging stops the automatic logging
+func stopAutoLogging() {
+	if loggingTicker != nil {
+		loggingTicker.Stop()
+		loggingTicker = nil
+	}
+	if loggingStopChan != nil {
+		close(loggingStopChan)
+		loggingStopChan = nil
+	}
+}
+
+// StopAutoLogging provides external access to stop auto-logging
+func StopAutoLogging() {
+	stopAutoLogging()
 }

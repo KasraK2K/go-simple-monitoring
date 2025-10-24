@@ -43,4 +43,4 @@ logs/
 app
 log-file
 monitoring
-servers.json
+configs.json
