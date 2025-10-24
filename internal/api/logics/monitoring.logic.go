@@ -22,24 +22,88 @@ var (
 	serversConfig     []models.ServerConfig
 	serversConfigOnce sync.Once
 	serversConfigErr  error
+	serversConfigMutex sync.RWMutex
+	lastConfigModTime time.Time
 )
 
 // InitServersConfig loads the servers configuration once at startup
 func InitServersConfig() {
 	serversConfigOnce.Do(func() {
-		serversConfig, serversConfigErr = readServersFromFile()
-		if serversConfigErr != nil {
-			// Return empty array if file read fails
-			serversConfig = []models.ServerConfig{}
-			serversConfigErr = nil
-		}
+		reloadServersConfig()
 	})
 }
 
 // GetServersConfig returns the cached servers configuration
+// It automatically checks if the config file has been modified and reloads if needed
 func GetServersConfig() []models.ServerConfig {
 	InitServersConfig() // Ensure config is loaded
+	
+	// Check if we should reload (every 30 seconds max)
+	serversConfigMutex.RLock()
+	shouldCheck := time.Since(lastConfigModTime) > 30*time.Second
+	serversConfigMutex.RUnlock()
+	
+	if shouldCheck {
+		checkAndReloadConfig()
+	}
+	
+	serversConfigMutex.RLock()
+	defer serversConfigMutex.RUnlock()
 	return serversConfig
+}
+
+// ReloadServersConfig forces a reload of the servers configuration
+func ReloadServersConfig() {
+	reloadServersConfig()
+}
+
+func reloadServersConfig() {
+	newConfig, err := readServersFromFile()
+	
+	serversConfigMutex.Lock()
+	defer serversConfigMutex.Unlock()
+	
+	if err != nil {
+		// Keep existing config on error, or use empty array if first load
+		if len(serversConfig) == 0 {
+			serversConfig = []models.ServerConfig{}
+		}
+		serversConfigErr = nil // Don't propagate errors for monitoring
+	} else {
+		serversConfig = newConfig
+		serversConfigErr = nil
+	}
+	lastConfigModTime = time.Now()
+}
+
+func checkAndReloadConfig() {
+	// Get current file modification time
+	cwd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	
+	projectRoot := findProjectRoot(cwd)
+	configPath := filepath.Join(projectRoot, "servers.json")
+	
+	fileInfo, err := os.Stat(configPath)
+	if err != nil {
+		return // File doesn't exist or can't be read
+	}
+	
+	serversConfigMutex.RLock()
+	lastCheck := lastConfigModTime
+	serversConfigMutex.RUnlock()
+	
+	// If file is newer than our last reload, reload it
+	if fileInfo.ModTime().After(lastCheck) {
+		reloadServersConfig()
+	} else {
+		// Update last check time even if no reload needed
+		serversConfigMutex.Lock()
+		lastConfigModTime = time.Now()
+		serversConfigMutex.Unlock()
+	}
 }
 
 func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
