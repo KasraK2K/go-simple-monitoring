@@ -66,7 +66,6 @@ func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]interfac
 			"status":        string(server.Status),
 			"response_ms":   server.ResponseMs,
 			"response_time": server.ResponseTime,
-			"last_checked":  server.LastChecked.Format(time.RFC3339),
 		}
 		
 		if server.Error != "" {
