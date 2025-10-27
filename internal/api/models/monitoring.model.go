@@ -7,6 +7,9 @@ type SystemMonitoring struct {
 	CPU       CPU           `json:"cpu"`
 	DiskSpace DiskSpace     `json:"disk_space"`
 	RAM       RAM           `json:"ram"`
+	NetworkIO NetworkIO     `json:"network_io"`
+	DiskIO    DiskIO        `json:"disk_io"`
+	Process   Process       `json:"process"`
 	Heartbeat []ServerCheck `json:"heartbeat"`
 }
 
@@ -19,24 +22,18 @@ type CPU struct {
 }
 
 type DiskSpace struct {
-	Total     string  `json:"total"`     // Total disk space (e.g., "500 GB")
-	Used      string  `json:"used"`      // Used disk space (e.g., "450 GB")
-	Available string  `json:"available"` // Available disk space (e.g., "50 GB")
-	UsedPct   float64 `json:"used_pct"`  // Used percentage
-	TotalGB   float64 `json:"total_gb"`  // Total in GB for easy reference
-	UsedGB    float64 `json:"used_gb"`   // Used in GB for easy reference
-	AvailGB   float64 `json:"avail_gb"`  // Available in GB for easy reference
+	TotalBytes     uint64  `json:"total_bytes"`     // Total disk space in bytes
+	UsedBytes      uint64  `json:"used_bytes"`      // Used disk space in bytes
+	AvailableBytes uint64  `json:"available_bytes"` // Available disk space in bytes
+	UsedPct        float64 `json:"used_pct"`        // Used percentage
 }
 
 type RAM struct {
-	Total       string  `json:"total"`        // Total RAM (e.g., "16 GB")
-	Used        string  `json:"used"`         // Used RAM (e.g., "8 GB")
-	Available   string  `json:"available"`    // Available RAM (e.g., "8 GB")
-	UsedPct     float64 `json:"used_pct"`     // Used percentage
-	BufferCache string  `json:"buffer_cache"` // Buffer/Cache (e.g., "2 GB")
-	TotalGB     float64 `json:"total_gb"`     // Total in GB for easy reference
-	UsedGB      float64 `json:"used_gb"`      // Used in GB for easy reference
-	AvailGB     float64 `json:"avail_gb"`     // Available in GB for easy reference
+	TotalBytes     uint64  `json:"total_bytes"`     // Total RAM in bytes
+	UsedBytes      uint64  `json:"used_bytes"`      // Used RAM in bytes
+	AvailableBytes uint64  `json:"available_bytes"` // Available RAM in bytes
+	UsedPct        float64 `json:"used_pct"`        // Used percentage
+	BufferBytes    uint64  `json:"buffer_bytes"`    // Buffer/Cache in bytes
 }
 
 type ServerCheck struct {
@@ -67,6 +64,38 @@ type ServerConfig struct {
 	Name    string `json:"name"`
 	URL     string `json:"url"`
 	Timeout int    `json:"timeout"` // Timeout in seconds
+}
+
+type NetworkIO struct {
+	BytesSent   uint64 `json:"bytes_sent"`   // Total bytes sent
+	BytesRecv   uint64 `json:"bytes_recv"`   // Total bytes received
+	PacketsSent uint64 `json:"packets_sent"` // Total packets sent
+	PacketsRecv uint64 `json:"packets_recv"` // Total packets received
+	ErrorsIn    uint64 `json:"errors_in"`    // Input errors
+	ErrorsOut   uint64 `json:"errors_out"`   // Output errors
+	DropsIn     uint64 `json:"drops_in"`     // Input drops
+	DropsOut    uint64 `json:"drops_out"`    // Output drops
+}
+
+type DiskIO struct {
+	ReadBytes  uint64 `json:"read_bytes"`  // Total bytes read
+	WriteBytes uint64 `json:"write_bytes"` // Total bytes written
+	ReadCount  uint64 `json:"read_count"`  // Total read operations
+	WriteCount uint64 `json:"write_count"` // Total write operations
+	ReadTime   uint64 `json:"read_time"`   // Time spent reading (ms)
+	WriteTime  uint64 `json:"write_time"`  // Time spent writing (ms)
+	IOTime     uint64 `json:"io_time"`     // Time spent doing I/Os (ms)
+}
+
+type Process struct {
+	TotalProcesses int     `json:"total_processes"` // Total number of processes
+	RunningProcs   int     `json:"running_procs"`   // Running processes
+	SleepingProcs  int     `json:"sleeping_procs"`  // Sleeping processes
+	ZombieProcs    int     `json:"zombie_procs"`    // Zombie processes
+	StoppedProcs   int     `json:"stopped_procs"`   // Stopped processes
+	LoadAvg1       float64 `json:"load_avg_1"`      // 1-minute load average
+	LoadAvg5       float64 `json:"load_avg_5"`      // 5-minute load average
+	LoadAvg15      float64 `json:"load_avg_15"`     // 15-minute load average
 }
 
 type MonitoringLogEntry struct {

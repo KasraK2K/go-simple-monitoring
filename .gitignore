@@ -47,3 +47,6 @@ configs.json
 test-monitor
 test-monitoring
 monitoring.db
+api-server
+monitor
+go-monitoring

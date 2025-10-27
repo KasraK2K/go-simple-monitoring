@@ -28,20 +28,43 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 	logEntry := models.MonitoringLogEntry{
 		Time: data.Timestamp.Format(time.RFC3339Nano),
 		Body: map[string]any{
-			"cpu_usage_percent": data.CPU.UsagePercent,
-			"cpu_cores":         data.CPU.CoreCount,
-			"cpu_goroutines":    data.CPU.Goroutines,
-			"cpu_load_average":  data.CPU.LoadAverage,
-			"cpu_architecture":  data.CPU.Architecture,
-			"ram_used_percent":  data.RAM.UsedPct,
-			"ram_total_gb":      data.RAM.TotalGB,
-			"ram_used_gb":       data.RAM.UsedGB,
-			"ram_available_gb":  data.RAM.AvailGB,
-			"disk_used_percent": data.DiskSpace.UsedPct,
-			"disk_total_gb":     data.DiskSpace.TotalGB,
-			"disk_used_gb":      data.DiskSpace.UsedGB,
-			"disk_available_gb": data.DiskSpace.AvailGB,
-			"heartbeat":         formatHeartbeatForLog(data.Heartbeat),
+			"cpu_usage_percent":    data.CPU.UsagePercent,
+			"cpu_cores":            data.CPU.CoreCount,
+			"cpu_goroutines":       data.CPU.Goroutines,
+			"cpu_load_average":     data.CPU.LoadAverage,
+			"cpu_architecture":     data.CPU.Architecture,
+			"ram_used_percent":     data.RAM.UsedPct,
+			"ram_total_bytes":      data.RAM.TotalBytes,
+			"ram_used_bytes":       data.RAM.UsedBytes,
+			"ram_available_bytes":  data.RAM.AvailableBytes,
+			"disk_used_percent":    data.DiskSpace.UsedPct,
+			"disk_total_bytes":     data.DiskSpace.TotalBytes,
+			"disk_used_bytes":      data.DiskSpace.UsedBytes,
+			"disk_available_bytes": data.DiskSpace.AvailableBytes,
+			"network_bytes_sent":   data.NetworkIO.BytesSent,
+			"network_bytes_recv":   data.NetworkIO.BytesRecv,
+			"network_packets_sent": data.NetworkIO.PacketsSent,
+			"network_packets_recv": data.NetworkIO.PacketsRecv,
+			"network_errors_in":    data.NetworkIO.ErrorsIn,
+			"network_errors_out":   data.NetworkIO.ErrorsOut,
+			"network_drops_in":     data.NetworkIO.DropsIn,
+			"network_drops_out":    data.NetworkIO.DropsOut,
+			"diskio_read_bytes":    data.DiskIO.ReadBytes,
+			"diskio_write_bytes":   data.DiskIO.WriteBytes,
+			"diskio_read_count":    data.DiskIO.ReadCount,
+			"diskio_write_count":   data.DiskIO.WriteCount,
+			"diskio_read_time":     data.DiskIO.ReadTime,
+			"diskio_write_time":    data.DiskIO.WriteTime,
+			"diskio_io_time":       data.DiskIO.IOTime,
+			"process_total":        data.Process.TotalProcesses,
+			"process_running":      data.Process.RunningProcs,
+			"process_sleeping":     data.Process.SleepingProcs,
+			"process_zombie":       data.Process.ZombieProcs,
+			"process_stopped":      data.Process.StoppedProcs,
+			"process_load_avg_1":   data.Process.LoadAvg1,
+			"process_load_avg_5":   data.Process.LoadAvg5,
+			"process_load_avg_15":  data.Process.LoadAvg15,
+			"heartbeat":            formatHeartbeatForLog(data.Heartbeat),
 		},
 	}
 
@@ -98,7 +121,7 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 
 	// Read existing log entries
 	var entries []models.MonitoringLogEntry
-	
+
 	// Check if file exists
 	if _, err := os.Stat(logPath); err == nil {
 		// File exists, read existing entries
@@ -106,7 +129,7 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 		if err != nil {
 			return fmt.Errorf("failed to read existing log file: %w", err)
 		}
-		
+
 		// If file is not empty, unmarshal existing entries
 		if len(data) > 0 {
 			if err := json.Unmarshal(data, &entries); err != nil {

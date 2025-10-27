@@ -19,7 +19,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/disk"
+	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
+	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v3/process"
 )
 
 var (
@@ -168,6 +172,9 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 		cpu       models.CPU
 		disk      models.DiskSpace
 		ram       models.RAM
+		networkIO models.NetworkIO
+		diskIO    models.DiskIO
+		process   models.Process
 		heartbeat []models.ServerCheck
 		err       error
 	}
@@ -196,6 +203,24 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 			return
 		}
 
+		r.networkIO, r.err = getNetworkIO()
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
+		r.diskIO, r.err = getDiskIO()
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
+		r.process, r.err = getProcessStats()
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
 		// Get heartbeat data
 		servers := GetServersConfig()
 		r.heartbeat = checkServerHeartbeats(servers)
@@ -211,6 +236,9 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	monitoring.CPU = r.cpu
 	monitoring.DiskSpace = r.disk
 	monitoring.RAM = r.ram
+	monitoring.NetworkIO = r.networkIO
+	monitoring.DiskIO = r.diskIO
+	monitoring.Process = r.process
 	monitoring.Heartbeat = r.heartbeat
 
 	return monitoring, nil
@@ -367,19 +395,11 @@ func getDiskSpace(path string) (models.DiskSpace, error) {
 	usedBytes := totalBytes - availableBytes
 	usedPct := float64(usedBytes) / float64(totalBytes) * 100
 
-	// Convert to human-readable format
-	totalGB := bytesToGB(totalBytes)
-	usedGB := bytesToGB(usedBytes)
-	availGB := bytesToGB(availableBytes)
-
 	return models.DiskSpace{
-		Total:     formatBytes(totalBytes),
-		Used:      formatBytes(usedBytes),
-		Available: formatBytes(availableBytes),
-		UsedPct:   math.Round(usedPct*100) / 100, // Round to 2 decimal places
-		TotalGB:   totalGB,
-		UsedGB:    usedGB,
-		AvailGB:   availGB,
+		TotalBytes:     totalBytes,
+		UsedBytes:      usedBytes,
+		AvailableBytes: availableBytes,
+		UsedPct:        math.Round(usedPct*100) / 100, // Round to 2 decimal places
 	}, nil
 }
 
@@ -397,20 +417,12 @@ func getRAMUsage() (models.RAM, error) {
 	usedPct := vmem.UsedPercent
 	bufferCacheBytes := vmem.Buffers + vmem.Cached
 
-	// Convert to human-readable format
-	totalGB := bytesToGB(totalBytes)
-	usedGB := bytesToGB(usedBytes)
-	availGB := bytesToGB(availableBytes)
-
 	return models.RAM{
-		Total:       formatBytes(totalBytes),
-		Used:        formatBytes(usedBytes),
-		Available:   formatBytes(availableBytes),
-		UsedPct:     math.Round(usedPct*100) / 100, // Round to 2 decimal places
-		BufferCache: formatBytes(bufferCacheBytes),
-		TotalGB:     totalGB,
-		UsedGB:      usedGB,
-		AvailGB:     availGB,
+		TotalBytes:     totalBytes,
+		UsedBytes:      usedBytes,
+		AvailableBytes: availableBytes,
+		UsedPct:        math.Round(usedPct*100) / 100, // Round to 2 decimal places
+		BufferBytes:    bufferCacheBytes,
 	}, nil
 }
 
@@ -426,20 +438,12 @@ func getRAMUsageFallback() (models.RAM, error) {
 	usedPct := float64(usedBytes) / float64(totalBytes) * 100
 	bufferCacheBytes := m.HeapIdle // Approximate buffer/cache
 
-	// Convert to human-readable format
-	totalGB := bytesToGB(totalBytes)
-	usedGB := bytesToGB(usedBytes)
-	availGB := bytesToGB(availableBytes)
-
 	return models.RAM{
-		Total:       formatBytes(totalBytes),
-		Used:        formatBytes(usedBytes),
-		Available:   formatBytes(availableBytes),
-		UsedPct:     math.Round(usedPct*100) / 100, // Round to 2 decimal places
-		BufferCache: formatBytes(bufferCacheBytes),
-		TotalGB:     totalGB,
-		UsedGB:      usedGB,
-		AvailGB:     availGB,
+		TotalBytes:     totalBytes,
+		UsedBytes:      usedBytes,
+		AvailableBytes: availableBytes,
+		UsedPct:        math.Round(usedPct*100) / 100, // Round to 2 decimal places
+		BufferBytes:    bufferCacheBytes,
 	}, nil
 }
 
@@ -658,4 +662,106 @@ func stopAutoLogging() {
 		close(loggingStopChan)
 		loggingStopChan = nil
 	}
+}
+
+// getNetworkIO returns network I/O statistics
+func getNetworkIO() (models.NetworkIO, error) {
+	ioStats, err := net.IOCounters(false) // false = per interface, true = summary
+	if err != nil {
+		return models.NetworkIO{}, err
+	}
+
+	// Sum up all interfaces for total system network I/O
+	var totalIO models.NetworkIO
+	for _, stat := range ioStats {
+		totalIO.BytesSent += stat.BytesSent
+		totalIO.BytesRecv += stat.BytesRecv
+		totalIO.PacketsSent += stat.PacketsSent
+		totalIO.PacketsRecv += stat.PacketsRecv
+		totalIO.ErrorsIn += stat.Errin
+		totalIO.ErrorsOut += stat.Errout
+		totalIO.DropsIn += stat.Dropin
+		totalIO.DropsOut += stat.Dropout
+	}
+
+	return totalIO, nil
+}
+
+// getDiskIO returns disk I/O statistics
+func getDiskIO() (models.DiskIO, error) {
+	ioStats, err := disk.IOCounters()
+	if err != nil {
+		return models.DiskIO{}, err
+	}
+
+	// Sum up all disks for total system disk I/O
+	var totalIO models.DiskIO
+	for _, stat := range ioStats {
+		totalIO.ReadBytes += stat.ReadBytes
+		totalIO.WriteBytes += stat.WriteBytes
+		totalIO.ReadCount += stat.ReadCount
+		totalIO.WriteCount += stat.WriteCount
+		totalIO.ReadTime += stat.ReadTime
+		totalIO.WriteTime += stat.WriteTime
+		totalIO.IOTime += stat.IoTime
+	}
+
+	return totalIO, nil
+}
+
+// getProcessStats returns process statistics
+func getProcessStats() (models.Process, error) {
+	// Get load averages
+	loadStats, err := load.Avg()
+	if err != nil {
+		// Fallback to manual load average calculation if gopsutil fails
+		loadStats = &load.AvgStat{Load1: 0, Load5: 0, Load15: 0}
+	}
+
+	// Get all processes
+	processes, err := process.Processes()
+	if err != nil {
+		return models.Process{}, err
+	}
+
+	// Count process states
+	var running, sleeping, zombie, stopped int
+	for _, p := range processes {
+		status, err := p.Status()
+		if err != nil {
+			continue // Skip processes we can't read
+		}
+
+		// status is []string, so join it or use the first element
+		var statusStr string
+		if len(status) > 0 {
+			statusStr = status[0]
+		} else {
+			statusStr = "unknown"
+		}
+
+		switch strings.ToLower(statusStr) {
+		case "running", "r":
+			running++
+		case "sleeping", "s", "interruptible":
+			sleeping++
+		case "zombie", "z":
+			zombie++
+		case "stopped", "t":
+			stopped++
+		default:
+			sleeping++ // Default unknown states to sleeping
+		}
+	}
+
+	return models.Process{
+		TotalProcesses: len(processes),
+		RunningProcs:   running,
+		SleepingProcs:  sleeping,
+		ZombieProcs:    zombie,
+		StoppedProcs:   stopped,
+		LoadAvg1:       math.Round(loadStats.Load1*100) / 100,
+		LoadAvg5:       math.Round(loadStats.Load5*100) / 100,
+		LoadAvg15:      math.Round(loadStats.Load15*100) / 100,
+	}, nil
 }

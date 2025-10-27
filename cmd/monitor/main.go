@@ -31,6 +31,37 @@ type DisplayState struct {
 	startTime   time.Time
 }
 
+const (
+	metricsFieldWidth  = 28
+	metricsFieldSpacer = 2
+	metricsValueWidth  = 12
+	metricsStartRow    = 7
+	statusLabelPrefix  = "   Status: "
+)
+
+const (
+	colFirstValue  = 1 + metricsFieldWidth - metricsValueWidth
+	colSecondValue = colFirstValue + metricsFieldWidth + metricsFieldSpacer
+	colThirdValue  = colSecondValue + metricsFieldWidth + metricsFieldSpacer
+	colFourthValue = colThirdValue + metricsFieldWidth + metricsFieldSpacer
+)
+
+var metricsTableRows = [][]string{
+	{"CPU Usage:", "CPU Cores:", "CPU Arch:", "Goroutines:"},
+	{"RAM Usage:", "RAM Total:", "RAM Used:", "RAM Available:"},
+	{"Disk Usage:", "Disk Total:", "Disk Used:", "Disk Available:"},
+	{"Network Sent:", "Network Received:", "Packets Sent:", "Packets Received:"},
+	{"Disk I/O Read:", "Disk I/O Write:", "Read Operations:", "Write Operations:"},
+	{"Processes Total:", "Processes Running:", "Processes Sleeping:", "Processes Zombie:"},
+	{"Load Avg 1m:", "Load Avg 5m:", "Load Avg 15m:", "CPU Load Avg:"},
+}
+
+var (
+	heartbeatTitleRow        = metricsStartRow + len(metricsTableRows) + 1
+	heartbeatStatusRow       = heartbeatTitleRow + 1
+	heartbeatServersStartRow = heartbeatStatusRow + 1
+)
+
 func main() {
 	config := parseFlags()
 
@@ -158,9 +189,12 @@ func updateDisplay(data *models.SystemMonitoring, config Config, state *DisplayS
 		// Move cursor to data sections and update values
 		updateTimestamp(data.Timestamp)
 		updateCPUMetrics(data.CPU, config)
-		updateLoadAverage(data.CPU)
 		updateRAMMetrics(data.RAM, config)
 		updateDiskMetrics(data.DiskSpace, config)
+		updateNetworkMetrics(data.NetworkIO, config)
+		updateDiskIOMetrics(data.DiskIO, config)
+		updateProcessMetrics(data.Process, config)
+		updateLoadAverage(data.CPU, data.Process)
 		updateHeartbeat(data.Heartbeat, config)
 		updateUptime(state.startTime)
 	}
@@ -193,15 +227,19 @@ func drawInitialLayout(config Config) {
 	fmt.Println()
 
 	// Static labels for metrics
-	fmt.Printf("🖥️  CPU:        %%     │ Cores:        │ Arch:         │ Goroutines:    \n")
-	fmt.Printf("💾 RAM:        %%     │ Total:        │ Used:         │ Available:     \n")
-	fmt.Printf("💽 DISK:       %%     │ Total:        │ Used:         │ Available:     \n")
-	fmt.Printf("🔗 LOAD AVG:         │\n")
+	for _, row := range metricsTableRows {
+		fmt.Printf("%-*s | %-*s| %-*s| %-*s\n",
+			metricsFieldWidth, row[0],
+			metricsFieldWidth, row[1],
+			metricsFieldWidth, row[2],
+			metricsFieldWidth, row[3],
+		)
+	}
 	fmt.Println()
 
 	// Heartbeat section
 	fmt.Printf("🔍 HEARTBEAT MONITORING:\n")
-	fmt.Printf("   Status: Checking servers...\n")
+	fmt.Printf("%s%-40s\n", statusLabelPrefix, "Checking servers...")
 	// Get the actual number of configured servers
 	servers := logics.GetServersConfig()
 	serverCount := len(servers)
@@ -246,80 +284,106 @@ func updateUptime(startTime time.Time) {
 	title.Printf(" %-21s", uptimeStr)
 }
 
+func metricsRow(index int) int {
+	return metricsStartRow + index
+}
+
 func updateCPUMetrics(cpu models.CPU, _ Config) {
-	// CPU usage percentage
-	moveCursor(7, 12)
-	color := getStatusColor(cpu.UsagePercent, 80, 60)
-	fmt.Printf("%s", color.Sprintf("%6.2f", cpu.UsagePercent))
+	row := metricsRow(0)
+	usageColor := getStatusColor(cpu.UsagePercent, 80, 60)
+	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, cpu.UsagePercent)
+	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
 
-	// Cores
-	moveCursor(7, 28)
-	fmt.Printf("%8d", cpu.CoreCount)
+	coresStr := fmt.Sprintf("%*d", metricsValueWidth, cpu.CoreCount)
+	printValue(row, colSecondValue, metricsValueWidth, coresStr)
 
-	// Architecture
-	moveCursor(7, 43)
-	fmt.Printf("%-9s", cpu.Architecture)
+	archStr := fmt.Sprintf("%*s", metricsValueWidth, truncateString(cpu.Architecture, metricsValueWidth))
+	printValue(row, colThirdValue, metricsValueWidth, archStr)
 
-	// Goroutines
-	moveCursor(7, 67)
-	fmt.Printf("%8d", cpu.Goroutines)
+	goroutinesStr := fmt.Sprintf("%*d", metricsValueWidth, cpu.Goroutines)
+	printValue(row, colFourthValue, metricsValueWidth, goroutinesStr)
 }
 
 func updateRAMMetrics(ram models.RAM, _ Config) {
-	// RAM usage percentage
-	moveCursor(8, 12)
-	color := getStatusColor(ram.UsedPct, 80, 60)
-	fmt.Printf("%s", color.Sprintf("%6.2f", ram.UsedPct))
+	row := metricsRow(1)
+	usageColor := getStatusColor(ram.UsedPct, 80, 60)
+	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, ram.UsedPct)
+	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
 
-	// Total
-	moveCursor(8, 28)
-	fmt.Printf("%8s", formatShort(ram.Total))
+	totalStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.TotalBytes))
+	printValue(row, colSecondValue, metricsValueWidth, totalStr)
 
-	// Used
-	moveCursor(8, 39)
-	fmt.Printf(" Used: %s", formatShort(ram.Used))
+	usedStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.UsedBytes))
+	printValue(row, colThirdValue, metricsValueWidth, usedStr)
 
-	// Available
-	moveCursor(8, 55)
-	fmt.Printf(" Available: %s", formatShort(ram.Available))
+	availStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.AvailableBytes))
+	printValue(row, colFourthValue, metricsValueWidth, availStr)
 }
 
 func updateDiskMetrics(disk models.DiskSpace, _ Config) {
-	// Disk usage percentage
-	moveCursor(9, 12)
-	color := getStatusColor(disk.UsedPct, 90, 70)
-	fmt.Printf("%s", color.Sprintf("%6.2f", disk.UsedPct))
+	row := metricsRow(2)
+	usageColor := getStatusColor(disk.UsedPct, 90, 70)
+	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, disk.UsedPct)
+	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
 
-	// Total
-	moveCursor(9, 28)
-	fmt.Printf("%8s", formatShort(disk.Total))
+	totalStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.TotalBytes))
+	printValue(row, colSecondValue, metricsValueWidth, totalStr)
 
-	// Used
-	moveCursor(9, 39)
-	fmt.Printf(" Used: %s", formatShort(disk.Used))
+	usedStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.UsedBytes))
+	printValue(row, colThirdValue, metricsValueWidth, usedStr)
 
-	// Available
-	moveCursor(9, 55)
-	fmt.Printf(" Available: %s", formatShort(disk.Available))
+	availStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.AvailableBytes))
+	printValue(row, colFourthValue, metricsValueWidth, availStr)
 }
 
-func updateLoadAverage(cpu models.CPU) {
-	moveCursor(10, 13)
+func updateLoadAverage(cpu models.CPU, process models.Process) {
+	row := metricsRow(6)
+	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg1))
+	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg5))
+	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg15))
+
 	if cpu.LoadAverage != "unavailable" {
-		fmt.Printf("%-20s", cpu.LoadAverage)
-	} else {
-		fmt.Printf("%-20s", "N/A")
+		parts := strings.Split(cpu.LoadAverage, ",")
+		if len(parts) > 0 {
+			printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, strings.TrimSpace(parts[0])))
+			return
+		}
 	}
+	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"))
+}
+
+func updateNetworkMetrics(network models.NetworkIO, _ Config) {
+	row := metricsRow(3)
+	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesSent)))
+	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesRecv)))
+	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, network.PacketsSent))
+	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, network.PacketsRecv))
+}
+
+func updateDiskIOMetrics(diskIO models.DiskIO, _ Config) {
+	row := metricsRow(4)
+	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.ReadBytes)))
+	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.WriteBytes)))
+	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, diskIO.ReadCount))
+	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, diskIO.WriteCount))
+}
+
+func updateProcessMetrics(process models.Process, _ Config) {
+	row := metricsRow(5)
+	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.TotalProcesses))
+	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.RunningProcs))
+	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.SleepingProcs))
+	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.ZombieProcs))
 }
 
 func updateHeartbeat(servers []models.ServerCheck, _ Config) {
 	// Update status line
-	moveCursor(13, 12)
+	moveCursor(heartbeatStatusRow, len(statusLabelPrefix)+1)
 	if len(servers) == 0 {
 		fmt.Printf("%-40s", "No servers configured")
 		// Clear all server lines
 		for i := range 10 {
-			moveCursor(14+i, 1)
+			moveCursor(heartbeatServersStartRow+i, 1)
 			fmt.Printf("   %-35s", "")
 		}
 		return
@@ -340,7 +404,7 @@ func updateHeartbeat(servers []models.ServerCheck, _ Config) {
 
 	// Update individual server lines
 	for i := range 10 {
-		moveCursor(14+i, 1)
+		moveCursor(heartbeatServersStartRow+i, 1)
 		if i < len(servers) {
 			server := servers[i]
 			statusIcon := "✅"
@@ -360,6 +424,13 @@ func updateHeartbeat(servers []models.ServerCheck, _ Config) {
 			fmt.Printf("   %-35s", "")
 		}
 	}
+}
+
+func printValue(row, col, width int, value string) {
+	moveCursor(row, col)
+	fmt.Printf("%-*s", width, "")
+	moveCursor(row, col)
+	fmt.Print(value)
 }
 
 func getStatusColor(value, critical, warning float64) *color.Color {
@@ -396,19 +467,17 @@ func cleanupAndExit() {
 }
 
 // Utility functions
-func formatShort(s string) string {
-	// Convert "123.45 GB" to "123GB" for compact display
-	parts := strings.Fields(s)
-	if len(parts) >= 2 {
-		return fmt.Sprintf("%.0f%s", parseFloat(parts[0]), parts[1])
+func formatBytes(bytes uint64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
 	}
-	return s
-}
-
-func parseFloat(s string) float64 {
-	val := 0.0
-	fmt.Sscanf(s, "%f", &val)
-	return val
+	div, exp := uint64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 func truncateString(s string, length int) string {
