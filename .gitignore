@@ -46,3 +46,4 @@ monitoring
 configs.json
 test-monitor
 test-monitoring
+monitoring.db

@@ -1,6 +1,7 @@
 {
   "path": "./logs",
   "refresh_time": "5s",
+  "storage": "both",
   "servers": [
     {
       "name": "Google",

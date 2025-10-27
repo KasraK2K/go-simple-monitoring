@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-log/internal/api/models"
 	"go-log/internal/utils"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -24,7 +25,6 @@ import (
 var (
 	monitoringConfig   *models.MonitoringConfig
 	serversConfigOnce  sync.Once
-	serversConfigErr   error
 	serversConfigMutex sync.RWMutex
 	lastConfigModTime  time.Time
 	loggingTicker      *time.Ticker
@@ -34,30 +34,62 @@ var (
 // InitServersConfig loads the servers configuration once at startup
 func InitServersConfig() {
 	serversConfigOnce.Do(func() {
-		reloadServersConfig()
+		newConfig, err := readConfigFromFile()
+
+		serversConfigMutex.Lock()
+		defer serversConfigMutex.Unlock()
+
+		if err != nil {
+			// Use default config on error
+			if monitoringConfig == nil {
+				monitoringConfig = getDefaultConfig()
+			}
+		} else {
+			// Stop existing logging if refresh time changed
+			if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
+				stopAutoLogging()
+			}
+
+			monitoringConfig = newConfig
+
+			// Initialize logger and database for API server mode
+			utils.InitLogger(monitoringConfig)
+
+			if monitoringConfig.Storage == "db" || monitoringConfig.Storage == "both" {
+				if err := utils.InitDatabase(); err != nil {
+					log.Printf("Failed to initialize database: %v", err)
+				}
+			}
+			startAutoLogging()
+		}
+		lastConfigModTime = time.Now()
 	})
 }
 
 // InitServersConfigCLI loads configuration for CLI mode without auto-logging
 func InitServersConfigCLI() {
 	serversConfigOnce.Do(func() {
-		reloadServersConfigCLI()
+		newConfig, err := readConfigFromFile()
+
+		serversConfigMutex.Lock()
+		defer serversConfigMutex.Unlock()
+
+		if err != nil {
+			// Use default config on error
+			if monitoringConfig == nil {
+				monitoringConfig = getDefaultConfig()
+			}
+		} else {
+			monitoringConfig = newConfig
+			// CLI mode: NO auto-logging, NO database initialization
+		}
+		lastConfigModTime = time.Now()
 	})
 }
 
 // GetServersConfig returns the cached servers configuration
-// It automatically checks if the config file has been modified and reloads if needed
 func GetServersConfig() []models.ServerConfig {
-	InitServersConfig() // Ensure config is loaded
-
-	// Check if we should reload (every 30 seconds max)
-	serversConfigMutex.RLock()
-	shouldCheck := time.Since(lastConfigModTime) > 30*time.Second
-	serversConfigMutex.RUnlock()
-
-	if shouldCheck {
-		checkAndReloadConfig()
-	}
+	ensureConfigLoaded()
 
 	serversConfigMutex.RLock()
 	defer serversConfigMutex.RUnlock()
@@ -67,104 +99,62 @@ func GetServersConfig() []models.ServerConfig {
 	return []models.ServerConfig{}
 }
 
-// GetMonitoringConfig returns the full monitoring configuration
-func GetMonitoringConfig() *models.MonitoringConfig {
-	InitServersConfig() // Ensure config is loaded
+// ensureConfigLoaded checks if config needs reloading and handles it
+func ensureConfigLoaded() {
+	InitServersConfig()
 
+	// Check if we should reload (every 30 seconds max)
 	serversConfigMutex.RLock()
-	defer serversConfigMutex.RUnlock()
-	return monitoringConfig
-}
-
-// ReloadServersConfig forces a reload of the servers configuration
-func ReloadServersConfig() {
-	reloadServersConfig()
-}
-
-func reloadServersConfig() {
-	newConfig, err := readConfigFromFile()
-
-	serversConfigMutex.Lock()
-	defer serversConfigMutex.Unlock()
-
-	if err != nil {
-		// Keep existing config on error, or use empty config if first load
-		if monitoringConfig == nil {
-			monitoringConfig = &models.MonitoringConfig{
-				Path:        "./logs",
-				RefreshTime: "2s",
-				Servers:     []models.ServerConfig{},
-			}
-		}
-		serversConfigErr = nil // Don't propagate errors for monitoring
-	} else {
-		// Stop existing logging if refresh time changed
-		if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
-			stopAutoLogging()
-		}
-
-		monitoringConfig = newConfig
-		serversConfigErr = nil
-
-		// Initialize logger and start auto-logging
-		utils.InitLogger(monitoringConfig)
-		startAutoLogging()
-	}
-	lastConfigModTime = time.Now()
-}
-
-func reloadServersConfigCLI() {
-	newConfig, err := readConfigFromFile()
-
-	serversConfigMutex.Lock()
-	defer serversConfigMutex.Unlock()
-
-	if err != nil {
-		// Keep existing config on error, or use empty config if first load
-		if monitoringConfig == nil {
-			monitoringConfig = &models.MonitoringConfig{
-				Path:        "./logs",
-				RefreshTime: "2s",
-				Servers:     []models.ServerConfig{},
-			}
-		}
-		serversConfigErr = nil // Don't propagate errors for monitoring
-	} else {
-		monitoringConfig = newConfig
-		serversConfigErr = nil
-
-		// CLI mode: DO NOT start auto-logging
-	}
-	lastConfigModTime = time.Now()
-}
-
-func checkAndReloadConfig() {
-	// Get current file modification time
-	cwd, err := os.Getwd()
-	if err != nil {
-		return
-	}
-
-	projectRoot := findProjectRoot(cwd)
-	configPath := filepath.Join(projectRoot, "configs.json")
-
-	fileInfo, err := os.Stat(configPath)
-	if err != nil {
-		return // File doesn't exist or can't be read
-	}
-
-	serversConfigMutex.RLock()
-	lastCheck := lastConfigModTime
+	shouldCheck := time.Since(lastConfigModTime) > 30*time.Second
 	serversConfigMutex.RUnlock()
 
-	// If file is newer than our last reload, reload it
-	if fileInfo.ModTime().After(lastCheck) {
-		reloadServersConfig()
-	} else {
-		// Update last check time even if no reload needed
-		serversConfigMutex.Lock()
-		lastConfigModTime = time.Now()
-		serversConfigMutex.Unlock()
+	if shouldCheck {
+		// Check if config file was modified and reload if needed
+		configPath := getConfigPath()
+		if configPath != "" {
+			if fileInfo, err := os.Stat(configPath); err == nil {
+				serversConfigMutex.RLock()
+				lastCheck := lastConfigModTime
+				serversConfigMutex.RUnlock()
+
+				if fileInfo.ModTime().After(lastCheck) {
+					// Reload config with auto-logging enabled (for API server)
+					newConfig, err := readConfigFromFile()
+
+					serversConfigMutex.Lock()
+					if err == nil {
+						if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
+							stopAutoLogging()
+						}
+						monitoringConfig = newConfig
+						utils.InitLogger(monitoringConfig)
+
+						if monitoringConfig.Storage == "db" || monitoringConfig.Storage == "both" {
+							if err := utils.InitDatabase(); err != nil {
+								log.Printf("Failed to initialize database: %v", err)
+							}
+						}
+						startAutoLogging()
+					}
+					lastConfigModTime = time.Now()
+					serversConfigMutex.Unlock()
+				} else {
+					serversConfigMutex.Lock()
+					lastConfigModTime = time.Now()
+					serversConfigMutex.Unlock()
+				}
+			}
+		}
+	}
+}
+
+// getDefaultConfig returns default configuration
+func getDefaultConfig() *models.MonitoringConfig {
+	return &models.MonitoringConfig{
+		Path:        "./logs",
+		RefreshTime: "2s",
+		Storage:     "file",
+		Servers:     []models.ServerConfig{},
 	}
 }
 
@@ -173,31 +163,55 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 		Timestamp: time.Now(),
 	}
 
-	// Get CPU usage
-	cpuData, err := getCPUInfo()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get CPU info: %w", err)
+	// Collect all system metrics in parallel for better performance
+	type result struct {
+		cpu       models.CPU
+		disk      models.DiskSpace
+		ram       models.RAM
+		heartbeat []models.ServerCheck
+		err       error
 	}
-	monitoring.CPU = cpuData
 
-	// Get disk space
-	diskSpace, err := getDiskSpace("/")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get disk space: %w", err)
+	resultChan := make(chan result, 1)
+
+	go func() {
+		var r result
+
+		// Get system metrics
+		r.cpu, r.err = getCPUInfo()
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
+		r.disk, r.err = getDiskSpace("/")
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
+		r.ram, r.err = getRAMUsage()
+		if r.err != nil {
+			resultChan <- r
+			return
+		}
+
+		// Get heartbeat data
+		servers := GetServersConfig()
+		r.heartbeat = checkServerHeartbeats(servers)
+
+		resultChan <- r
+	}()
+
+	r := <-resultChan
+	if r.err != nil {
+		return nil, r.err
 	}
-	monitoring.DiskSpace = diskSpace
 
-	// Get RAM usage
-	ramUsage, err := getRAMUsage()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get RAM usage: %w", err)
-	}
-	monitoring.RAM = ramUsage
-
-	// Get heartbeat data
-	servers := GetServersConfig()
-	heartbeat := checkServerHeartbeats(servers)
-	monitoring.Heartbeat = heartbeat
+	monitoring.CPU = r.cpu
+	monitoring.DiskSpace = r.disk
+	monitoring.RAM = r.ram
+	monitoring.Heartbeat = r.heartbeat
 
 	return monitoring, nil
 }
@@ -209,24 +223,40 @@ func getCPUInfo() (models.CPU, error) {
 		Architecture: runtime.GOARCH,
 	}
 
-	// Get CPU usage percentage
-	cpuUsage, err := getCPUUsagePercent()
-	if err != nil {
-		// Fallback to goroutine-based estimation if real CPU usage fails
-		cpuUsage = float64(cpuInfo.Goroutines) / float64(cpuInfo.CoreCount*10) * 100
-		if cpuUsage > 100 {
-			cpuUsage = 100
-		}
+	// Get CPU usage and load average concurrently
+	type cpuMetrics struct {
+		usage   float64
+		loadAvg string
 	}
-	cpuInfo.UsagePercent = math.Round(cpuUsage*100) / 100
 
-	// Get load average (Unix-like systems)
-	loadAvg, err := getLoadAverage()
-	if err != nil {
-		cpuInfo.LoadAverage = "unavailable"
-	} else {
-		cpuInfo.LoadAverage = loadAvg
-	}
+	metricsChan := make(chan cpuMetrics, 1)
+	go func() {
+		var metrics cpuMetrics
+
+		// Get CPU usage
+		if usage, err := getCPUUsagePercent(); err == nil {
+			metrics.usage = usage
+		} else {
+			// Fallback calculation
+			metrics.usage = float64(cpuInfo.Goroutines) / float64(cpuInfo.CoreCount*10) * 100
+			if metrics.usage > 100 {
+				metrics.usage = 100
+			}
+		}
+
+		// Get load average
+		if loadAvg, err := getLoadAverage(); err == nil {
+			metrics.loadAvg = loadAvg
+		} else {
+			metrics.loadAvg = "unavailable"
+		}
+
+		metricsChan <- metrics
+	}()
+
+	metrics := <-metricsChan
+	cpuInfo.UsagePercent = math.Round(metrics.usage*100) / 100
+	cpuInfo.LoadAverage = metrics.loadAvg
 
 	return cpuInfo, nil
 }
@@ -501,30 +531,33 @@ func checkSingleServer(server models.ServerConfig) models.ServerCheck {
 }
 
 func readConfigFromFile() (*models.MonitoringConfig, error) {
-	// Get the current working directory to find the root folder
-	cwd, err := os.Getwd()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get current directory: %w", err)
+	configPath := getConfigPath()
+	if configPath == "" {
+		return nil, fmt.Errorf("could not locate configs.json")
 	}
 
-	// Find the project root (look for go.mod file)
-	projectRoot := findProjectRoot(cwd)
-	configPath := filepath.Join(projectRoot, "configs.json")
-
-	// Read the configuration file
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read configs.json: %w", err)
 	}
 
-	// Parse the JSON
 	var config models.MonitoringConfig
-	err = json.Unmarshal(data, &config)
-	if err != nil {
+	if err = json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse configs.json: %w", err)
 	}
 
 	return &config, nil
+}
+
+// getConfigPath returns the path to configs.json
+func getConfigPath() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	projectRoot := findProjectRoot(cwd)
+	return filepath.Join(projectRoot, "configs.json")
 }
 
 func findProjectRoot(startPath string) string {
@@ -546,14 +579,7 @@ func findProjectRoot(startPath string) string {
 	}
 }
 
-// AddCustomServers allows adding custom servers to existing configuration
-func AddCustomServers(servers []models.ServerConfig) []models.ServerConfig {
-	configServers := GetServersConfig()
-	return append(configServers, servers...)
-}
-
 // Utility functions for formatting
-
 func formatBytes(bytes uint64) string {
 	const unit = 1024
 	if bytes < unit {
@@ -632,9 +658,4 @@ func stopAutoLogging() {
 		close(loggingStopChan)
 		loggingStopChan = nil
 	}
-}
-
-// StopAutoLogging provides external access to stop auto-logging
-func StopAutoLogging() {
-	stopAutoLogging()
 }

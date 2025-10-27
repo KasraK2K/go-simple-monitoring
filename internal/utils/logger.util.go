@@ -6,19 +6,15 @@ import (
 	"go-log/internal/api/models"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 )
 
 var (
-	loggerMutex sync.Mutex
-	logConfig   *models.MonitoringConfig
+	logConfig *models.MonitoringConfig
 )
 
 // InitLogger initializes the logger with configuration
 func InitLogger(config *models.MonitoringConfig) {
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
 	logConfig = config
 }
 
@@ -28,13 +24,10 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 		return fmt.Errorf("logger not initialized")
 	}
 
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
-
 	// Create log entry
 	logEntry := models.MonitoringLogEntry{
 		Time: data.Timestamp.Format(time.RFC3339Nano),
-		Body: map[string]interface{}{
+		Body: map[string]any{
 			"cpu_usage_percent": data.CPU.UsagePercent,
 			"cpu_cores":         data.CPU.CoreCount,
 			"cpu_goroutines":    data.CPU.Goroutines,
@@ -52,29 +45,42 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 		},
 	}
 
-	return writeLogEntry(logEntry)
+	// Write to storage based on configuration
+	switch logConfig.Storage {
+	case "file":
+		return writeLogEntry(logEntry)
+	case "db":
+		return WriteToDatabase(logEntry)
+	case "both":
+		if err := writeLogEntry(logEntry); err != nil {
+			return err
+		}
+		return WriteToDatabase(logEntry)
+	default:
+		return fmt.Errorf("invalid storage type: %s", logConfig.Storage)
+	}
 }
 
 // formatHeartbeatForLog converts heartbeat data to log-friendly format
-func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]interface{} {
-	var result []map[string]interface{}
-	
+func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]any {
+	var result []map[string]any
+
 	for _, server := range heartbeat {
-		serverData := map[string]interface{}{
+		serverData := map[string]any{
 			"name":          server.Name,
 			"url":           server.URL,
 			"status":        string(server.Status),
 			"response_ms":   server.ResponseMs,
 			"response_time": server.ResponseTime,
 		}
-		
+
 		if server.Error != "" {
 			serverData["error"] = server.Error
 		}
-		
+
 		result = append(result, serverData)
 	}
-	
+
 	return result
 }
 
@@ -107,7 +113,7 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 	if _, err := file.Write(jsonData); err != nil {
 		return fmt.Errorf("failed to write log entry: %w", err)
 	}
-	
+
 	if _, err := file.WriteString("\n\n"); err != nil {
 		return fmt.Errorf("failed to write newline: %w", err)
 	}
@@ -120,7 +126,7 @@ func GetLogFilePath() string {
 	if logConfig == nil {
 		return ""
 	}
-	
+
 	now := time.Now()
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	return filepath.Join(logConfig.Path, filename)
@@ -131,9 +137,6 @@ func CleanOldLogs(daysToKeep int) error {
 	if logConfig == nil {
 		return fmt.Errorf("logger not initialized")
 	}
-
-	loggerMutex.Lock()
-	defer loggerMutex.Unlock()
 
 	// Read log directory
 	files, err := os.ReadDir(logConfig.Path)

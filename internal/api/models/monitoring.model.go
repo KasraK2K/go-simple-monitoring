@@ -59,6 +59,7 @@ const (
 type MonitoringConfig struct {
 	Path        string         `json:"path"`         // Log file destination path
 	RefreshTime string         `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
+	Storage     string         `json:"storage"`      // Storage type: "file", "db", or "both"
 	Servers     []ServerConfig `json:"servers"`
 }
 
