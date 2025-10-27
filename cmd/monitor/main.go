@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -32,7 +33,7 @@ type DisplayState struct {
 }
 
 const (
-	metricsFieldWidth  = 28
+	metricsFieldWidth  = 30
 	metricsFieldSpacer = 2
 	metricsValueWidth  = 12
 	metricsStartRow    = 7
@@ -55,6 +56,13 @@ var metricsTableRows = [][]string{
 	{"Processes Total:", "Processes Running:", "Processes Sleeping:", "Processes Zombie:"},
 	{"Load Avg 1m:", "Load Avg 5m:", "Load Avg 15m:", "CPU Load Avg:"},
 }
+
+var (
+	neutralColor = color.New(color.FgWhite)
+	healthyColor = color.New(color.FgGreen, color.Bold)
+	warningColor = color.New(color.FgYellow, color.Bold)
+	dangerColor  = color.New(color.FgRed, color.Bold)
+)
 
 var (
 	heartbeatTitleRow        = metricsStartRow + len(metricsTableRows) + 1
@@ -290,90 +298,132 @@ func metricsRow(index int) int {
 
 func updateCPUMetrics(cpu models.CPU, _ Config) {
 	row := metricsRow(0)
+	usageText := fmt.Sprintf("%*.2f", metricsValueWidth, cpu.UsagePercent)
 	usageColor := getStatusColor(cpu.UsagePercent, 80, 60)
-	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, cpu.UsagePercent)
-	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
+	printValue(row, colFirstValue, metricsValueWidth, usageText, usageColor)
 
-	coresStr := fmt.Sprintf("%*d", metricsValueWidth, cpu.CoreCount)
-	printValue(row, colSecondValue, metricsValueWidth, coresStr)
+	coresText := fmt.Sprintf("%*d", metricsValueWidth, cpu.CoreCount)
+	printValue(row, colSecondValue, metricsValueWidth, coresText, neutralColor)
 
-	archStr := fmt.Sprintf("%*s", metricsValueWidth, truncateString(cpu.Architecture, metricsValueWidth))
-	printValue(row, colThirdValue, metricsValueWidth, archStr)
+	archText := fmt.Sprintf("%*s", metricsValueWidth, truncateString(cpu.Architecture, metricsValueWidth))
+	printValue(row, colThirdValue, metricsValueWidth, archText, neutralColor)
 
-	goroutinesStr := fmt.Sprintf("%*d", metricsValueWidth, cpu.Goroutines)
-	printValue(row, colFourthValue, metricsValueWidth, goroutinesStr)
+	goroutinesText := fmt.Sprintf("%*d", metricsValueWidth, cpu.Goroutines)
+	printValue(row, colFourthValue, metricsValueWidth, goroutinesText, neutralColor)
 }
 
 func updateRAMMetrics(ram models.RAM, _ Config) {
 	row := metricsRow(1)
+	usageText := fmt.Sprintf("%*.2f", metricsValueWidth, ram.UsedPct)
 	usageColor := getStatusColor(ram.UsedPct, 80, 60)
-	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, ram.UsedPct)
-	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
+	printValue(row, colFirstValue, metricsValueWidth, usageText, usageColor)
 
-	totalStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.TotalBytes))
-	printValue(row, colSecondValue, metricsValueWidth, totalStr)
+	totalText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.TotalBytes))
+	printValue(row, colSecondValue, metricsValueWidth, totalText, neutralColor)
 
-	usedStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.UsedBytes))
-	printValue(row, colThirdValue, metricsValueWidth, usedStr)
+	usedText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.UsedBytes))
+	usedColor := getUsageColorFromBytes(ram.UsedBytes, ram.TotalBytes)
+	printValue(row, colThirdValue, metricsValueWidth, usedText, usedColor)
 
-	availStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.AvailableBytes))
-	printValue(row, colFourthValue, metricsValueWidth, availStr)
+	availableText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(ram.AvailableBytes))
+	availableColor := getThresholdColorInverse(ram.AvailableBytes, ram.TotalBytes, 0.2, 0.4)
+	printValue(row, colFourthValue, metricsValueWidth, availableText, availableColor)
 }
 
 func updateDiskMetrics(disk models.DiskSpace, _ Config) {
 	row := metricsRow(2)
+	usageText := fmt.Sprintf("%*.2f", metricsValueWidth, disk.UsedPct)
 	usageColor := getStatusColor(disk.UsedPct, 90, 70)
-	usageStr := fmt.Sprintf("%*.2f", metricsValueWidth, disk.UsedPct)
-	printValue(row, colFirstValue, metricsValueWidth, usageColor.Sprint(usageStr))
+	printValue(row, colFirstValue, metricsValueWidth, usageText, usageColor)
 
-	totalStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.TotalBytes))
-	printValue(row, colSecondValue, metricsValueWidth, totalStr)
+	totalText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.TotalBytes))
+	printValue(row, colSecondValue, metricsValueWidth, totalText, neutralColor)
 
-	usedStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.UsedBytes))
-	printValue(row, colThirdValue, metricsValueWidth, usedStr)
+	usedText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.UsedBytes))
+	usedColor := getUsageColorFromBytes(disk.UsedBytes, disk.TotalBytes)
+	printValue(row, colThirdValue, metricsValueWidth, usedText, usedColor)
 
-	availStr := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.AvailableBytes))
-	printValue(row, colFourthValue, metricsValueWidth, availStr)
+	availableText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(disk.AvailableBytes))
+	availableColor := getThresholdColorInverse(disk.AvailableBytes, disk.TotalBytes, 0.1, 0.2)
+	printValue(row, colFourthValue, metricsValueWidth, availableText, availableColor)
 }
 
 func updateLoadAverage(cpu models.CPU, process models.Process) {
 	row := metricsRow(6)
-	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg1))
-	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg5))
-	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg15))
+	load1Text := fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg1)
+	printValue(row, colFirstValue, metricsValueWidth, load1Text, getLoadAverageColor(process.LoadAvg1, cpu.CoreCount))
+
+	load5Text := fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg5)
+	printValue(row, colSecondValue, metricsValueWidth, load5Text, getLoadAverageColor(process.LoadAvg5, cpu.CoreCount))
+
+	load15Text := fmt.Sprintf("%*.2f", metricsValueWidth, process.LoadAvg15)
+	printValue(row, colThirdValue, metricsValueWidth, load15Text, getLoadAverageColor(process.LoadAvg15, cpu.CoreCount))
 
 	if cpu.LoadAverage != "unavailable" {
 		parts := strings.Split(cpu.LoadAverage, ",")
 		if len(parts) > 0 {
-			printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, strings.TrimSpace(parts[0])))
+			firstPart := strings.TrimSpace(parts[0])
+			formatted := fmt.Sprintf("%*s", metricsValueWidth, firstPart)
+			loadColor := neutralColor
+			if value, err := strconv.ParseFloat(firstPart, 64); err == nil {
+				loadColor = getLoadAverageColor(value, cpu.CoreCount)
+			}
+			printValue(row, colFourthValue, metricsValueWidth, formatted, loadColor)
 			return
 		}
 	}
-	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"))
+	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"), neutralColor)
 }
 
 func updateNetworkMetrics(network models.NetworkIO, _ Config) {
 	row := metricsRow(3)
-	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesSent)))
-	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesRecv)))
-	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, network.PacketsSent))
-	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, network.PacketsRecv))
+	sentText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesSent))
+	printValue(row, colFirstValue, metricsValueWidth, sentText, neutralColor)
+
+	receivedText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(network.BytesRecv))
+	printValue(row, colSecondValue, metricsValueWidth, receivedText, neutralColor)
+
+	packetsSentText := fmt.Sprintf("%*d", metricsValueWidth, network.PacketsSent)
+	printValue(row, colThirdValue, metricsValueWidth, packetsSentText, neutralColor)
+
+	packetsReceivedText := fmt.Sprintf("%*d", metricsValueWidth, network.PacketsRecv)
+	printValue(row, colFourthValue, metricsValueWidth, packetsReceivedText, neutralColor)
 }
 
 func updateDiskIOMetrics(diskIO models.DiskIO, _ Config) {
 	row := metricsRow(4)
-	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.ReadBytes)))
-	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.WriteBytes)))
-	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, diskIO.ReadCount))
-	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, diskIO.WriteCount))
+	readBytesText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.ReadBytes))
+	printValue(row, colFirstValue, metricsValueWidth, readBytesText, neutralColor)
+
+	writeBytesText := fmt.Sprintf("%*s", metricsValueWidth, formatBytes(diskIO.WriteBytes))
+	printValue(row, colSecondValue, metricsValueWidth, writeBytesText, neutralColor)
+
+	readCountText := fmt.Sprintf("%*d", metricsValueWidth, diskIO.ReadCount)
+	printValue(row, colThirdValue, metricsValueWidth, readCountText, neutralColor)
+
+	writeCountText := fmt.Sprintf("%*d", metricsValueWidth, diskIO.WriteCount)
+	printValue(row, colFourthValue, metricsValueWidth, writeCountText, neutralColor)
 }
 
 func updateProcessMetrics(process models.Process, _ Config) {
 	row := metricsRow(5)
-	printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.TotalProcesses))
-	printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.RunningProcs))
-	printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.SleepingProcs))
-	printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*d", metricsValueWidth, process.ZombieProcs))
+	totalText := fmt.Sprintf("%*d", metricsValueWidth, process.TotalProcesses)
+	printValue(row, colFirstValue, metricsValueWidth, totalText, neutralColor)
+
+	runningText := fmt.Sprintf("%*d", metricsValueWidth, process.RunningProcs)
+	printValue(row, colSecondValue, metricsValueWidth, runningText, neutralColor)
+
+	sleepingText := fmt.Sprintf("%*d", metricsValueWidth, process.SleepingProcs)
+	printValue(row, colThirdValue, metricsValueWidth, sleepingText, neutralColor)
+
+	zombieText := fmt.Sprintf("%*d", metricsValueWidth, process.ZombieProcs)
+	zombieColor := neutralColor
+	if process.ZombieProcs > 0 {
+		zombieColor = dangerColor
+	} else if process.ZombieProcs == 0 {
+		zombieColor = healthyColor
+	}
+	printValue(row, colFourthValue, metricsValueWidth, zombieText, zombieColor)
 }
 
 func updateHeartbeat(servers []models.ServerCheck, _ Config) {
@@ -426,20 +476,55 @@ func updateHeartbeat(servers []models.ServerCheck, _ Config) {
 	}
 }
 
-func printValue(row, col, width int, value string) {
+func printValue(row, col, width int, value string, colorizer *color.Color) {
 	moveCursor(row, col)
 	fmt.Printf("%-*s", width, "")
 	moveCursor(row, col)
+	if colorizer != nil {
+		fmt.Print(colorizer.Sprint(value))
+		return
+	}
 	fmt.Print(value)
 }
 
 func getStatusColor(value, critical, warning float64) *color.Color {
 	if value >= critical {
-		return color.New(color.FgRed, color.Bold)
+		return dangerColor
 	} else if value >= warning {
-		return color.New(color.FgYellow, color.Bold)
+		return warningColor
 	}
-	return color.New(color.FgGreen, color.Bold)
+	return healthyColor
+}
+
+func getLoadAverageColor(load float64, coreCount int) *color.Color {
+	if coreCount <= 0 {
+		coreCount = 1
+	}
+	utilization := (load / float64(coreCount)) * 100
+	return getStatusColor(utilization, 100, 70)
+}
+
+func getUsageColorFromBytes(used, total uint64) *color.Color {
+	if total == 0 {
+		return neutralColor
+	}
+	percent := (float64(used) / float64(total)) * 100
+	return getStatusColor(percent, 85, 70)
+}
+
+func getThresholdColorInverse(available, total uint64, warningThreshold, healthyThreshold float64) *color.Color {
+	if total == 0 {
+		return neutralColor
+	}
+	availableRatio := float64(available) / float64(total)
+	switch {
+	case availableRatio <= warningThreshold:
+		return dangerColor
+	case availableRatio <= healthyThreshold:
+		return warningColor
+	default:
+		return healthyColor
+	}
 }
 
 // Cursor control functions
