@@ -84,7 +84,7 @@ func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]any {
 	return result
 }
 
-// writeLogEntry writes a single log entry to the daily log file
+// writeLogEntry writes a single log entry to the daily log file in JSON array format
 func writeLogEntry(entry models.MonitoringLogEntry) error {
 	// Generate filename based on current date
 	now := time.Now()
@@ -96,26 +96,38 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	// Convert entry to JSON with pretty formatting
-	jsonData, err := json.MarshalIndent(entry, "", "  ")
+	// Read existing log entries
+	var entries []models.MonitoringLogEntry
+	
+	// Check if file exists
+	if _, err := os.Stat(logPath); err == nil {
+		// File exists, read existing entries
+		data, err := os.ReadFile(logPath)
+		if err != nil {
+			return fmt.Errorf("failed to read existing log file: %w", err)
+		}
+		
+		// If file is not empty, unmarshal existing entries
+		if len(data) > 0 {
+			if err := json.Unmarshal(data, &entries); err != nil {
+				// If unmarshal fails, start with empty array (file might be corrupted)
+				entries = []models.MonitoringLogEntry{}
+			}
+		}
+	}
+
+	// Append new entry
+	entries = append(entries, entry)
+
+	// Marshal all entries to JSON (compact format for production)
+	jsonData, err := json.Marshal(entries)
 	if err != nil {
-		return fmt.Errorf("failed to marshal log entry: %w", err)
+		return fmt.Errorf("failed to marshal log entries: %w", err)
 	}
 
-	// Open log file in append mode
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return fmt.Errorf("failed to open log file: %w", err)
-	}
-	defer file.Close()
-
-	// Write JSON entry followed by newline (but no array brackets)
-	if _, err := file.Write(jsonData); err != nil {
-		return fmt.Errorf("failed to write log entry: %w", err)
-	}
-
-	if _, err := file.WriteString("\n\n"); err != nil {
-		return fmt.Errorf("failed to write newline: %w", err)
+	// Write the complete JSON array to file
+	if err := os.WriteFile(logPath, jsonData, 0644); err != nil {
+		return fmt.Errorf("failed to write log file: %w", err)
 	}
 
 	return nil
