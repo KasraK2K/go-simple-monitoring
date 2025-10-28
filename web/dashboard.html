@@ -495,6 +495,60 @@
             cursor: not-allowed;
         }
 
+        .date-filter {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .date-filter label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .date-filter input[type="datetime-local"] {
+            background: rgba(15, 23, 42, 0.45);
+            border: 1px solid rgba(148, 163, 184, 0.32);
+            border-radius: 10px;
+            padding: 8px 10px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+
+        .date-filter input[type="datetime-local"]:focus {
+            outline: none;
+            border-color: rgba(56, 189, 248, 0.6);
+        }
+
+        .filter-action {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(148, 163, 184, 0.08);
+            color: var(--text-secondary);
+            padding: 9px 18px;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+        }
+
+        .filter-action:hover {
+            border-color: rgba(56, 189, 248, 0.55);
+            color: var(--text-primary);
+        }
+
+        .filter-action.ghost {
+            background: transparent;
+        }
+
 
 
         @media (max-width: 900px) {
@@ -563,6 +617,18 @@
                 <span class="pill">Last updated <span id="lastUpdated">--</span></span>
             </div>
             <div class="server-switcher" id="serverSwitcher"></div>
+            <div class="date-filter">
+                <label>
+                    <span>From</span>
+                    <input type="datetime-local" id="filterFrom" />
+                </label>
+                <label>
+                    <span>To</span>
+                    <input type="datetime-local" id="filterTo" />
+                </label>
+                <button type="button" class="filter-action" id="applyFilter">Apply</button>
+                <button type="button" class="filter-action ghost" id="clearFilter">Clear</button>
+            </div>
         </header>
 
         <section class="metrics-grid">
@@ -698,6 +764,10 @@
         let availableServers = [];
         let selectedServer = null;
         let selectedBaseUrl = '';
+        let pendingFilter = null;
+        let historicalSeries = [];
+        let historicalMode = false;
+        let filterElements = null;
         const LOCAL_SERVER_OPTION = { name: 'Local', address: '' };
 
         function sanitizeBaseUrl(url) {
@@ -714,6 +784,17 @@
                 return `${base}/${path}`;
             }
             return `${base}${path}`;
+        }
+
+        function getHeartbeatKey(server) {
+            if (!server) return '';
+            return server.url || server.name || '';
+        }
+
+        function parseTimestamp(value) {
+            if (!value) return null;
+            const date = new Date(value);
+            return Number.isNaN(date.getTime()) ? null : date;
         }
 
         function initializeCharts() {
@@ -1000,9 +1081,19 @@
         async function fetchMetrics() {
             try {
                 const monitoringUrl = buildEndpoint('/monitoring');
+                const filterPayload = pendingFilter;
+                const requestBody = filterPayload
+                    ? JSON.stringify({
+                        from: filterPayload.from || undefined,
+                        to: filterPayload.to || undefined
+                    })
+                    : null;
+
                 const response = await fetch(monitoringUrl, {
                     method: 'POST',
-                    cache: 'no-store'
+                    cache: 'no-store',
+                    headers: requestBody ? { 'Content-Type': 'application/json' } : undefined,
+                    body: requestBody
                 });
                 if (!response.ok) {
                     throw new Error(`Request failed with status ${response.status}`);
@@ -1026,35 +1117,70 @@
                     throw new Error('No monitoring data available');
                 }
 
-                const normalized = normalizeMetrics(data);
-                const networkDelta = calculateNetworkDelta(normalized, previousMetrics);
+                const normalizedList = entries
+                    .map(entry => normalizeMetrics(entry))
+                    .filter(item => item && typeof item === 'object');
 
-                normalized.network_delta = networkDelta;
+                if (normalizedList.length === 0) {
+                    throw new Error('No monitoring data available');
+                }
 
-                updateMetrics(normalized, networkDelta);
-                updateCharts(normalized, networkDelta);
-                updateTrends(normalized, networkDelta);
+                if (filterPayload) {
+                    historicalSeries = normalizedList;
+                } else if (historicalMode) {
+                    const latest = normalizedList[0];
+                    const latestTimestamp = latest.timestamp;
+                    historicalSeries = [latest, ...historicalSeries.filter(item => item.timestamp !== latestTimestamp)];
+                }
+
+                const activeSeries = historicalMode && historicalSeries.length > 0
+                    ? historicalSeries
+                    : normalizedList;
+
+                const latestNormalized = activeSeries[0];
+                const comparisonBaseline = activeSeries[1] || previousMetrics;
+                const networkDelta = calculateNetworkDelta(latestNormalized, comparisonBaseline);
+
+                latestNormalized.network_delta = networkDelta;
+
+                updateMetrics(latestNormalized, networkDelta);
+
+                if (historicalMode) {
+                    renderHistoricalCharts(activeSeries);
+                } else {
+                    updateCharts(latestNormalized, networkDelta);
+                }
+
+                updateTrends(latestNormalized, networkDelta, comparisonBaseline);
                 updateStatus(true);
-                updateHeartbeat(normalized.heartbeat || []);
+
+                let uptimeStats = null;
+                if (historicalMode) {
+                    uptimeStats = calculateHeartbeatUptime(activeSeries);
+                }
+                updateHeartbeat(latestNormalized.heartbeat || [], uptimeStats);
 
                 const lastUpdated = document.getElementById('lastUpdated');
                 if (lastUpdated) {
                     lastUpdated.textContent = new Date().toLocaleTimeString();
                 }
 
-                previousMetrics = normalized;
+                previousMetrics = latestNormalized;
+                if (filterPayload) {
+                    pendingFilter = null;
+                }
             } catch (error) {
                 console.error('Error fetching metrics:', error);
                 showErrorState();
             }
         }
 
-        function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_sent: 0 }) {
+        function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_sent: 0, durationSeconds: null }) {
             setMetricValue('cpu', data.cpu_usage, 1);
             setMetricValue('memory', data.memory?.percentage, 1);
             setMetricValue('disk', data.disk?.percentage, 1);
-            setMetricValue('networkRx', bytesToMbPerSecond(networkDelta.bytes_received), 2);
-            setMetricValue('networkTx', bytesToMbPerSecond(networkDelta.bytes_sent), 2);
+            setMetricValue('networkRx', bytesToMbPerSecond(networkDelta.bytes_received, networkDelta.durationSeconds), 2);
+            setMetricValue('networkTx', bytesToMbPerSecond(networkDelta.bytes_sent, networkDelta.durationSeconds), 2);
             setMetricValue('loadAvg', data.load_average?.one_minute, 2);
 
             updateProgress('cpuBar', data.cpu_usage);
@@ -1077,13 +1203,15 @@
             return bytes / 1024 / 1024;
         }
 
-        function bytesToMbPerSecond(bytes) {
+        function bytesToMbPerSecond(bytes, seconds = null) {
             if (bytes === undefined || bytes === null) return undefined;
-            const seconds = refreshInterval / 1000;
-            if (!Number.isFinite(seconds) || seconds <= 0) {
+            const intervalSeconds = Number.isFinite(seconds) && seconds > 0
+                ? seconds
+                : refreshInterval / 1000;
+            if (!Number.isFinite(intervalSeconds) || intervalSeconds <= 0) {
                 return bytesToMb(bytes);
             }
-            return (bytes / 1024 / 1024) / seconds;
+            return (bytes / 1024 / 1024) / intervalSeconds;
         }
 
         function toFiniteNumber(value) {
@@ -1112,10 +1240,66 @@
             const previousRx = toFiniteNumber(previousNetwork.bytes_received);
             const previousTx = toFiniteNumber(previousNetwork.bytes_sent);
 
+            const currentTime = parseTimestamp(current?.timestamp);
+            const previousTime = parseTimestamp(previous?.timestamp);
+            let durationSeconds = null;
+            if (currentTime && previousTime) {
+                const diffMs = currentTime.getTime() - previousTime.getTime();
+                if (Number.isFinite(diffMs) && diffMs > 0) {
+                    durationSeconds = diffMs / 1000;
+                }
+            }
+
             return {
                 bytes_received: deriveCounterDelta(currentRx, previousRx, hasPrevious),
-                bytes_sent: deriveCounterDelta(currentTx, previousTx, hasPrevious)
+                bytes_sent: deriveCounterDelta(currentTx, previousTx, hasPrevious),
+                durationSeconds
             };
+        }
+
+        function calculateHeartbeatUptime(series) {
+            if (!Array.isArray(series) || series.length === 0) return null;
+
+            const statsMap = new Map();
+
+            series.forEach(entry => {
+                const heartbeatList = entry?.heartbeat;
+                if (!Array.isArray(heartbeatList)) return;
+
+                heartbeatList.forEach(server => {
+                    const key = getHeartbeatKey(server);
+                    if (!key) return;
+
+                    if (!statsMap.has(key)) {
+                        statsMap.set(key, {
+                            name: server.name || 'Unknown',
+                            url: server.url || '',
+                            up: 0,
+                            total: 0
+                        });
+                    }
+
+                    const entryStats = statsMap.get(key);
+                    entryStats.total += 1;
+                    if ((server.status || '').toLowerCase() === 'up') {
+                        entryStats.up += 1;
+                    }
+                });
+            });
+
+            const result = {};
+            statsMap.forEach((value, key) => {
+                const uptime = value.total > 0 ? (value.up / value.total) * 100 : null;
+                result[key] = {
+                    name: value.name,
+                    url: value.url,
+                    upCount: value.up,
+                    totalCount: value.total,
+                    uptime
+                };
+            });
+
+            return Object.keys(result).length > 0 ? result : null;
         }
 
         function updateProgress(id, value) {
@@ -1129,26 +1313,26 @@
             bar.style.width = `${clamped}%`;
         }
 
-        function updateTrends(data, networkDelta = { bytes_received: 0, bytes_sent: 0 }) {
-            if (!previousMetrics || previousMetrics.cpu_usage === undefined || previousMetrics.cpu_usage === null) return;
+        function updateTrends(data, networkDelta = { bytes_received: 0, bytes_sent: 0, durationSeconds: null }, referenceMetrics = previousMetrics) {
+            if (!referenceMetrics || referenceMetrics.cpu_usage === undefined || referenceMetrics.cpu_usage === null) return;
 
-            const previousNetworkDelta = previousMetrics.network_delta || {};
+            const previousNetworkDelta = referenceMetrics.network_delta || {};
 
             const trends = [
-                { id: 'cpuTrend', current: data.cpu_usage, previous: previousMetrics.cpu_usage },
-                { id: 'memoryTrend', current: data.memory?.percentage, previous: previousMetrics.memory?.percentage },
-                { id: 'diskTrend', current: data.disk?.percentage, previous: previousMetrics.disk?.percentage },
+                { id: 'cpuTrend', current: data.cpu_usage, previous: referenceMetrics.cpu_usage },
+                { id: 'memoryTrend', current: data.memory?.percentage, previous: referenceMetrics.memory?.percentage },
+                { id: 'diskTrend', current: data.disk?.percentage, previous: referenceMetrics.disk?.percentage },
                 {
                     id: 'networkRxTrend',
-                    current: bytesToMbPerSecond(networkDelta.bytes_received),
-                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_received)
+                    current: bytesToMbPerSecond(networkDelta.bytes_received, networkDelta.durationSeconds),
+                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_received, previousNetworkDelta.durationSeconds)
                 },
                 {
                     id: 'networkTxTrend',
-                    current: bytesToMbPerSecond(networkDelta.bytes_sent),
-                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_sent)
+                    current: bytesToMbPerSecond(networkDelta.bytes_sent, networkDelta.durationSeconds),
+                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_sent, previousNetworkDelta.durationSeconds)
                 },
-                { id: 'loadTrend', current: data.load_average?.one_minute, previous: previousMetrics.load_average?.one_minute }
+                { id: 'loadTrend', current: data.load_average?.one_minute, previous: referenceMetrics.load_average?.one_minute }
             ];
 
             trends.forEach(({ id, current, previous }) => {
@@ -1198,14 +1382,84 @@
                 networkChart.update('none');
             }
 
+            updateUsageDonut(data);
+        }
+
+        function renderHistoricalCharts(series) {
+            if (!Array.isArray(series) || series.length === 0) return;
+            if (!systemChart || !networkChart) return;
+
+            const chronological = [...series].reverse();
+
+            systemChart.data.labels = [];
+            systemChart.data.datasets[0].data = [];
+            systemChart.data.datasets[1].data = [];
+
+            networkChart.data.labels = [];
+            networkChart.data.datasets[0].data = [];
+            networkChart.data.datasets[1].data = [];
+
+            let previous = null;
+            chronological.forEach(item => {
+                const timestamp = parseTimestamp(item.timestamp);
+                const label = timestamp
+                    ? timestamp.toLocaleString()
+                    : new Date().toLocaleString();
+
+                systemChart.data.labels.push(label);
+                systemChart.data.datasets[0].data.push(item.cpu_usage || 0);
+                systemChart.data.datasets[1].data.push(item.memory?.percentage || 0);
+
+                const delta = calculateNetworkDelta(item, previous);
+                networkChart.data.labels.push(label);
+                networkChart.data.datasets[0].data.push(bytesToMbPerSecond(delta.bytes_received, delta.durationSeconds) || 0);
+                networkChart.data.datasets[1].data.push(bytesToMbPerSecond(delta.bytes_sent, delta.durationSeconds) || 0);
+
+                previous = item;
+            });
+
+            systemChart.update('default');
+            networkChart.update('default');
+
+            updateUsageDonut(series[0]);
+        }
+
+        function resetCharts() {
+            if (systemChart) {
+                systemChart.data.labels = [];
+                systemChart.data.datasets.forEach(dataset => {
+                    dataset.data = [];
+                });
+                systemChart.update('none');
+            }
+            if (networkChart) {
+                networkChart.data.labels = [];
+                networkChart.data.datasets.forEach(dataset => {
+                    dataset.data = [];
+                });
+                networkChart.update('none');
+            }
+
             if (usageDonut) {
-                usageDonut.data.datasets[0].data = [
-                    data.cpu_usage || 0,
-                    data.memory?.percentage || 0,
-                    data.disk?.percentage || 0
-                ];
+                usageDonut.data.datasets[0].data = [0, 0, 0];
                 usageDonut.update('none');
             }
+        }
+
+        function updateUsageDonut(data) {
+            if (!usageDonut || !data) return;
+            usageDonut.data.datasets[0].data = [
+                data.cpu_usage || data.cpu?.usage_percent || 0,
+                data.memory?.percentage
+                ?? data.memory?.used_pct
+                ?? data.ram_used_percent
+                ?? 0,
+                data.disk?.percentage
+                ?? data.disk_space?.used_pct
+                ?? data.disk_used_percent
+                ?? 0
+            ];
+            usageDonut.update('none');
         }
 
         function renderServerButtons() {
@@ -1245,6 +1499,9 @@
 
             selectedServer = server.address ? { ...server, address } : null;
             selectedBaseUrl = address;
+            pendingFilter = null;
+            historicalMode = false;
+            historicalSeries = [];
             previousMetrics = null;
 
             updateStatus(false);
@@ -1254,6 +1511,7 @@
                 lastUpdated.textContent = '--';
             }
 
+            resetCharts();
             renderServerButtons();
 
             clearTimeout(refreshTimer);
@@ -1300,6 +1558,84 @@
             }
         }
 
+        function getFilterInputs() {
+            if (!filterElements) return { from: null, to: null };
+            return {
+                from: filterElements.fromInput ? filterElements.fromInput.value : '',
+                to: filterElements.toInput ? filterElements.toInput.value : ''
+            };
+        }
+
+        function formatDateInputToISO(value, endOfRange = false) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '';
+            }
+            if (endOfRange) {
+                const hasSeconds = /:\d{2}$/.test(value);
+                if (!hasSeconds) {
+                    date.setSeconds(59, 999);
+                }
+            }
+            return date.toISOString();
+        }
+
+        async function applyDateFilter() {
+            const { from, to } = getFilterInputs();
+            if (!from && !to) {
+                pendingFilter = null;
+                historicalMode = false;
+                historicalSeries = [];
+                clearTimeout(refreshTimer);
+                resetCharts();
+                await fetchMetrics();
+                scheduleNextFetch();
+                return;
+            }
+
+            const fromISO = formatDateInputToISO(from);
+            const toISO = formatDateInputToISO(to, true);
+
+            if (fromISO && toISO) {
+                const fromDate = new Date(fromISO);
+                const toDate = new Date(toISO);
+                if (fromDate > toDate) {
+                    console.warn('Invalid range: From must be earlier than To');
+                    return;
+                }
+            }
+
+            pendingFilter = {
+                from: fromISO || null,
+                to: toISO || null
+            };
+            historicalMode = true;
+            historicalSeries = [];
+            previousMetrics = null;
+
+            clearTimeout(refreshTimer);
+            resetCharts();
+            await fetchMetrics();
+            scheduleNextFetch();
+        }
+
+        async function clearDateFilter() {
+            pendingFilter = null;
+            historicalMode = false;
+            historicalSeries = [];
+            previousMetrics = null;
+            if (filterElements) {
+                if (filterElements.fromInput) filterElements.fromInput.value = '';
+                if (filterElements.toInput) filterElements.toInput.value = '';
+            }
+
+            clearTimeout(refreshTimer);
+            resetCharts();
+            await fetchMetrics();
+            scheduleNextFetch();
+        }
+
         function updateRefreshDisplay() {
             const display = document.getElementById('refreshDisplay');
             if (!display) return;
@@ -1326,7 +1662,7 @@
             updateHeartbeat();
         }
 
-        function updateHeartbeat(servers = []) {
+        function updateHeartbeat(servers = [], uptimeStats = null) {
             const list = document.getElementById('heartbeatList');
             const summary = document.getElementById('heartbeatSummary');
             if (!list) return;
@@ -1342,6 +1678,8 @@
             }
 
             let onlineCount = 0;
+            let uptimeAccumulator = 0;
+            let uptimeSamples = 0;
 
             servers.forEach(server => {
                 const status = (server.status || '').toLowerCase();
@@ -1352,6 +1690,15 @@
 
                 const responseTime = formatResponseTime(server.response_ms);
                 const lastChecked = formatLastChecked(server.last_checked);
+                const key = getHeartbeatKey(server);
+                const uptimeInfo = uptimeStats && key ? uptimeStats[key] : null;
+                const uptimeText = uptimeInfo && Number.isFinite(uptimeInfo.uptime)
+                    ? `${uptimeInfo.uptime.toFixed(1)}%`
+                    : null;
+                if (uptimeText) {
+                    uptimeAccumulator += uptimeInfo.uptime;
+                    uptimeSamples += 1;
+                }
 
                 card.innerHTML = `
                     <div class="heartbeat-info">
@@ -1369,11 +1716,26 @@
                     </div>
                 `;
 
+                if (uptimeText) {
+                    const uptimeDetail = document.createElement('div');
+                    uptimeDetail.className = 'heartbeat-detail';
+                    uptimeDetail.innerHTML = `
+                        <span class="label">Uptime</span>
+                        <span class="value">${escapeHtml(uptimeText)}</span>
+                    `;
+                    card.appendChild(uptimeDetail);
+                }
+
                 list.appendChild(card);
             });
 
             if (summary) {
-                summary.textContent = `${onlineCount} online / ${servers.length} total`;
+                let summaryText = `${onlineCount} online / ${servers.length} total`;
+                if (uptimeSamples > 0) {
+                    const avgUptime = uptimeAccumulator / uptimeSamples;
+                    summaryText += ` · Avg ${avgUptime.toFixed(1)}% uptime`;
+                }
+                summary.textContent = summaryText;
             }
         }
 
@@ -1435,6 +1797,19 @@
         async function init() {
             initializeCharts();
             renderServerButtons();
+            filterElements = {
+                fromInput: document.getElementById('filterFrom'),
+                toInput: document.getElementById('filterTo'),
+                applyButton: document.getElementById('applyFilter'),
+                clearButton: document.getElementById('clearFilter')
+            };
+
+            if (filterElements.applyButton) {
+                filterElements.applyButton.addEventListener('click', applyDateFilter);
+            }
+            if (filterElements.clearButton) {
+                filterElements.clearButton.addEventListener('click', clearDateFilter);
+            }
             await fetchServerConfig(selectedBaseUrl);
             await fetchMetrics();
             scheduleNextFetch();
