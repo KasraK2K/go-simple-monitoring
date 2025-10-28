@@ -54,10 +54,11 @@ const (
 )
 
 type MonitoringConfig struct {
-	Path        string         `json:"path"`         // Log file destination path
-	RefreshTime string         `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
-	Storage     string         `json:"storage"`      // Storage type: "file", "db", or "both"
-	Heartbeat   []ServerConfig `json:"heartbeat"`
+	Path        string           `json:"path"`         // Log file destination path
+	RefreshTime string           `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
+	Storage     string           `json:"storage"`      // Storage type: "file", "db", or "both"
+	Heartbeat   []ServerConfig   `json:"heartbeat"`
+	Servers     []ServerEndpoint `json:"servers"`
 }
 
 type ServerConfig struct {
@@ -75,6 +76,11 @@ type NetworkIO struct {
 	ErrorsOut   uint64 `json:"errors_out"`   // Output errors
 	DropsIn     uint64 `json:"drops_in"`     // Input drops
 	DropsOut    uint64 `json:"drops_out"`    // Output drops
+}
+
+type ServerEndpoint struct {
+	Name    string `json:"name"`
+	Address string `json:"address"`
 }
 
 type DiskIO struct {

@@ -51,6 +51,16 @@ sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
       "url": "https://api.github.com",
       "timeout": 5
     }
+  ],
+  "servers": [
+    {
+      "name": "Production",
+      "address": "https://monitoring.example.com"
+    },
+    {
+      "name": "Staging",
+      "address": "https://staging-monitor.example.com"
+    }
   ]
 }
 EOF

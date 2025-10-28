@@ -171,6 +171,7 @@ func getDefaultConfig() *models.MonitoringConfig {
 		RefreshTime: "2s",
 		Storage:     "file",
 		Heartbeat:   []models.ServerConfig{},
+		Servers:     []models.ServerEndpoint{},
 	}
 }
 

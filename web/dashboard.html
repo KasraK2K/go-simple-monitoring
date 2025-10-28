@@ -461,6 +461,40 @@
             height: 280px;
         }
 
+        .server-switcher {
+            margin-top: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .server-button {
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(148, 163, 184, 0.08);
+            color: var(--text-secondary);
+            padding: 10px 18px;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            letter-spacing: 0.02em;
+            transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+        }
+
+        .server-button:hover {
+            border-color: rgba(56, 189, 248, 0.55);
+            color: var(--text-primary);
+        }
+
+        .server-button.active {
+            border-color: rgba(56, 189, 248, 0.65);
+            background: rgba(56, 189, 248, 0.16);
+            color: var(--text-primary);
+        }
+
+        .server-button[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
 
 
         @media (max-width: 900px) {
@@ -528,6 +562,7 @@
                 <span class="pill">Refresh <span id="refreshDisplay">2s</span></span>
                 <span class="pill">Last updated <span id="lastUpdated">--</span></span>
             </div>
+            <div class="server-switcher" id="serverSwitcher"></div>
         </header>
 
         <section class="metrics-grid">
@@ -660,6 +695,26 @@
         let refreshTimer;
         let previousMetrics = null;
         let serverConfig = null;
+        let availableServers = [];
+        let selectedServer = null;
+        let selectedBaseUrl = '';
+        const LOCAL_SERVER_OPTION = { name: 'Local', address: '' };
+
+        function sanitizeBaseUrl(url) {
+            if (!url) return '';
+            return String(url).replace(/\/+$/, '');
+        }
+
+        function buildEndpoint(path) {
+            const base = sanitizeBaseUrl(selectedBaseUrl);
+            if (!base) {
+                return path;
+            }
+            if (!path.startsWith('/')) {
+                return `${base}/${path}`;
+            }
+            return `${base}${path}`;
+        }
 
         function initializeCharts() {
             const systemCtx = document.getElementById('systemChart').getContext('2d');
@@ -746,7 +801,7 @@
                     labels: [],
                     datasets: [
                         {
-                            label: 'Received (MB)',
+                            label: 'Received (MB/s)',
                             data: [],
                             borderColor: 'rgba(52, 211, 153, 0.9)',
                             backgroundColor: rxGradient,
@@ -756,7 +811,7 @@
                             pointRadius: 0
                         },
                         {
-                            label: 'Sent (MB)',
+                            label: 'Sent (MB/s)',
                             data: [],
                             borderColor: 'rgba(248, 113, 113, 0.9)',
                             backgroundColor: txGradient,
@@ -944,7 +999,8 @@
 
         async function fetchMetrics() {
             try {
-                const response = await fetch('/monitoring', {
+                const monitoringUrl = buildEndpoint('/monitoring');
+                const response = await fetch(monitoringUrl, {
                     method: 'POST',
                     cache: 'no-store'
                 });
@@ -1152,21 +1208,95 @@
             }
         }
 
-        async function fetchServerConfig() {
+        function renderServerButtons() {
+            const container = document.getElementById('serverSwitcher');
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            const servers = [LOCAL_SERVER_OPTION, ...availableServers];
+            const activeAddress = sanitizeBaseUrl(selectedBaseUrl);
+
+            servers.forEach(server => {
+                if (!server || !server.name) {
+                    return;
+                }
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'server-button';
+                button.textContent = server.name;
+
+                const serverAddress = sanitizeBaseUrl(server.address || '');
+                if (serverAddress === activeAddress) {
+                    button.classList.add('active');
+                }
+
+                button.addEventListener('click', () => handleServerSelection(server));
+                container.appendChild(button);
+            });
+        }
+
+        async function handleServerSelection(server) {
+            const address = sanitizeBaseUrl(server.address || '');
+            if (address === sanitizeBaseUrl(selectedBaseUrl)) {
+                return;
+            }
+
+            selectedServer = server.address ? { ...server, address } : null;
+            selectedBaseUrl = address;
+            previousMetrics = null;
+
+            updateStatus(false);
+            updateHeartbeat();
+            const lastUpdated = document.getElementById('lastUpdated');
+            if (lastUpdated) {
+                lastUpdated.textContent = '--';
+            }
+
+            renderServerButtons();
+
+            clearTimeout(refreshTimer);
+            await fetchServerConfig(selectedBaseUrl);
+            await fetchMetrics();
+            scheduleNextFetch();
+        }
+
+        async function fetchServerConfig(baseUrl = '') {
             try {
-                const response = await fetch('/api/v1/server-config', { cache: 'no-store' });
-                if (!response.ok) return;
+                const sanitizedBase = sanitizeBaseUrl(baseUrl);
+                const endpoint = sanitizedBase ? `${sanitizedBase}/api/v1/server-config` : '/api/v1/server-config';
+                const response = await fetch(endpoint, { cache: 'no-store' });
+                if (!response.ok) {
+                    return null;
+                }
 
                 const config = await response.json();
-                serverConfig = config;
+                if (!sanitizedBase) {
+                    serverConfig = config;
+                    availableServers = Array.isArray(config.servers)
+                        ? config.servers
+                            .filter(server => server && server.name && server.address)
+                            .map(server => ({
+                                name: server.name,
+                                address: sanitizeBaseUrl(server.address)
+                            }))
+                        : [];
+
+                    renderServerButtons();
+                }
 
                 const candidate = Number(config.refresh_interval_seconds) * 1000;
                 if (!Number.isNaN(candidate) && candidate > 0) {
                     refreshInterval = candidate;
                     updateRefreshDisplay();
                 }
+
+                return config;
             } catch (error) {
-                console.debug('Using existing server config:', error);
+                const target = baseUrl ? baseUrl : 'local';
+                console.debug(`Using existing server config for ${target}:`, error);
+                return null;
             }
         }
 
@@ -1296,7 +1426,7 @@
         function scheduleNextFetch() {
             clearTimeout(refreshTimer);
             refreshTimer = setTimeout(async () => {
-                await fetchServerConfig();
+                await fetchServerConfig(selectedBaseUrl);
                 await fetchMetrics();
                 scheduleNextFetch();
             }, refreshInterval);
@@ -1304,7 +1434,8 @@
 
         async function init() {
             initializeCharts();
-            await fetchServerConfig();
+            renderServerButtons();
+            await fetchServerConfig(selectedBaseUrl);
             await fetchMetrics();
             scheduleNextFetch();
         }

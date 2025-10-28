@@ -23,5 +23,15 @@
       "url": "https://httpbin.org/status/200",
       "timeout": 10
     }
+  ],
+  "servers": [
+    {
+      "name": "Production",
+      "address": "https://monitoring.example.com"
+    },
+    {
+      "name": "Staging",
+      "address": "https://staging-monitor.example.com"
+    }
   ]
 }

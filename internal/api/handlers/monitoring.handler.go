@@ -43,6 +43,7 @@ func MonitoringRoutes() {
 		payload := map[string]any{
 			"refresh_interval_seconds": refresh,
 			"heartbeat":                cfg.Heartbeat,
+			"servers":                  cfg.Servers,
 			"storage":                  cfg.Storage,
 			"path":                     cfg.Path,
 		}
