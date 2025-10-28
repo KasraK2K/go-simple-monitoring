@@ -106,10 +106,6 @@ func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]any {
 			"response_time": server.ResponseTime,
 		}
 
-		if server.Error != "" {
-			serverData["error"] = server.Error
-		}
-
 		result = append(result, serverData)
 	}
 
