@@ -38,8 +38,54 @@ The system automatically logs monitoring data to daily files in `YYYY-MM-DD.log`
 
 ---
 
-## Example Request
+## API Testing
+
+### Test Monitoring Endpoint
+
+**Test without filters (current metrics):**
 
 ```bash
-curl -X POST "<DOMAIN>/monitoring" -H "Content-Type: application/json" -H "Authorization: Bearer <TOKEN>"
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+**Test with date range filter:**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "2024-01-01",
+    "to": "2024-01-31"
+  }'
+```
+
+**Test with from date only:**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "2024-01-01"
+  }'
+```
+
+**Test with to date only:**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "2024-01-31"
+  }'
+```
+
+**Test with Authorization (Production Mode):**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{}'
 ```

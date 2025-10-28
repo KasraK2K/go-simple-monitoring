@@ -4,6 +4,7 @@ import (
 	"go-log/internal/utils"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
 )
 
@@ -76,4 +77,19 @@ func IsProduction() bool {
 	}
 
 	return env == "production" || env == "prod"
+}
+
+func MethodMiddleware(allowedMethods ...string) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			methodAllowed := slices.Contains(allowedMethods, r.Method)
+
+			if !methodAllowed {
+				setHeader(w, http.StatusMethodNotAllowed, `{"status":false, "error": "Method not allowed"}`)
+				return
+			}
+
+			next(w, r)
+		}
+	}
 }

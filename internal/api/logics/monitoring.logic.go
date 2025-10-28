@@ -244,6 +244,27 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	return monitoring, nil
 }
 
+func MonitoringDataGeneratorWithFilter(from, to string) ([]any, error) {
+	// Check if database is initialized and accessible
+	if !utils.IsDatabaseInitialized() {
+		return []any{}, fmt.Errorf("database is not accessible or not initialized")
+	}
+
+	// Query filtered data from database
+	filteredData, err := utils.QueryFilteredMonitoringData(from, to)
+	if err != nil {
+		return []any{}, fmt.Errorf("failed to query filtered monitoring data: %w", err)
+	}
+
+	// Convert to []any
+	result := make([]any, len(filteredData))
+	for i, entry := range filteredData {
+		result[i] = entry
+	}
+
+	return result, nil
+}
+
 func getCPUInfo() (models.CPU, error) {
 	cpuInfo := models.CPU{
 		CoreCount:    runtime.NumCPU(),

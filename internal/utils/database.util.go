@@ -200,3 +200,73 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	return stats, nil
 }
+
+// IsDatabaseInitialized checks if the database is initialized and accessible
+func IsDatabaseInitialized() bool {
+	if db == nil {
+		return false
+	}
+
+	// Test if database is still accessible
+	err := db.Ping()
+	return err == nil
+}
+
+// QueryFilteredMonitoringData retrieves monitoring data within a date range
+func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, error) {
+	if db == nil {
+		return nil, fmt.Errorf("database not initialized")
+	}
+
+	var query string
+	var args []any
+
+	// Build query based on provided filters
+	if from != "" && to != "" {
+		query = `SELECT timestamp, data FROM monitoring_logs 
+				WHERE created_at >= ? AND created_at <= ? 
+				ORDER BY created_at DESC`
+		args = []any{from, to}
+	} else if from != "" {
+		query = `SELECT timestamp, data FROM monitoring_logs 
+				WHERE created_at >= ? 
+				ORDER BY created_at DESC`
+		args = []any{from}
+	} else if to != "" {
+		query = `SELECT timestamp, data FROM monitoring_logs 
+				WHERE created_at <= ? 
+				ORDER BY created_at DESC`
+		args = []any{to}
+	} else {
+		return nil, fmt.Errorf("either from or to filter must be provided")
+	}
+
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query filtered data: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []models.MonitoringLogEntry
+	for rows.Next() {
+		var timestamp, jsonData string
+		err := rows.Scan(&timestamp, &jsonData)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		var entry models.MonitoringLogEntry
+		err = json.Unmarshal([]byte(jsonData), &entry)
+		if err != nil {
+			return nil, fmt.Errorf("failed to unmarshal data: %w", err)
+		}
+
+		entries = append(entries, entry)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error: %w", err)
+	}
+
+	return entries, nil
+}
