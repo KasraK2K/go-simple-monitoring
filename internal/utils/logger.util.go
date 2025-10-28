@@ -18,14 +18,13 @@ func InitLogger(config *models.MonitoringConfig) {
 	logConfig = config
 }
 
-// LogMonitoringData writes monitoring data to daily log file
-func LogMonitoringData(data *models.SystemMonitoring) error {
-	if logConfig == nil {
-		return fmt.Errorf("logger not initialized")
+// BuildMonitoringLogEntry converts a SystemMonitoring snapshot into the log entry structure used for persistence.
+func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLogEntry {
+	if data == nil {
+		return models.MonitoringLogEntry{}
 	}
 
-	// Create log entry
-	logEntry := models.MonitoringLogEntry{
+	return models.MonitoringLogEntry{
 		Time: data.Timestamp.Format(time.RFC3339Nano),
 		Body: map[string]any{
 			"cpu_usage_percent":    data.CPU.UsagePercent,
@@ -67,6 +66,16 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 			"heartbeat":            formatHeartbeatForLog(data.Heartbeat),
 		},
 	}
+}
+
+// LogMonitoringData writes monitoring data to daily log file
+func LogMonitoringData(data *models.SystemMonitoring) error {
+	if logConfig == nil {
+		return fmt.Errorf("logger not initialized")
+	}
+
+	// Create log entry
+	logEntry := BuildMonitoringLogEntry(data)
 
 	// Write to storage based on configuration
 	switch logConfig.Storage {

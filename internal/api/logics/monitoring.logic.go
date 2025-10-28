@@ -256,6 +256,15 @@ func MonitoringDataGeneratorWithFilter(from, to string) ([]any, error) {
 		return []any{}, fmt.Errorf("failed to query filtered monitoring data: %w", err)
 	}
 
+	if len(filteredData) == 0 {
+		currentData, err := MonitoringDataGenerator()
+		if err != nil {
+			return []any{}, fmt.Errorf("failed to generate current monitoring data: %w", err)
+		}
+		fallbackEntry := utils.BuildMonitoringLogEntry(currentData)
+		return []any{fallbackEntry}, nil
+	}
+
 	// Convert to []any
 	result := make([]any, len(filteredData))
 	for i, entry := range filteredData {

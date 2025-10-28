@@ -26,6 +26,14 @@ go build \
 
 The system automatically logs monitoring data to daily files in `YYYY-MM-DD.log` format based on the `configs.json` configuration.
 
+### Storage Configuration
+
+In `configs.json`, you can control where logs are stored using the `storage` field:
+
+- `"file"` - Write logs only to log files (recommended for production)
+- `"db"` - Write logs only to database
+- `"both"` - Write logs to both files and database
+
 ### Storage Requirements
 
 | Interval | Daily Size | Weekly Size | Monthly Size | Yearly Size |
