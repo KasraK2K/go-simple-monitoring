@@ -580,7 +580,7 @@
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="networkRx">--</span>
-                    <span class="metric-unit">MB</span>
+                    <span class="metric-unit">MB/s</span>
                 </div>
             </article>
 
@@ -591,7 +591,7 @@
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="networkTx">--</span>
-                    <span class="metric-unit">MB</span>
+                    <span class="metric-unit">MB/s</span>
                 </div>
             </article>
 
@@ -620,7 +620,7 @@
             <article class="glass-panel chart-card">
                 <div class="chart-header">
                     <h3>Network Throughput</h3>
-                    <span class="chart-subtitle">Inbound vs outbound traffic</span>
+                    <span class="chart-subtitle">Inbound vs outbound throughput (MB/s)</span>
                 </div>
                 <div class="chart-wrapper">
                     <canvas id="networkChart"></canvas>
@@ -971,10 +971,13 @@
                 }
 
                 const normalized = normalizeMetrics(data);
+                const networkDelta = calculateNetworkDelta(normalized, previousMetrics);
 
-                updateMetrics(normalized);
-                updateCharts(normalized);
-                updateTrends(normalized);
+                normalized.network_delta = networkDelta;
+
+                updateMetrics(normalized, networkDelta);
+                updateCharts(normalized, networkDelta);
+                updateTrends(normalized, networkDelta);
                 updateStatus(true);
                 updateHeartbeat(normalized.heartbeat || []);
 
@@ -990,12 +993,12 @@
             }
         }
 
-        function updateMetrics(data) {
+        function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_sent: 0 }) {
             setMetricValue('cpu', data.cpu_usage, 1);
             setMetricValue('memory', data.memory?.percentage, 1);
             setMetricValue('disk', data.disk?.percentage, 1);
-            setMetricValue('networkRx', bytesToMb(data.network?.bytes_received), 2);
-            setMetricValue('networkTx', bytesToMb(data.network?.bytes_sent), 2);
+            setMetricValue('networkRx', bytesToMbPerSecond(networkDelta.bytes_received), 2);
+            setMetricValue('networkTx', bytesToMbPerSecond(networkDelta.bytes_sent), 2);
             setMetricValue('loadAvg', data.load_average?.one_minute, 2);
 
             updateProgress('cpuBar', data.cpu_usage);
@@ -1018,6 +1021,47 @@
             return bytes / 1024 / 1024;
         }
 
+        function bytesToMbPerSecond(bytes) {
+            if (bytes === undefined || bytes === null) return undefined;
+            const seconds = refreshInterval / 1000;
+            if (!Number.isFinite(seconds) || seconds <= 0) {
+                return bytesToMb(bytes);
+            }
+            return (bytes / 1024 / 1024) / seconds;
+        }
+
+        function toFiniteNumber(value) {
+            if (value === undefined || value === null) return NaN;
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : NaN;
+        }
+
+        function deriveCounterDelta(current, previous, hasPrevious) {
+            if (!Number.isFinite(current)) return 0;
+            if (!hasPrevious || !Number.isFinite(previous)) return 0;
+            const diff = current - previous;
+            if (diff < 0) {
+                return Math.max(current, 0);
+            }
+            return diff;
+        }
+
+        function calculateNetworkDelta(current, previous) {
+            const hasPrevious = Boolean(previous && previous.network);
+            const currentNetwork = current?.network || {};
+            const previousNetwork = previous?.network || {};
+
+            const currentRx = toFiniteNumber(currentNetwork.bytes_received);
+            const currentTx = toFiniteNumber(currentNetwork.bytes_sent);
+            const previousRx = toFiniteNumber(previousNetwork.bytes_received);
+            const previousTx = toFiniteNumber(previousNetwork.bytes_sent);
+
+            return {
+                bytes_received: deriveCounterDelta(currentRx, previousRx, hasPrevious),
+                bytes_sent: deriveCounterDelta(currentTx, previousTx, hasPrevious)
+            };
+        }
+
         function updateProgress(id, value) {
             const bar = document.getElementById(id);
             if (!bar) return;
@@ -1029,15 +1073,25 @@
             bar.style.width = `${clamped}%`;
         }
 
-        function updateTrends(data) {
+        function updateTrends(data, networkDelta = { bytes_received: 0, bytes_sent: 0 }) {
             if (!previousMetrics || previousMetrics.cpu_usage === undefined || previousMetrics.cpu_usage === null) return;
+
+            const previousNetworkDelta = previousMetrics.network_delta || {};
 
             const trends = [
                 { id: 'cpuTrend', current: data.cpu_usage, previous: previousMetrics.cpu_usage },
                 { id: 'memoryTrend', current: data.memory?.percentage, previous: previousMetrics.memory?.percentage },
                 { id: 'diskTrend', current: data.disk?.percentage, previous: previousMetrics.disk?.percentage },
-                { id: 'networkRxTrend', current: data.network?.bytes_received, previous: previousMetrics.network?.bytes_received },
-                { id: 'networkTxTrend', current: data.network?.bytes_sent, previous: previousMetrics.network?.bytes_sent },
+                {
+                    id: 'networkRxTrend',
+                    current: bytesToMbPerSecond(networkDelta.bytes_received),
+                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_received)
+                },
+                {
+                    id: 'networkTxTrend',
+                    current: bytesToMbPerSecond(networkDelta.bytes_sent),
+                    previous: bytesToMbPerSecond(previousNetworkDelta.bytes_sent)
+                },
                 { id: 'loadTrend', current: data.load_average?.one_minute, previous: previousMetrics.load_average?.one_minute }
             ];
 
@@ -1045,9 +1099,12 @@
                 const element = document.getElementById(id);
                 if (!element) return;
 
-                if (current > previous) {
+                const currentVal = Number.isFinite(Number(current)) ? Number(current) : 0;
+                const previousVal = Number.isFinite(Number(previous)) ? Number(previous) : 0;
+
+                if (currentVal > previousVal) {
                     element.textContent = '↗';
-                } else if (current < previous) {
+                } else if (currentVal < previousVal) {
                     element.textContent = '↘';
                 } else {
                     element.textContent = '→';
@@ -1055,7 +1112,7 @@
             });
         }
 
-        function updateCharts(data) {
+        function updateCharts(data, networkDelta = { bytes_received: 0, bytes_sent: 0 }) {
             const timestamp = new Date().toLocaleTimeString();
             const maxPoints = 20;
 
@@ -1074,8 +1131,8 @@
 
             if (networkChart) {
                 networkChart.data.labels.push(timestamp);
-                networkChart.data.datasets[0].data.push(bytesToMb(data.network?.bytes_received) || 0);
-                networkChart.data.datasets[1].data.push(bytesToMb(data.network?.bytes_sent) || 0);
+                networkChart.data.datasets[0].data.push(bytesToMbPerSecond(networkDelta.bytes_received) || 0);
+                networkChart.data.datasets[1].data.push(bytesToMbPerSecond(networkDelta.bytes_sent) || 0);
 
                 if (networkChart.data.labels.length > maxPoints) {
                     networkChart.data.labels.shift();
