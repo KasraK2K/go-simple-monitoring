@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Monitoring Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg: #0f172a;
+            --bg-alt: #15223a;
+            --glass-bg: rgba(15, 23, 42, 0.55);
+            --border: rgba(148, 163, 184, 0.22);
+            --border-strong: rgba(94, 234, 212, 0.45);
+            --text-primary: #f8fafc;
+            --text-secondary: rgba(203, 213, 225, 0.8);
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.2);
+            --success: #34d399;
+            --danger: #f87171;
+            --shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 45%),
+                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.12), transparent 55%),
+                var(--bg);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .background {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .orb {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(60px);
+            opacity: 0.6;
+        }
+
+        .orb--teal {
+            width: 420px;
+            height: 420px;
+            top: -120px;
+            right: -120px;
+            background: rgba(45, 212, 191, 0.4);
+        }
+
+        .orb--blue {
+            width: 360px;
+            height: 360px;
+            bottom: -140px;
+            left: -120px;
+            background: rgba(59, 130, 246, 0.35);
+        }
+
+        .container {
+            width: min(1200px, 100% - 48px);
+            margin: 48px auto 64px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(19, 32, 56, 0.78), rgba(17, 28, 50, 0.58));
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(22px);
+            -webkit-backdrop-filter: blur(22px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: -140px;
+            right: -160px;
+            width: 280px;
+            height: 280px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.28), transparent 65%);
+            opacity: 0.6;
+        }
+
+        .hero {
+            padding: 36px 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .hero::before {
+            right: -200px;
+            width: 360px;
+            height: 360px;
+            background: radial-gradient(circle, rgba(34, 211, 238, 0.25), transparent 70%);
+        }
+
+        .hero-top {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.2rem, 4vw, 2.8rem);
+            font-weight: 700;
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            max-width: 520px;
+            margin-top: 8px;
+        }
+
+        .hero-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pill,
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            background: rgba(148, 163, 184, 0.08);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .status-pill {
+            color: var(--text-primary);
+            border-color: rgba(52, 211, 153, 0.45);
+            background: rgba(52, 211, 153, 0.12);
+        }
+
+        .status-pill.offline {
+            border-color: rgba(248, 113, 113, 0.45);
+            background: rgba(248, 113, 113, 0.12);
+            color: var(--danger);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            position: relative;
+        }
+
+        .status-pill.offline .status-dot {
+            background: var(--danger);
+        }
+
+        .status-dot::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 2px solid rgba(52, 211, 153, 0.4);
+            animation: ping 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        .status-pill.offline .status-dot::after {
+            border-color: rgba(248, 113, 113, 0.5);
+        }
+
+        @keyframes ping {
+            0% {
+                transform: scale(0.6);
+                opacity: 0.8;
+            }
+
+            70% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1.6);
+                opacity: 0;
+            }
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        @media (max-width: 1024px) {
+            .metrics-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        .heartbeat-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            padding: 28px 32px;
+        }
+
+        .heartbeat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .heartbeat-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .heartbeat-meta {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .heartbeat-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .heartbeat-card {
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(30, 41, 72, 0.86), rgba(15, 23, 42, 0.75));
+            padding: 20px 24px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+
+        .heartbeat-info {
+            flex: 1 1 260px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .heartbeat-info .name {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .heartbeat-info .url {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            word-break: break-all;
+        }
+
+        .server-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .server-status::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+        }
+
+        .status-up {
+            background: rgba(52, 211, 153, 0.18);
+            color: rgba(110, 231, 183, 0.95);
+        }
+
+        .status-up::before {
+            background: var(--success);
+        }
+
+        .status-down {
+            background: rgba(248, 113, 113, 0.18);
+            color: rgba(252, 165, 165, 0.95);
+        }
+
+        .status-down::before {
+            background: var(--danger);
+        }
+
+        .status-warning {
+            background: rgba(251, 191, 36, 0.18);
+            color: rgba(251, 191, 36, 0.95);
+        }
+
+        .status-warning::before {
+            background: rgba(251, 191, 36, 1);
+        }
+
+        .heartbeat-detail {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-width: 140px;
+            flex: 0 0 auto;
+        }
+
+        .heartbeat-detail .label {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .heartbeat-detail .value {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .heartbeat-error {
+            color: rgba(248, 113, 113, 0.85);
+            font-size: 0.85rem;
+            flex-basis: 100%;
+        }
+
+        .heartbeat-empty {
+            padding: 36px;
+            text-align: center;
+            color: var(--text-secondary);
+            border: 1px dashed var(--border);
+            border-radius: 16px;
+        }
+
+        .metric-card {
+            padding: 24px 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .metric-card::before {
+            display: none;
+        }
+
+        .metric-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .metric-icon {
+            font-size: 1.6rem;
+        }
+
+        .metric-value-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .metric-unit {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .metric-trend {
+            font-size: 1.3rem;
+        }
+
+        .metric-progress {
+            position: relative;
+            height: 6px;
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(148, 163, 184, 0.18);
+        }
+
+        .progress-fill {
+            position: absolute;
+            inset: 0;
+            border-radius: 999px;
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.6), rgba(45, 212, 191, 0.65));
+            transition: width 0.5s ease;
+            width: 0;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 18px;
+        }
+
+        .chart-card {
+            padding: 24px 26px 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .chart-card::before {
+            display: none;
+        }
+
+        .chart-header {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chart-header h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+        }
+
+        .chart-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 280px;
+        }
+
+        
+
+        @media (max-width: 900px) {
+            .hero {
+                padding: 28px;
+            }
+
+            .hero-top {
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                width: min(100%, 100% - 32px);
+                margin-top: 32px;
+            }
+
+            .hero {
+                padding: 24px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-wrapper {
+                height: 240px;
+            }
+            
+            .heartbeat-section {
+                padding: 24px;
+            }
+
+            .heartbeat-card {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .heartbeat-detail {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="background">
+        <span class="orb orb--teal"></span>
+        <span class="orb orb--blue"></span>
+    </div>
+    <main class="container">
+        <header class="glass-panel hero">
+            <div class="hero-top">
+                <div>
+                    <h1>System Monitoring</h1>
+                </div>
+            </div>
+            <div class="hero-meta">
+                <span class="status-pill online" id="systemStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">System Online</span>
+                </span>
+                <span class="pill">Refresh <span id="refreshDisplay">2s</span></span>
+                <span class="pill">Last updated <span id="lastUpdated">--</span></span>
+            </div>
+        </header>
+
+        <section class="metrics-grid">
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">CPU Usage</span>
+                    <span class="metric-trend" id="cpuTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="cpu">--</span>
+                    <span class="metric-unit">%</span>
+                </div>
+                <div class="metric-progress">
+                    <span class="progress-fill" id="cpuBar"></span>
+                </div>
+            </article>
+
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Memory</span>
+                    <span class="metric-trend" id="memoryTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="memory">--</span>
+                    <span class="metric-unit">%</span>
+                </div>
+                <div class="metric-progress">
+                    <span class="progress-fill" id="memoryBar"></span>
+                </div>
+            </article>
+
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Disk Usage</span>
+                    <span class="metric-trend" id="diskTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="disk">--</span>
+                    <span class="metric-unit">%</span>
+                </div>
+                <div class="metric-progress">
+                    <span class="progress-fill" id="diskBar"></span>
+                </div>
+            </article>
+
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Network In</span>
+                    <span class="metric-trend" id="networkRxTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="networkRx">--</span>
+                    <span class="metric-unit">MB</span>
+                </div>
+            </article>
+
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Network Out</span>
+                    <span class="metric-trend" id="networkTxTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="networkTx">--</span>
+                    <span class="metric-unit">MB</span>
+                </div>
+            </article>
+
+            <article class="glass-panel metric-card">
+                <div class="metric-header">
+                    <span class="metric-label">Load Average (1m)</span>
+                    <span class="metric-trend" id="loadTrend">--</span>
+                </div>
+                <div class="metric-value-wrap">
+                    <span class="metric-value" id="loadAvg">--</span>
+                </div>
+            </article>
+        </section>
+
+        <section class="charts-grid">
+            <article class="glass-panel chart-card">
+                <div class="chart-header">
+                    <h3>System Performance</h3>
+                    <span class="chart-subtitle">CPU and memory usage over time</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="systemChart"></canvas>
+                </div>
+            </article>
+
+            <article class="glass-panel chart-card">
+                <div class="chart-header">
+                    <h3>Network Throughput</h3>
+                    <span class="chart-subtitle">Inbound vs outbound traffic</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="networkChart"></canvas>
+                </div>
+            </article>
+
+            <article class="glass-panel chart-card">
+                <div class="chart-header">
+                    <h3>Resource Distribution</h3>
+                    <span class="chart-subtitle">CPU, memory, and disk utilisation snapshot</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="usageDonut"></canvas>
+                </div>
+            </article>
+        </section>
+
+        <section class="glass-panel heartbeat-section">
+            <div class="heartbeat-header">
+                <div>
+                    <div class="heartbeat-title">Server Heartbeat</div>
+                    <div class="heartbeat-meta">Live status across configured targets</div>
+                </div>
+                <div class="heartbeat-meta" id="heartbeatSummary">-- online / -- total</div>
+            </div>
+            <div class="heartbeat-grid" id="heartbeatList">
+                <div class="heartbeat-empty">No heartbeat data yet</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        let systemChart;
+        let networkChart;
+        let usageDonut;
+        let refreshInterval = 2000;
+        let refreshTimer;
+        let previousMetrics = null;
+
+        function initializeCharts() {
+            const systemCtx = document.getElementById('systemChart').getContext('2d');
+            const cpuGradient = systemCtx.createLinearGradient(0, 0, 0, 320);
+            cpuGradient.addColorStop(0, 'rgba(56, 189, 248, 0.35)');
+            cpuGradient.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            const memoryGradient = systemCtx.createLinearGradient(0, 0, 0, 320);
+            memoryGradient.addColorStop(0, 'rgba(96, 165, 250, 0.28)');
+            memoryGradient.addColorStop(1, 'rgba(96, 165, 250, 0)');
+
+            systemChart = new Chart(systemCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'CPU Usage (%)',
+                            data: [],
+                            borderColor: 'rgba(56, 189, 248, 0.9)',
+                            backgroundColor: cpuGradient,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Memory Usage (%)',
+                            data: [],
+                            borderColor: 'rgba(96, 165, 250, 0.9)',
+                            backgroundColor: memoryGradient,
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(226, 232, 240, 0.9)',
+                                usePointStyle: true,
+                                boxHeight: 8,
+                                padding: 18
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: 'rgba(148, 163, 184, 0.85)',
+                                callback: value => value + '%'
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.18)',
+                                borderColor: 'rgba(148, 163, 184, 0.25)'
+                            }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(148, 163, 184, 0.65)', maxTicksLimit: 10 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            const networkCtx = document.getElementById('networkChart').getContext('2d');
+            const rxGradient = networkCtx.createLinearGradient(0, 0, 0, 320);
+            rxGradient.addColorStop(0, 'rgba(52, 211, 153, 0.32)');
+            rxGradient.addColorStop(1, 'rgba(52, 211, 153, 0)');
+            const txGradient = networkCtx.createLinearGradient(0, 0, 0, 320);
+            txGradient.addColorStop(0, 'rgba(249, 168, 212, 0.3)');
+            txGradient.addColorStop(1, 'rgba(249, 168, 212, 0)');
+
+            networkChart = new Chart(networkCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Received (MB)',
+                            data: [],
+                            borderColor: 'rgba(52, 211, 153, 0.9)',
+                            backgroundColor: rxGradient,
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2.5,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Sent (MB)',
+                            data: [],
+                            borderColor: 'rgba(248, 113, 113, 0.9)',
+                            backgroundColor: txGradient,
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 2.5,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: 'rgba(226, 232, 240, 0.9)',
+                                usePointStyle: true,
+                                boxHeight: 8,
+                                padding: 18
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: 'rgba(148, 163, 184, 0.85)',
+                                callback: value => value + ' MB'
+                            },
+                            grid: {
+                                color: 'rgba(148, 163, 184, 0.18)',
+                                borderColor: 'rgba(148, 163, 184, 0.25)'
+                            }
+                        },
+                        x: {
+                            ticks: { color: 'rgba(148, 163, 184, 0.65)', maxTicksLimit: 10 },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            const donutCtx = document.getElementById('usageDonut').getContext('2d');
+            usageDonut = new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['CPU', 'Memory', 'Disk'],
+                    datasets: [
+                        {
+                            data: [0, 0, 0],
+                            backgroundColor: [
+                                'rgba(56, 189, 248, 0.85)',
+                                'rgba(96, 165, 250, 0.85)',
+                                'rgba(165, 180, 252, 0.85)'
+                            ],
+                            borderColor: ['rgba(15, 23, 42, 0.6)'],
+                            borderWidth: 1,
+                            hoverOffset: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: 'rgba(226, 232, 240, 0.85)',
+                                usePointStyle: true,
+                                padding: 18
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function normalizeMetrics(raw) {
+            if (!raw || typeof raw !== 'object') return {};
+            if (Object.prototype.hasOwnProperty.call(raw, 'cpu_usage')) {
+                return raw;
+            }
+
+            const cpu = raw.cpu ?? {};
+            const ram = raw.ram ?? {};
+            const disk = raw.disk_space ?? {};
+            const networkIO = raw.network_io ?? {};
+            const process = raw.process ?? {};
+
+            const memory = {
+                percentage: ram.used_pct,
+                total_bytes: ram.total_bytes,
+                used_bytes: ram.used_bytes,
+                available_bytes: ram.available_bytes,
+                buffer_bytes: ram.buffer_bytes
+            };
+
+            const diskInfo = {
+                percentage: disk.used_pct,
+                total_bytes: disk.total_bytes,
+                used_bytes: disk.used_bytes,
+                available_bytes: disk.available_bytes
+            };
+
+            const network = {
+                bytes_received: networkIO.bytes_recv,
+                bytes_sent: networkIO.bytes_sent,
+                packets_received: networkIO.packets_recv,
+                packets_sent: networkIO.packets_sent,
+                errors_in: networkIO.errors_in,
+                errors_out: networkIO.errors_out,
+                drops_in: networkIO.drops_in,
+                drops_out: networkIO.drops_out
+            };
+
+            const loadAverage = {
+                one_minute: process.load_avg_1,
+                five_minutes: process.load_avg_5,
+                fifteen_minutes: process.load_avg_15
+            };
+
+            return {
+                timestamp: raw.timestamp,
+                cpu_usage: cpu.usage_percent,
+                cpu,
+                memory,
+                disk: diskInfo,
+                network,
+                load_average: loadAverage,
+                heartbeat: raw.heartbeat ?? [],
+                disk_io: raw.disk_io ?? {},
+                process,
+                raw
+            };
+        }
+
+        async function fetchMetrics() {
+            try {
+                const response = await fetch('/monitoring', {
+                    method: 'POST',
+                    cache: 'no-store'
+                });
+                if (!response.ok) {
+                    throw new Error(`Request failed with status ${response.status}`);
+                }
+
+                let data = await response.json();
+                if (Array.isArray(data)) {
+                    data = data[0] || null;
+                }
+
+                if (!data) {
+                    throw new Error('No monitoring data available');
+                }
+
+                const normalized = normalizeMetrics(data);
+
+                updateMetrics(normalized);
+                updateCharts(normalized);
+                updateTrends(normalized);
+                updateStatus(true);
+                updateHeartbeat(normalized.heartbeat || []);
+
+                const lastUpdated = document.getElementById('lastUpdated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = new Date().toLocaleTimeString();
+                }
+
+                previousMetrics = normalized;
+            } catch (error) {
+                console.error('Error fetching metrics:', error);
+                showErrorState();
+            }
+        }
+
+        function updateMetrics(data) {
+            setMetricValue('cpu', data.cpu_usage, 1);
+            setMetricValue('memory', data.memory?.percentage, 1);
+            setMetricValue('disk', data.disk?.percentage, 1);
+            setMetricValue('networkRx', bytesToMb(data.network?.bytes_received), 2);
+            setMetricValue('networkTx', bytesToMb(data.network?.bytes_sent), 2);
+            setMetricValue('loadAvg', data.load_average?.one_minute, 2);
+
+            updateProgress('cpuBar', data.cpu_usage);
+            updateProgress('memoryBar', data.memory?.percentage);
+            updateProgress('diskBar', data.disk?.percentage);
+        }
+
+        function setMetricValue(id, value, digits = 1) {
+            const element = document.getElementById(id);
+            if (!element) return;
+            if (value === undefined || value === null || Number.isNaN(Number(value))) {
+                element.textContent = '--';
+                return;
+            }
+            element.textContent = Number(value).toFixed(digits);
+        }
+
+        function bytesToMb(bytes) {
+            if (bytes === undefined || bytes === null) return undefined;
+            return bytes / 1024 / 1024;
+        }
+
+        function updateProgress(id, value) {
+            const bar = document.getElementById(id);
+            if (!bar) return;
+            if (value === undefined || value === null || Number.isNaN(Number(value))) {
+                bar.style.width = '0%';
+                return;
+            }
+            const clamped = Math.min(100, Math.max(0, Number(value)));
+            bar.style.width = `${clamped}%`;
+        }
+
+        function updateTrends(data) {
+            if (!previousMetrics || previousMetrics.cpu_usage === undefined || previousMetrics.cpu_usage === null) return;
+
+            const trends = [
+                { id: 'cpuTrend', current: data.cpu_usage, previous: previousMetrics.cpu_usage },
+                { id: 'memoryTrend', current: data.memory?.percentage, previous: previousMetrics.memory?.percentage },
+                { id: 'diskTrend', current: data.disk?.percentage, previous: previousMetrics.disk?.percentage },
+                { id: 'networkRxTrend', current: data.network?.bytes_received, previous: previousMetrics.network?.bytes_received },
+                { id: 'networkTxTrend', current: data.network?.bytes_sent, previous: previousMetrics.network?.bytes_sent },
+                { id: 'loadTrend', current: data.load_average?.one_minute, previous: previousMetrics.load_average?.one_minute }
+            ];
+
+            trends.forEach(({ id, current, previous }) => {
+                const element = document.getElementById(id);
+                if (!element) return;
+
+                if (current > previous) {
+                    element.textContent = '↗';
+                } else if (current < previous) {
+                    element.textContent = '↘';
+                } else {
+                    element.textContent = '→';
+                }
+            });
+        }
+
+        function updateCharts(data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const maxPoints = 20;
+
+            if (systemChart) {
+                systemChart.data.labels.push(timestamp);
+                systemChart.data.datasets[0].data.push(data.cpu_usage || 0);
+                systemChart.data.datasets[1].data.push(data.memory?.percentage || 0);
+
+                if (systemChart.data.labels.length > maxPoints) {
+                    systemChart.data.labels.shift();
+                    systemChart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+
+                systemChart.update('none');
+            }
+
+            if (networkChart) {
+                networkChart.data.labels.push(timestamp);
+                networkChart.data.datasets[0].data.push(bytesToMb(data.network?.bytes_received) || 0);
+                networkChart.data.datasets[1].data.push(bytesToMb(data.network?.bytes_sent) || 0);
+
+                if (networkChart.data.labels.length > maxPoints) {
+                    networkChart.data.labels.shift();
+                    networkChart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+
+                networkChart.update('none');
+            }
+
+            if (usageDonut) {
+                usageDonut.data.datasets[0].data = [
+                    data.cpu_usage || 0,
+                    data.memory?.percentage || 0,
+                    data.disk?.percentage || 0
+                ];
+                usageDonut.update('none');
+            }
+        }
+
+        async function fetchRefreshInterval() {
+            try {
+                const response = await fetch('/api/v1/config');
+                if (!response.ok) return;
+
+                const config = await response.json();
+                const candidate = Number(config.refresh_interval_seconds) * 1000;
+                if (!Number.isNaN(candidate) && candidate > 0) {
+                    refreshInterval = candidate;
+                    updateRefreshDisplay();
+                }
+            } catch (error) {
+                console.debug('Using default refresh interval:', error);
+            }
+        }
+
+        function updateRefreshDisplay() {
+            const display = document.getElementById('refreshDisplay');
+            if (!display) return;
+            display.textContent = `${(refreshInterval / 1000).toFixed(1)}s`;
+        }
+
+        function updateStatus(isOnline) {
+            const status = document.getElementById('systemStatus');
+            if (!status) return;
+            status.classList.toggle('offline', !isOnline);
+            status.classList.toggle('online', isOnline);
+            const text = status.querySelector('.status-text');
+            if (text) {
+                text.textContent = isOnline ? 'System Online' : 'Connection Error';
+            }
+        }
+
+        function showErrorState() {
+            updateStatus(false);
+            const lastUpdated = document.getElementById('lastUpdated');
+            if (lastUpdated) {
+                lastUpdated.textContent = '--';
+            }
+            updateHeartbeat();
+        }
+
+        function updateHeartbeat(servers = []) {
+            const list = document.getElementById('heartbeatList');
+            const summary = document.getElementById('heartbeatSummary');
+            if (!list) return;
+
+            list.innerHTML = '';
+
+            if (!servers || servers.length === 0) {
+                list.innerHTML = '<div class="heartbeat-empty">No servers configured</div>';
+                if (summary) {
+                    summary.textContent = '0 online / 0 total';
+                }
+                return;
+            }
+
+            let onlineCount = 0;
+
+            servers.forEach(server => {
+                const status = (server.status || '').toLowerCase();
+                if (status === 'up') onlineCount += 1;
+
+                const card = document.createElement('div');
+                card.className = 'heartbeat-card';
+
+                const responseTime = formatResponseTime(server.response_ms);
+                const lastChecked = formatLastChecked(server.last_checked);
+
+                card.innerHTML = `
+                    <div class="heartbeat-info">
+                        <div class="name">${escapeHtml(server.name || 'Unnamed Server')}</div>
+                        <div class="url">${escapeHtml(server.url || '—')}</div>
+                    </div>
+                    <span class="server-status ${statusClass(status)}">${statusLabel(status)}</span>
+                    <div class="heartbeat-detail">
+                        <span class="label">Latency</span>
+                        <span class="value">${escapeHtml(responseTime)}</span>
+                    </div>
+                    <div class="heartbeat-detail">
+                        <span class="label">Last Seen</span>
+                        <span class="value">${escapeHtml(lastChecked)}</span>
+                    </div>
+                `;
+
+                if (server.error) {
+                    const errorBlock = document.createElement('div');
+                    errorBlock.className = 'heartbeat-error';
+                    errorBlock.textContent = server.error;
+                    card.appendChild(errorBlock);
+                }
+
+                list.appendChild(card);
+            });
+
+            if (summary) {
+                summary.textContent = `${onlineCount} online / ${servers.length} total`;
+            }
+        }
+
+        function statusClass(status) {
+            if (status === 'up') return 'status-up';
+            if (status === 'down') return 'status-down';
+            return 'status-warning';
+        }
+
+        function statusLabel(status) {
+            if (status === 'up') return 'Online';
+            if (status === 'down') return 'Offline';
+            return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+        }
+
+        function formatResponseTime(ms) {
+            const value = Number(ms);
+            if (!Number.isFinite(value) || value < 0) return '—';
+            if (value < 1000) return `${Math.round(value)} ms`;
+            return `${(value / 1000).toFixed(2)} s`;
+        }
+
+        function formatLastChecked(timestamp) {
+            if (!timestamp) return '—';
+            const date = new Date(timestamp);
+            if (Number.isNaN(date.getTime())) return '—';
+
+            const diffSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+            if (diffSeconds < 5) return 'moments ago';
+            if (diffSeconds < 60) return `${diffSeconds}s ago`;
+            const diffMinutes = Math.floor(diffSeconds / 60);
+            if (diffMinutes < 60) return `${diffMinutes}m ago`;
+            const diffHours = Math.floor(diffMinutes / 60);
+            if (diffHours < 24) return `${diffHours}h ago`;
+            const diffDays = Math.floor(diffHours / 24);
+            return `${diffDays}d ago`;
+        }
+
+        function escapeHtml(value) {
+            if (value === undefined || value === null) return '';
+            const content = String(value);
+            return content
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function scheduleNextFetch() {
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(async () => {
+                await fetchRefreshInterval();
+                await fetchMetrics();
+                scheduleNextFetch();
+            }, refreshInterval);
+        }
+
+        async function init() {
+            initializeCharts();
+            await fetchRefreshInterval();
+            await fetchMetrics();
+            scheduleNextFetch();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+
+</html>

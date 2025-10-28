@@ -103,6 +103,18 @@ func GetServersConfig() []models.ServerConfig {
 	return []models.ServerConfig{}
 }
 
+// GetMonitoringConfig returns the current monitoring configuration, ensuring defaults if unset.
+func GetMonitoringConfig() *models.MonitoringConfig {
+	ensureConfigLoaded()
+
+	serversConfigMutex.RLock()
+	defer serversConfigMutex.RUnlock()
+	if monitoringConfig != nil {
+		return monitoringConfig
+	}
+	return getDefaultConfig()
+}
+
 // ensureConfigLoaded checks if config needs reloading and handles it
 func ensureConfigLoaded() {
 	InitServersConfig()
