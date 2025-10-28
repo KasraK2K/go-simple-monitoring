@@ -625,24 +625,6 @@ func findProjectRoot(startPath string) string {
 	}
 }
 
-// Utility functions for formatting
-func formatBytes(bytes uint64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-	div, exp := uint64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-	return fmt.Sprintf("%.2f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
-func bytesToGB(bytes uint64) float64 {
-	return math.Round(float64(bytes)/1024/1024/1024*100) / 100
-}
-
 func formatDuration(d time.Duration) string {
 	if d >= time.Second {
 		return fmt.Sprintf("%.2fs", d.Seconds())
