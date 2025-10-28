@@ -461,7 +461,7 @@
             height: 280px;
         }
 
-        
+
 
         @media (max-width: 900px) {
             .hero {
@@ -490,7 +490,7 @@
             .chart-wrapper {
                 height: 240px;
             }
-            
+
             .heartbeat-section {
                 padding: 24px;
             }
@@ -500,7 +500,7 @@
                 align-items: flex-start;
                 gap: 16px;
             }
-            
+
             .heartbeat-detail {
                 width: 100%;
             }
@@ -839,61 +839,112 @@
 
         function normalizeMetrics(raw) {
             if (!raw || typeof raw !== 'object') return {};
-            if (Object.prototype.hasOwnProperty.call(raw, 'cpu_usage')) {
-                return raw;
-            }
 
-            const cpu = raw.cpu ?? {};
-            const ram = raw.ram ?? {};
-            const disk = raw.disk_space ?? {};
-            const networkIO = raw.network_io ?? {};
-            const process = raw.process ?? {};
+            const container = raw.body && typeof raw.body === 'object'
+                ? raw.body
+                : raw;
+
+            const cpu = container.cpu ?? {};
+            const ram = container.ram ?? {};
+            const disk = container.disk_space ?? container.disk ?? {};
+            const networkIO = container.network_io ?? container.network ?? {};
+            const process = container.process ?? {};
+
+            const cpuUsage = container.cpu_usage
+                ?? cpu.usage_percent
+                ?? container.cpu_usage_percent
+                ?? null;
 
             const memory = {
-                percentage: ram.used_pct,
-                total_bytes: ram.total_bytes,
-                used_bytes: ram.used_bytes,
-                available_bytes: ram.available_bytes,
-                buffer_bytes: ram.buffer_bytes
+                percentage: container.memory?.percentage
+                    ?? ram.used_pct
+                    ?? container.ram_used_percent
+                    ?? null,
+                total_bytes: ram.total_bytes ?? container.ram_total_bytes ?? null,
+                used_bytes: ram.used_bytes ?? container.ram_used_bytes ?? null,
+                available_bytes: ram.available_bytes ?? container.ram_available_bytes ?? null,
+                buffer_bytes: ram.buffer_bytes ?? container.ram_buffer_bytes ?? null
             };
 
             const diskInfo = {
-                percentage: disk.used_pct,
-                total_bytes: disk.total_bytes,
-                used_bytes: disk.used_bytes,
-                available_bytes: disk.available_bytes
+                percentage: container.disk?.percentage
+                    ?? disk.used_pct
+                    ?? container.disk_used_percent
+                    ?? null,
+                total_bytes: disk.total_bytes ?? container.disk_total_bytes ?? null,
+                used_bytes: disk.used_bytes ?? container.disk_used_bytes ?? null,
+                available_bytes: disk.available_bytes ?? container.disk_available_bytes ?? null
             };
 
             const network = {
-                bytes_received: networkIO.bytes_recv,
-                bytes_sent: networkIO.bytes_sent,
-                packets_received: networkIO.packets_recv,
-                packets_sent: networkIO.packets_sent,
-                errors_in: networkIO.errors_in,
-                errors_out: networkIO.errors_out,
-                drops_in: networkIO.drops_in,
+                bytes_received: networkIO.bytes_recv
+                    ?? networkIO.bytes_received
+                    ?? container.network_bytes_recv
+                    ?? null,
+                bytes_sent: networkIO.bytes_sent
+                    ?? container.network_bytes_sent
+                    ?? null,
+                packets_received: networkIO.packets_recv
+                    ?? networkIO.packets_received
+                    ?? container.network_packets_recv
+                    ?? null,
+                packets_sent: networkIO.packets_sent
+                    ?? container.network_packets_sent
+                    ?? null,
+                errors_in: networkIO.errors_in
+                    ?? container.network_errors_in
+                    ?? null,
+                errors_out: networkIO.errors_out
+                    ?? container.network_errors_out
+                    ?? null,
+                drops_in: networkIO.drops_in
+                    ?? container.network_drops_in
+                    ?? null,
                 drops_out: networkIO.drops_out
+                    ?? container.network_drops_out
+                    ?? null
             };
 
+            const loadAverageSource = container.load_average ?? {};
             const loadAverage = {
-                one_minute: process.load_avg_1,
-                five_minutes: process.load_avg_5,
-                fifteen_minutes: process.load_avg_15
+                one_minute: loadAverageSource.one_minute
+                    ?? process.load_avg_1
+                    ?? container.process_load_avg_1
+                    ?? null,
+                five_minutes: loadAverageSource.five_minutes
+                    ?? process.load_avg_5
+                    ?? container.process_load_avg_5
+                    ?? null,
+                fifteen_minutes: loadAverageSource.fifteen_minutes
+                    ?? process.load_avg_15
+                    ?? container.process_load_avg_15
+                    ?? null
             };
 
-            return {
-                timestamp: raw.timestamp,
-                cpu_usage: cpu.usage_percent,
-                cpu,
+            const normalized = {
+                timestamp: raw.timestamp
+                    ?? container.timestamp
+                    ?? raw.time
+                    ?? container.time
+                    ?? null,
+                cpu_usage: cpuUsage,
                 memory,
                 disk: diskInfo,
                 network,
                 load_average: loadAverage,
-                heartbeat: raw.heartbeat ?? [],
-                disk_io: raw.disk_io ?? {},
-                process,
+                heartbeat: container.heartbeat ?? raw.heartbeat ?? [],
+                disk_io: container.disk_io ?? {},
+                process: process,
                 raw
             };
+
+            const refreshSeconds = raw.refresh_interval_seconds
+                ?? container.refresh_interval_seconds;
+            if (typeof refreshSeconds === 'number') {
+                normalized.refresh_interval_seconds = refreshSeconds;
+            }
+
+            return normalized;
         }
 
         async function fetchMetrics() {
@@ -906,16 +957,39 @@
                     throw new Error(`Request failed with status ${response.status}`);
                 }
 
-                let data = await response.json();
-                if (Array.isArray(data)) {
-                    data = data[0] || null;
+                const payload = await response.json();
+
+                let entries = payload;
+                let refreshSeconds;
+
+                if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+                    entries = payload.data ?? [];
+                    refreshSeconds = payload.refresh_interval_seconds;
                 }
+
+                if (!Array.isArray(entries)) {
+                    entries = entries ? [entries] : [];
+                }
+
+                const data = entries[0] || null;
 
                 if (!data) {
                     throw new Error('No monitoring data available');
                 }
 
                 const normalized = normalizeMetrics(data);
+
+                if (typeof refreshSeconds !== 'number' && typeof normalized.refresh_interval_seconds === 'number') {
+                    refreshSeconds = normalized.refresh_interval_seconds;
+                }
+
+                if (typeof refreshSeconds === 'number') {
+                    const candidate = refreshSeconds * 1000;
+                    if (!Number.isNaN(candidate) && candidate > 0) {
+                        refreshInterval = candidate;
+                        updateRefreshDisplay();
+                    }
+                }
 
                 updateMetrics(normalized);
                 updateCharts(normalized);
@@ -1040,22 +1114,6 @@
             }
         }
 
-        async function fetchRefreshInterval() {
-            try {
-                const response = await fetch('/api/v1/config');
-                if (!response.ok) return;
-
-                const config = await response.json();
-                const candidate = Number(config.refresh_interval_seconds) * 1000;
-                if (!Number.isNaN(candidate) && candidate > 0) {
-                    refreshInterval = candidate;
-                    updateRefreshDisplay();
-                }
-            } catch (error) {
-                console.debug('Using default refresh interval:', error);
-            }
-        }
-
         function updateRefreshDisplay() {
             const display = document.getElementById('refreshDisplay');
             if (!display) return;
@@ -1125,13 +1183,6 @@
                     </div>
                 `;
 
-                if (server.error) {
-                    const errorBlock = document.createElement('div');
-                    errorBlock.className = 'heartbeat-error';
-                    errorBlock.textContent = server.error;
-                    card.appendChild(errorBlock);
-                }
-
                 list.appendChild(card);
             });
 
@@ -1189,7 +1240,6 @@
         function scheduleNextFetch() {
             clearTimeout(refreshTimer);
             refreshTimer = setTimeout(async () => {
-                await fetchRefreshInterval();
                 await fetchMetrics();
                 scheduleNextFetch();
             }, refreshInterval);
@@ -1197,7 +1247,6 @@
 
         async function init() {
             initializeCharts();
-            await fetchRefreshInterval();
             await fetchMetrics();
             scheduleNextFetch();
         }
