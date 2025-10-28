@@ -20,8 +20,8 @@ type FilterRequest struct {
 }
 
 func MonitoringRoutes() {
-	// Initialize servers configuration at startup
-	logics.InitServersConfig()
+	// Initialize monitoring configuration at startup
+	logics.InitMonitoringConfig()
 
 	dashboardPath := filepath.Join("web", "dashboard.html")
 
@@ -33,8 +33,33 @@ func MonitoringRoutes() {
 		http.ServeFile(w, r, dashboardPath)
 	}
 
+	configHandler := func(w http.ResponseWriter, r *http.Request) {
+		cfg := logics.GetMonitoringConfig()
+		refresh := 2.0
+		if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
+			refresh = d.Seconds()
+		}
+
+		payload := map[string]any{
+			"refresh_interval_seconds": refresh,
+			"heartbeat":                cfg.Heartbeat,
+			"storage":                  cfg.Storage,
+			"path":                     cfg.Path,
+		}
+
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal config"}`)
+			return
+		}
+
+		setHeader(w, http.StatusOK, string(jsonData))
+	}
+
 	// Serve dashboard UI
 	http.HandleFunc("/", MethodMiddleware(http.MethodGet)(dashboardHandler))
+	// Serve monitoring configuration for UI
+	http.HandleFunc("/api/v1/server-config", MethodMiddleware(http.MethodGet)(configHandler))
 
 	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Check token only in production
@@ -87,19 +112,8 @@ func MonitoringRoutes() {
 			responseArray = []any{currentData}
 		}
 
-		cfg := logics.GetMonitoringConfig()
-		refresh := 2.0
-		if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
-			refresh = d.Seconds()
-		}
-
-		payload := map[string]any{
-			"data":                     responseArray,
-			"refresh_interval_seconds": refresh,
-		}
-
 		// Convert to JSON
-		jsonData, err := json.Marshal(payload)
+		jsonData, err := json.Marshal(responseArray)
 		if err != nil {
 			setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
 			return

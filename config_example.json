@@ -2,7 +2,7 @@
   "path": "./logs",
   "refresh_time": "5s",
   "storage": "both",
-  "servers": [
+  "heartbeat": [
     {
       "name": "Google",
       "url": "https://www.google.com",

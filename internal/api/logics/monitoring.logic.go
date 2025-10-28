@@ -27,21 +27,21 @@ import (
 )
 
 var (
-	monitoringConfig   *models.MonitoringConfig
-	serversConfigOnce  sync.Once
-	serversConfigMutex sync.RWMutex
-	lastConfigModTime  time.Time
-	loggingTicker      *time.Ticker
-	loggingStopChan    chan struct{}
+	monitoringConfig     *models.MonitoringConfig
+	monitoringConfigOnce sync.Once
+	monitoringConfigMu   sync.RWMutex
+	lastConfigModTime    time.Time
+	loggingTicker        *time.Ticker
+	loggingStopChan      chan struct{}
 )
 
-// InitServersConfig loads the servers configuration once at startup
-func InitServersConfig() {
-	serversConfigOnce.Do(func() {
+// InitMonitoringConfig loads the monitoring configuration once at startup
+func InitMonitoringConfig() {
+	monitoringConfigOnce.Do(func() {
 		newConfig, err := readConfigFromFile()
 
-		serversConfigMutex.Lock()
-		defer serversConfigMutex.Unlock()
+		monitoringConfigMu.Lock()
+		defer monitoringConfigMu.Unlock()
 
 		if err != nil {
 			// Use default config on error
@@ -70,13 +70,13 @@ func InitServersConfig() {
 	})
 }
 
-// InitServersConfigCLI loads configuration for CLI mode without auto-logging
-func InitServersConfigCLI() {
-	serversConfigOnce.Do(func() {
+// InitMonitoringConfigCLI loads configuration for CLI mode without auto-logging
+func InitMonitoringConfigCLI() {
+	monitoringConfigOnce.Do(func() {
 		newConfig, err := readConfigFromFile()
 
-		serversConfigMutex.Lock()
-		defer serversConfigMutex.Unlock()
+		monitoringConfigMu.Lock()
+		defer monitoringConfigMu.Unlock()
 
 		if err != nil {
 			// Use default config on error
@@ -91,14 +91,14 @@ func InitServersConfigCLI() {
 	})
 }
 
-// GetServersConfig returns the cached servers configuration
-func GetServersConfig() []models.ServerConfig {
+// GetHeartbeatConfig returns the cached heartbeat configuration
+func GetHeartbeatConfig() []models.ServerConfig {
 	ensureConfigLoaded()
 
-	serversConfigMutex.RLock()
-	defer serversConfigMutex.RUnlock()
+	monitoringConfigMu.RLock()
+	defer monitoringConfigMu.RUnlock()
 	if monitoringConfig != nil {
-		return monitoringConfig.Servers
+		return monitoringConfig.Heartbeat
 	}
 	return []models.ServerConfig{}
 }
@@ -107,8 +107,8 @@ func GetServersConfig() []models.ServerConfig {
 func GetMonitoringConfig() *models.MonitoringConfig {
 	ensureConfigLoaded()
 
-	serversConfigMutex.RLock()
-	defer serversConfigMutex.RUnlock()
+	monitoringConfigMu.RLock()
+	defer monitoringConfigMu.RUnlock()
 	if monitoringConfig != nil {
 		return monitoringConfig
 	}
@@ -117,27 +117,27 @@ func GetMonitoringConfig() *models.MonitoringConfig {
 
 // ensureConfigLoaded checks if config needs reloading and handles it
 func ensureConfigLoaded() {
-	InitServersConfig()
+	InitMonitoringConfig()
 
 	// Check if we should reload (every 30 seconds max)
-	serversConfigMutex.RLock()
+	monitoringConfigMu.RLock()
 	shouldCheck := time.Since(lastConfigModTime) > 30*time.Second
-	serversConfigMutex.RUnlock()
+	monitoringConfigMu.RUnlock()
 
 	if shouldCheck {
 		// Check if config file was modified and reload if needed
 		configPath := getConfigPath()
 		if configPath != "" {
 			if fileInfo, err := os.Stat(configPath); err == nil {
-				serversConfigMutex.RLock()
+				monitoringConfigMu.RLock()
 				lastCheck := lastConfigModTime
-				serversConfigMutex.RUnlock()
+				monitoringConfigMu.RUnlock()
 
 				if fileInfo.ModTime().After(lastCheck) {
 					// Reload config with auto-logging enabled (for API server)
 					newConfig, err := readConfigFromFile()
 
-					serversConfigMutex.Lock()
+					monitoringConfigMu.Lock()
 					if err == nil {
 						if monitoringConfig != nil && monitoringConfig.RefreshTime != newConfig.RefreshTime {
 							stopAutoLogging()
@@ -153,11 +153,11 @@ func ensureConfigLoaded() {
 						startAutoLogging()
 					}
 					lastConfigModTime = time.Now()
-					serversConfigMutex.Unlock()
+					monitoringConfigMu.Unlock()
 				} else {
-					serversConfigMutex.Lock()
+					monitoringConfigMu.Lock()
 					lastConfigModTime = time.Now()
-					serversConfigMutex.Unlock()
+					monitoringConfigMu.Unlock()
 				}
 			}
 		}
@@ -170,7 +170,7 @@ func getDefaultConfig() *models.MonitoringConfig {
 		Path:        "./logs",
 		RefreshTime: "2s",
 		Storage:     "file",
-		Servers:     []models.ServerConfig{},
+		Heartbeat:   []models.ServerConfig{},
 	}
 }
 
@@ -234,7 +234,7 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 		}
 
 		// Get heartbeat data
-		servers := GetServersConfig()
+		servers := GetHeartbeatConfig()
 		r.heartbeat = checkServerHeartbeats(servers)
 
 		resultChan <- r

@@ -111,8 +111,8 @@ func parseFlags() Config {
 }
 
 func runLocalMonitoring(config Config, state *DisplayState) {
-	// Initialize servers configuration for CLI mode (no auto-logging)
-	logics.InitServersConfigCLI()
+	// Initialize monitoring configuration for CLI mode (no auto-logging)
+	logics.InitMonitoringConfigCLI()
 
 	ticker := time.NewTicker(config.RefreshRate)
 	defer ticker.Stop()
@@ -247,12 +247,12 @@ func drawInitialLayout(config Config) {
 
 	// Heartbeat section
 	fmt.Printf("🔍 HEARTBEAT MONITORING:\n")
-	fmt.Printf("%s%-40s\n", statusLabelPrefix, "Checking servers...")
-	// Get the actual number of configured servers
-	servers := logics.GetServersConfig()
+	fmt.Printf("%s%-40s\n", statusLabelPrefix, "Checking heartbeat targets...")
+	// Get the actual number of configured heartbeat endpoints
+	servers := logics.GetHeartbeatConfig()
 	serverCount := len(servers)
 	if serverCount == 0 {
-		fmt.Printf("   No servers configured\n")
+		fmt.Printf("   No heartbeat targets configured\n")
 	} else {
 		// Only print loading lines for actual servers
 		for range serverCount {

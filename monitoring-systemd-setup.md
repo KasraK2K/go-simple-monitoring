@@ -4,7 +4,7 @@ This guide sets up your Go-built binary **`monitoring`** to run as a systemd ser
 - Write monitoring logs to `/var/log/monitoring` (configurable in `configs.json`)
 - Run as a single service instance with automatic logging
 - Auto-restart on crash
-- Monitor system resources and configured servers
+- Monitor system resources and configured heartbeat targets
 
 > Assumptions
 > - You already have a compiled binary named `monitoring` (no extension).
@@ -40,7 +40,7 @@ sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
   "path": "/var/log/monitoring",
   "refresh_time": "5s",
-  "servers": [
+  "heartbeat": [
     {
       "name": "Google",
       "url": "https://www.google.com",

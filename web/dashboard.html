@@ -641,7 +641,7 @@
         <section class="glass-panel heartbeat-section">
             <div class="heartbeat-header">
                 <div>
-                    <div class="heartbeat-title">Server Heartbeat</div>
+                    <div class="heartbeat-title">Domain Heartbeat</div>
                     <div class="heartbeat-meta">Live status across configured targets</div>
                 </div>
                 <div class="heartbeat-meta" id="heartbeatSummary">-- online / -- total</div>
@@ -659,6 +659,7 @@
         let refreshInterval = 2000;
         let refreshTimer;
         let previousMetrics = null;
+        let serverConfig = null;
 
         function initializeCharts() {
             const systemCtx = document.getElementById('systemChart').getContext('2d');
@@ -938,12 +939,6 @@
                 raw
             };
 
-            const refreshSeconds = raw.refresh_interval_seconds
-                ?? container.refresh_interval_seconds;
-            if (typeof refreshSeconds === 'number') {
-                normalized.refresh_interval_seconds = refreshSeconds;
-            }
-
             return normalized;
         }
 
@@ -960,11 +955,9 @@
                 const payload = await response.json();
 
                 let entries = payload;
-                let refreshSeconds;
 
                 if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
                     entries = payload.data ?? [];
-                    refreshSeconds = payload.refresh_interval_seconds;
                 }
 
                 if (!Array.isArray(entries)) {
@@ -978,18 +971,6 @@
                 }
 
                 const normalized = normalizeMetrics(data);
-
-                if (typeof refreshSeconds !== 'number' && typeof normalized.refresh_interval_seconds === 'number') {
-                    refreshSeconds = normalized.refresh_interval_seconds;
-                }
-
-                if (typeof refreshSeconds === 'number') {
-                    const candidate = refreshSeconds * 1000;
-                    if (!Number.isNaN(candidate) && candidate > 0) {
-                        refreshInterval = candidate;
-                        updateRefreshDisplay();
-                    }
-                }
 
                 updateMetrics(normalized);
                 updateCharts(normalized);
@@ -1114,6 +1095,24 @@
             }
         }
 
+        async function fetchServerConfig() {
+            try {
+                const response = await fetch('/api/v1/server-config', { cache: 'no-store' });
+                if (!response.ok) return;
+
+                const config = await response.json();
+                serverConfig = config;
+
+                const candidate = Number(config.refresh_interval_seconds) * 1000;
+                if (!Number.isNaN(candidate) && candidate > 0) {
+                    refreshInterval = candidate;
+                    updateRefreshDisplay();
+                }
+            } catch (error) {
+                console.debug('Using existing server config:', error);
+            }
+        }
+
         function updateRefreshDisplay() {
             const display = document.getElementById('refreshDisplay');
             if (!display) return;
@@ -1148,7 +1147,7 @@
             list.innerHTML = '';
 
             if (!servers || servers.length === 0) {
-                list.innerHTML = '<div class="heartbeat-empty">No servers configured</div>';
+                list.innerHTML = '<div class="heartbeat-empty">No heartbeat targets configured</div>';
                 if (summary) {
                     summary.textContent = '0 online / 0 total';
                 }
@@ -1240,6 +1239,7 @@
         function scheduleNextFetch() {
             clearTimeout(refreshTimer);
             refreshTimer = setTimeout(async () => {
+                await fetchServerConfig();
                 await fetchMetrics();
                 scheduleNextFetch();
             }, refreshInterval);
@@ -1247,6 +1247,7 @@
 
         async function init() {
             initializeCharts();
+            await fetchServerConfig();
             await fetchMetrics();
             scheduleNextFetch();
         }
