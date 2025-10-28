@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Monitoring Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        as="style">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         :root {
             color-scheme: dark;
@@ -20,7 +26,25 @@
             --accent-soft: rgba(56, 189, 248, 0.2);
             --success: #34d399;
             --danger: #f87171;
+            --warning: #fbbf24;
             --shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+        }
+
+        [data-theme="light"] {
+            color-scheme: light;
+            --bg: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            --bg-alt: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --border: rgba(148, 163, 184, 0.2);
+            --border-strong: rgba(59, 130, 246, 0.4);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --accent: #3b82f6;
+            --accent-soft: rgba(59, 130, 246, 0.1);
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
         }
 
         * {
@@ -31,12 +55,16 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 45%),
-                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.12), transparent 55%),
-                var(--bg);
+            background: var(--bg);
             min-height: 100vh;
             color: var(--text-primary);
             line-height: 1.6;
+        }
+
+        body[data-theme="dark"] {
+            background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.18), transparent 45%),
+                radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.12), transparent 55%),
+                var(--bg);
         }
 
         .background {
@@ -70,6 +98,14 @@
             background: rgba(59, 130, 246, 0.35);
         }
 
+        body[data-theme="light"] .orb--teal {
+            background: rgba(45, 212, 191, 0.15);
+        }
+
+        body[data-theme="light"] .orb--blue {
+            background: rgba(59, 130, 246, 0.12);
+        }
+
         .container {
             width: min(1200px, 100% - 48px);
             margin: 48px auto 64px;
@@ -79,7 +115,7 @@
         }
 
         .glass-panel {
-            background: linear-gradient(135deg, rgba(19, 32, 56, 0.78), rgba(17, 28, 50, 0.58));
+            background: var(--glass-bg);
             border: 1px solid var(--border);
             border-radius: 22px;
             box-shadow: var(--shadow);
@@ -87,6 +123,10 @@
             -webkit-backdrop-filter: blur(22px);
             position: relative;
             overflow: hidden;
+        }
+
+        body[data-theme="dark"] .glass-panel {
+            background: linear-gradient(135deg, rgba(19, 32, 56, 0.78), rgba(17, 28, 50, 0.58));
         }
 
         .glass-panel::before {
@@ -253,13 +293,17 @@
         .heartbeat-card {
             border: 1px solid var(--border);
             border-radius: 18px;
-            background: linear-gradient(135deg, rgba(30, 41, 72, 0.86), rgba(15, 23, 42, 0.75));
+            background: var(--glass-bg);
             padding: 20px 24px;
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 20px;
             width: 100%;
+        }
+
+        body[data-theme="dark"] .heartbeat-card {
+            background: linear-gradient(135deg, rgba(30, 41, 72, 0.86), rgba(15, 23, 42, 0.75));
         }
 
         .heartbeat-info {
@@ -514,8 +558,8 @@
         }
 
         .date-filter input[type="datetime-local"] {
-            background: rgba(15, 23, 42, 0.45);
-            border: 1px solid rgba(148, 163, 184, 0.32);
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
             border-radius: 10px;
             padding: 8px 10px;
             color: var(--text-primary);
@@ -523,9 +567,25 @@
             min-width: 200px;
         }
 
+        body[data-theme="dark"] .date-filter input[type="datetime-local"] {
+            background: rgba(15, 23, 42, 0.45);
+        }
+
         .date-filter input[type="datetime-local"]:focus {
             outline: none;
-            border-color: rgba(56, 189, 248, 0.6);
+            border-color: var(--accent);
+        }
+
+        .date-filter input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(var(--calendar-icon-invert, 0));
+        }
+
+        body[data-theme="light"] {
+            --calendar-icon-invert: 0;
+        }
+
+        body[data-theme="dark"] {
+            --calendar-icon-invert: 1;
         }
 
         .filter-action {
@@ -538,6 +598,9 @@
             letter-spacing: 0.02em;
             cursor: pointer;
             transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .filter-action:hover {
@@ -549,7 +612,447 @@
             background: transparent;
         }
 
+        /* Loading States */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: inherit;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
 
+        /* Full screen loading overlay for initial load */
+        #initialLoading {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0;
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+        }
+        
+        body[data-theme="light"] .loading-overlay {
+            background: rgba(255, 255, 255, 0.8);
+        }
+        
+        body[data-theme="light"] #initialLoading {
+            background: rgba(255, 255, 255, 0.9);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(56, 189, 248, 0.3);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            margin-left: 12px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.hidden {
+            transform: translateY(-100px);
+            opacity: 0;
+        }
+
+        .connection-status.offline {
+            border-color: rgba(248, 113, 113, 0.5);
+            background: rgba(248, 113, 113, 0.1);
+            color: var(--danger);
+        }
+
+        .connection-status.reconnecting {
+            border-color: rgba(251, 191, 36, 0.5);
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--warning);
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 50px;
+            height: 50px;
+            border: 1px solid var(--border);
+            background: var(--glass-bg);
+            border-radius: 50%;
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            z-index: 1000;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .theme-toggle i {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-toggle:hover i {
+            transform: rotate(180deg);
+        }
+
+        /* Alerts Panel */
+        .alerts-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            /* Hide scrollbar */
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE and Edge */
+        }
+        
+        .alerts-panel::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        .alert-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid;
+            backdrop-filter: blur(12px);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-item i.fa-exclamation-triangle {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .alert-item.error {
+            background: rgba(248, 113, 113, 0.1);
+            border-color: rgba(248, 113, 113, 0.5);
+            color: var(--danger);
+        }
+
+        .alert-item.warning {
+            background: rgba(251, 191, 36, 0.1);
+            border-color: rgba(251, 191, 36, 0.5);
+            color: var(--warning);
+        }
+
+        .alert-item.success {
+            background: rgba(52, 211, 153, 0.1);
+            border-color: rgba(52, 211, 153, 0.5);
+            color: var(--success);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-close {
+            margin-left: auto;
+            cursor: pointer;
+            opacity: 0.7;
+            font-weight: bold;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Tooltips */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip-content {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-alt);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            border: 1px solid var(--border);
+            z-index: 1000;
+            margin-bottom: 8px;
+        }
+
+        .tooltip-content::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: var(--border);
+        }
+
+        .tooltip:hover .tooltip-content {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Export Panel */
+        .export-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+            min-width: 300px;
+        }
+
+        .export-panel.visible {
+            display: flex;
+        }
+
+        .export-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1999;
+            display: none;
+        }
+
+        .export-overlay.visible {
+            display: block;
+        }
+
+        .export-options {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .export-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .export-btn:hover {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+        }
+
+        /* Enhanced Mobile Responsiveness */
+        @media (max-width: 640px) {
+
+            .theme-toggle,
+            .connection-status {
+                position: relative;
+                top: auto;
+                left: auto;
+                right: auto;
+            }
+
+            .alerts-panel {
+                position: relative;
+                top: auto;
+                right: auto;
+                width: 100%;
+                margin: 16px 0;
+            }
+
+            .export-panel {
+                width: 90vw;
+                max-width: none;
+            }
+        }
+
+        /* Better Touch Targets */
+        @media (hover: none) and (pointer: coarse) {
+
+            .server-button,
+            .filter-action,
+            .pill,
+            .status-pill {
+                min-height: 44px;
+                padding: 12px 18px;
+            }
+
+            .theme-toggle {
+                width: 56px;
+                height: 56px;
+            }
+        }
+
+        /* Preset Range Buttons */
+        .range-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .range-btn {
+            padding: 6px 12px;
+            border: 1px solid var(--border);
+            background: var(--glass-bg);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .range-btn:hover,
+        .range-btn.active {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: var(--accent-soft);
+        }
+
+        /* Heartbeat Search */
+        .heartbeat-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .heartbeat-search {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        body[data-theme="dark"] .heartbeat-search {
+            background: rgba(15, 23, 42, 0.45);
+        }
+
+        .heartbeat-search:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .heartbeat-search::placeholder {
+            color: var(--text-secondary);
+        }
+
+        /* Enhanced Error States */
+        .error-panel {
+            padding: 20px;
+            text-align: center;
+            border: 1px dashed rgba(248, 113, 113, 0.5);
+            background: rgba(248, 113, 113, 0.05);
+            border-radius: 12px;
+            color: var(--danger);
+        }
+
+        .error-panel h3 {
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+
+        .error-panel p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .retry-btn {
+            margin-top: 12px;
+            padding: 8px 16px;
+            border: 1px solid var(--danger);
+            background: transparent;
+            color: var(--danger);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .retry-btn:hover {
+            background: rgba(248, 113, 113, 0.1);
+        }
 
         @media (max-width: 900px) {
             .hero {
@@ -592,6 +1095,15 @@
             .heartbeat-detail {
                 width: 100%;
             }
+
+            .range-presets {
+                justify-content: center;
+            }
+
+            .heartbeat-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -601,6 +1113,31 @@
         <span class="orb orb--teal"></span>
         <span class="orb orb--blue"></span>
     </div>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+        <i class="fas fa-moon" id="themeIcon"></i>
+    </button>
+
+    <!-- Connection Status -->
+    <div class="connection-status hidden" id="connectionStatus" role="status" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="connectionText">Connected</span>
+    </div>
+
+    <!-- Alerts Panel -->
+    <div class="alerts-panel" id="alertsPanel" role="region" aria-label="System alerts"></div>
+
+    <!-- Export Overlay -->
+    <div class="export-overlay" id="exportOverlay"></div>
+    <div class="export-panel" id="exportPanel" role="dialog" aria-labelledby="exportTitle">
+        <h3 id="exportTitle">Export Data</h3>
+        <div class="export-options">
+            <button class="export-btn" id="exportCSV" type="button">Export CSV</button>
+            <button class="export-btn" id="exportJSON" type="button">Export JSON</button>
+        </div>
+        <button class="filter-action" id="exportClose" type="button">Close</button>
+    </div>
     <main class="container">
         <header class="glass-panel hero">
             <div class="hero-top">
@@ -609,112 +1146,149 @@
                 </div>
             </div>
             <div class="hero-meta">
-                <span class="status-pill online" id="systemStatus">
+                <span class="status-pill online" id="systemStatus" role="status">
                     <span class="status-dot"></span>
                     <span class="status-text">System Online</span>
                 </span>
-                <span class="pill">Refresh <span id="refreshDisplay">2s</span></span>
+                <div class="tooltip">
+                    <span class="pill">Refresh <span id="refreshDisplay">2s</span></span>
+                    <div class="tooltip-content">Auto-refresh interval</div>
+                </div>
                 <span class="pill">Last updated <span id="lastUpdated">--</span></span>
+                <button class="filter-action" id="exportTrigger" type="button" aria-label="Export data">
+                    <i class="fas fa-download"></i> Export
+                    Export</button>
             </div>
-            <div class="server-switcher" id="serverSwitcher"></div>
+            <div class="server-switcher" id="serverSwitcher" role="group" aria-label="Server selection"></div>
             <div class="date-filter">
                 <label>
                     <span>From</span>
-                    <input type="datetime-local" id="filterFrom" />
+                    <input type="datetime-local" id="filterFrom" aria-label="Start date and time" />
                 </label>
                 <label>
                     <span>To</span>
-                    <input type="datetime-local" id="filterTo" />
+                    <input type="datetime-local" id="filterTo" aria-label="End date and time" />
                 </label>
                 <button type="button" class="filter-action" id="applyFilter">Apply</button>
                 <button type="button" class="filter-action ghost" id="clearFilter">Clear</button>
             </div>
+            <div class="range-presets">
+                <button class="range-btn" data-range="1h" type="button">1h</button>
+                <button class="range-btn" data-range="6h" type="button">6h</button>
+                <button class="range-btn" data-range="24h" type="button">24h</button>
+                <button class="range-btn" data-range="7d" type="button">7d</button>
+                <button class="range-btn" data-range="30d" type="button">30d</button>
+            </div>
         </header>
 
-        <section class="metrics-grid">
+        <!-- Full Screen Initial Loading -->
+        <div id="initialLoading" style="display: flex;">
+            <div class="loading-spinner"></div>
+            <span class="loading-text">Loading dashboard...</span>
+        </div>
+        
+        <section class="metrics-grid" role="region" aria-label="System metrics">
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">CPU Usage</span>
-                    <span class="metric-trend" id="cpuTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">CPU Usage</span>
+                        <div class="tooltip-content">Current CPU utilization percentage</div>
+                    </div>
+                    <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="cpu">--</span>
+                    <span class="metric-value" id="cpu" aria-label="CPU usage percentage">--</span>
                     <span class="metric-unit">%</span>
                 </div>
-                <div class="metric-progress">
+                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <span class="progress-fill" id="cpuBar"></span>
                 </div>
             </article>
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">Memory</span>
-                    <span class="metric-trend" id="memoryTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">Memory</span>
+                        <div class="tooltip-content">RAM usage percentage</div>
+                    </div>
+                    <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="memory">--</span>
+                    <span class="metric-value" id="memory" aria-label="Memory usage percentage">--</span>
                     <span class="metric-unit">%</span>
                 </div>
-                <div class="metric-progress">
+                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <span class="progress-fill" id="memoryBar"></span>
                 </div>
             </article>
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">Disk Usage</span>
-                    <span class="metric-trend" id="diskTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">Disk Usage</span>
+                        <div class="tooltip-content">Storage space utilization</div>
+                    </div>
+                    <span class="metric-trend" id="diskTrend" aria-label="Disk trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="disk">--</span>
+                    <span class="metric-value" id="disk" aria-label="Disk usage percentage">--</span>
                     <span class="metric-unit">%</span>
                 </div>
-                <div class="metric-progress">
+                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <span class="progress-fill" id="diskBar"></span>
                 </div>
             </article>
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">Network In</span>
-                    <span class="metric-trend" id="networkRxTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">Network In</span>
+                        <div class="tooltip-content">Incoming network traffic rate</div>
+                    </div>
+                    <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="networkRx">--</span>
+                    <span class="metric-value" id="networkRx" aria-label="Network incoming rate">--</span>
                     <span class="metric-unit">MB/s</span>
                 </div>
             </article>
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">Network Out</span>
-                    <span class="metric-trend" id="networkTxTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">Network Out</span>
+                        <div class="tooltip-content">Outgoing network traffic rate</div>
+                    </div>
+                    <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="networkTx">--</span>
+                    <span class="metric-value" id="networkTx" aria-label="Network outgoing rate">--</span>
                     <span class="metric-unit">MB/s</span>
                 </div>
             </article>
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <span class="metric-label">Load Average (1m)</span>
-                    <span class="metric-trend" id="loadTrend">--</span>
+                    <div class="tooltip">
+                        <span class="metric-label">Load Average (1m)</span>
+                        <div class="tooltip-content">System load over the last minute</div>
+                    </div>
+                    <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
-                    <span class="metric-value" id="loadAvg">--</span>
+                    <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
                 </div>
             </article>
         </section>
 
-        <section class="charts-grid">
+        <section class="charts-grid" role="region" aria-label="Performance charts">
             <article class="glass-panel chart-card">
                 <div class="chart-header">
                     <h3>System Performance</h3>
                     <span class="chart-subtitle">CPU and memory usage over time</span>
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="systemChart"></canvas>
+                    <canvas id="systemChart" aria-label="System performance chart"></canvas>
                 </div>
             </article>
 
@@ -724,7 +1298,7 @@
                     <span class="chart-subtitle">Inbound vs outbound throughput (MB/s)</span>
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="networkChart"></canvas>
+                    <canvas id="networkChart" aria-label="Network throughput chart"></canvas>
                 </div>
             </article>
 
@@ -734,18 +1308,26 @@
                     <span class="chart-subtitle">CPU, memory, and disk utilisation snapshot</span>
                 </div>
                 <div class="chart-wrapper">
-                    <canvas id="usageDonut"></canvas>
+                    <canvas id="usageDonut" aria-label="Resource usage distribution chart"></canvas>
                 </div>
             </article>
         </section>
 
-        <section class="glass-panel heartbeat-section">
+        <section class="glass-panel heartbeat-section" role="region" aria-label="Server heartbeat status">
             <div class="heartbeat-header">
                 <div>
                     <div class="heartbeat-title">Domain Heartbeat</div>
                     <div class="heartbeat-meta">Live status across configured targets</div>
                 </div>
                 <div class="heartbeat-meta" id="heartbeatSummary">-- online / -- total</div>
+            </div>
+            <div class="heartbeat-controls">
+                <input type="text" class="heartbeat-search" id="heartbeatSearch" placeholder="Search servers..."
+                    aria-label="Search heartbeat targets">
+                <button class="filter-action" id="heartbeatRefresh" type="button"
+                    aria-label="Refresh heartbeat data">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
             </div>
             <div class="heartbeat-grid" id="heartbeatList">
                 <div class="heartbeat-empty">No heartbeat data yet</div>
@@ -754,6 +1336,7 @@
     </main>
 
     <script>
+        // Core system variables
         let systemChart;
         let networkChart;
         let usageDonut;
@@ -770,9 +1353,335 @@
         let filterElements = null;
         const LOCAL_SERVER_OPTION = { name: 'Local', address: '' };
 
+        // New enhancement variables
+        let connectionState = 'online';
+        let currentTheme = 'dark';
+        let alertsQueue = [];
+        let activeAlerts = new Map();
+        let notificationPermission = 'default';
+        let lastMetricValues = {};
+        let thresholds = {
+            cpu: { warning: 70, critical: 90 },
+            memory: { warning: 80, critical: 95 },
+            disk: { warning: 85, critical: 95 }
+        };
+        let isLoading = false;
+        let retryCount = 0;
+        let maxRetries = 3;
+        let filteredHeartbeats = [];
+        let searchTerm = '';
+        let isInitialLoad = true;
+
+        // Performance optimization
+        let chartUpdateQueue = [];
+        let isUpdatingCharts = false;
+
         function sanitizeBaseUrl(url) {
             if (!url) return '';
             return String(url).replace(/\/+$/, '');
+        }
+
+        // Theme Management
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', currentTheme);
+            const themeIcon = document.getElementById('themeIcon');
+            themeIcon.className = currentTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+            localStorage.setItem('theme', currentTheme);
+
+            // Reinitialize charts with new theme colors
+            if (systemChart) {
+                updateChartTheme(systemChart);
+            }
+            if (networkChart) {
+                updateChartTheme(networkChart);
+            }
+            if (usageDonut) {
+                updateChartTheme(usageDonut);
+            }
+        }
+
+        function updateChartTheme(chart) {
+            const textColor = currentTheme === 'dark' ? 'rgba(226, 232, 240, 0.9)' : 'rgba(30, 41, 59, 0.9)';
+            const gridColor = currentTheme === 'dark' ? 'rgba(148, 163, 184, 0.18)' : 'rgba(100, 116, 139, 0.2)';
+            const borderColor = currentTheme === 'dark' ? 'rgba(148, 163, 184, 0.25)' : 'rgba(100, 116, 139, 0.3)';
+
+            if (chart.options.plugins?.legend?.labels) {
+                chart.options.plugins.legend.labels.color = textColor;
+            }
+            if (chart.options.scales?.y?.ticks) {
+                chart.options.scales.y.ticks.color = textColor;
+            }
+            if (chart.options.scales?.x?.ticks) {
+                chart.options.scales.x.ticks.color = textColor;
+            }
+            if (chart.options.scales?.y?.grid) {
+                chart.options.scales.y.grid.color = gridColor;
+                chart.options.scales.y.grid.borderColor = borderColor;
+            }
+
+            chart.update('none');
+        }
+
+        // Connection Status Management
+        function updateConnectionStatus(status, message = '') {
+            const statusEl = document.getElementById('connectionStatus');
+            const textEl = document.getElementById('connectionText');
+
+            connectionState = status;
+
+            statusEl.className = `connection-status ${status}`;
+
+            switch (status) {
+                case 'online':
+                    textEl.textContent = 'Connected';
+                    statusEl.classList.add('hidden');
+                    break;
+                case 'offline':
+                    textEl.textContent = message || 'Connection Lost';
+                    statusEl.classList.remove('hidden');
+                    break;
+                case 'reconnecting':
+                    textEl.textContent = 'Reconnecting...';
+                    statusEl.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // Alert System
+        function showAlert(type, message, duration = 5000) {
+            const alertsPanel = document.getElementById('alertsPanel');
+            const alertId = Date.now() + Math.random();
+
+            const alertEl = document.createElement('div');
+            alertEl.className = `alert-item ${type}`;
+            alertEl.innerHTML = `
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>${escapeHtml(message)}</span>
+                <span class="alert-close" onclick="removeAlert('${alertId}')"><i class="fas fa-times"></i></span>
+            `;
+
+            alertsPanel.appendChild(alertEl);
+            activeAlerts.set(alertId, alertEl);
+
+            // Auto-remove after duration
+            if (duration > 0) {
+                setTimeout(() => removeAlert(alertId), duration);
+            }
+
+            // Browser notification if permission granted
+            if (notificationPermission === 'granted' && type === 'error') {
+                new Notification('System Monitoring Alert', {
+                    body: message,
+                    icon: '/favicon.ico'
+                });
+            }
+
+            return alertId;
+        }
+
+        function removeAlert(alertId) {
+            const alertEl = activeAlerts.get(alertId);
+            if (alertEl) {
+                alertEl.remove();
+                activeAlerts.delete(alertId);
+            }
+        }
+
+        function clearAllAlerts() {
+            activeAlerts.forEach((alertEl) => alertEl.remove());
+            activeAlerts.clear();
+        }
+
+        // Threshold Monitoring
+        function checkThresholds(data) {
+            const checks = [
+                { name: 'CPU', value: data.cpu_usage, thresholds: thresholds.cpu, unit: '%' },
+                { name: 'Memory', value: data.memory?.percentage, thresholds: thresholds.memory, unit: '%' },
+                { name: 'Disk', value: data.disk?.percentage, thresholds: thresholds.disk, unit: '%' }
+            ];
+
+            checks.forEach(check => {
+                if (check.value == null || !Number.isFinite(check.value)) return;
+
+                const alertKey = `threshold_${check.name.toLowerCase()}`;
+
+                if (check.value >= check.thresholds.critical) {
+                    if (!activeAlerts.has(alertKey)) {
+                        showAlert('error', `${check.name} usage critical: ${check.value.toFixed(1)}${check.unit}`, 0);
+                        activeAlerts.set(alertKey, true);
+                    }
+                } else if (check.value >= check.thresholds.warning) {
+                    if (!activeAlerts.has(alertKey)) {
+                        showAlert('warning', `${check.name} usage high: ${check.value.toFixed(1)}${check.unit}`, 10000);
+                        activeAlerts.set(alertKey, true);
+                    }
+                } else {
+                    // Remove threshold alert if it exists and value is now normal
+                    if (activeAlerts.has(alertKey)) {
+                        removeAlert(alertKey);
+                    }
+                }
+            });
+        }
+
+        // Loading State Management
+        function setLoadingState(section, loading) {
+            // Only show loading for initial load, not subsequent refreshes
+            if (section === 'initial') {
+                const loadingEl = document.getElementById('initialLoading');
+                if (loadingEl) {
+                    loadingEl.style.display = loading ? 'flex' : 'none';
+                }
+                isLoading = loading;
+            }
+        }
+
+        // Export Functionality
+        function showExportPanel() {
+            document.getElementById('exportOverlay').classList.add('visible');
+            document.getElementById('exportPanel').classList.add('visible');
+        }
+
+        function hideExportPanel() {
+            document.getElementById('exportOverlay').classList.remove('visible');
+            document.getElementById('exportPanel').classList.remove('visible');
+        }
+
+        function exportData(format) {
+            try {
+                let data, filename, mimeType;
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/[:.]/g, '-');
+
+                if (format === 'csv') {
+                    data = generateCSV();
+                    filename = `monitoring-data-${timestamp}.csv`;
+                    mimeType = 'text/csv';
+                } else if (format === 'json') {
+                    data = JSON.stringify({
+                        exported_at: new Date().toISOString(),
+                        server: selectedServer?.name || 'Local',
+                        historical_mode: historicalMode,
+                        data: historicalMode ? historicalSeries : [previousMetrics]
+                    }, null, 2);
+                    filename = `monitoring-data-${timestamp}.json`;
+                    mimeType = 'application/json';
+                }
+
+                const blob = new Blob([data], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                showAlert('success', `Data exported as ${format.toUpperCase()}`);
+                hideExportPanel();
+            } catch (error) {
+                showAlert('error', `Export failed: ${error.message}`);
+            }
+        }
+
+        function generateCSV() {
+            const series = historicalMode ? historicalSeries : [previousMetrics];
+            if (!series || series.length === 0) return 'No data available';
+
+            const headers = ['timestamp', 'cpu_usage', 'memory_percentage', 'disk_percentage', 'network_rx_mb', 'network_tx_mb', 'load_average'];
+            const rows = [headers.join(',')];
+
+            series.forEach(item => {
+                if (!item) return;
+                const row = [
+                    item.timestamp || '',
+                    item.cpu_usage || '',
+                    item.memory?.percentage || '',
+                    item.disk?.percentage || '',
+                    bytesToMb(item.network_delta?.bytes_received) || '',
+                    bytesToMb(item.network_delta?.bytes_sent) || '',
+                    item.load_average?.one_minute || ''
+                ];
+                rows.push(row.join(','));
+            });
+
+            return rows.join('\n');
+        }
+
+        // Range Preset Functionality
+        function applyRangePreset(range) {
+            const now = new Date();
+            let fromDate;
+
+            switch (range) {
+                case '1h':
+                    fromDate = new Date(now.getTime() - 60 * 60 * 1000);
+                    break;
+                case '6h':
+                    fromDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                    break;
+                case '24h':
+                    fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+                    break;
+                case '7d':
+                    fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case '30d':
+                    fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    break;
+                default:
+                    return;
+            }
+
+            // Format for datetime-local input
+            const formatDate = (date) => {
+                return date.toISOString().slice(0, 16);
+            };
+
+            if (filterElements.fromInput) {
+                filterElements.fromInput.value = formatDate(fromDate);
+            }
+            if (filterElements.toInput) {
+                filterElements.toInput.value = formatDate(now);
+            }
+
+            // Update active state
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.range === range);
+            });
+
+            // Auto-apply the filter
+            applyDateFilter();
+        }
+
+        // Heartbeat Search and Filter
+        function filterHeartbeats(searchTerm = '') {
+            const heartbeatList = document.getElementById('heartbeatList');
+            const cards = heartbeatList.querySelectorAll('.heartbeat-card');
+
+            let visibleCount = 0;
+            cards.forEach(card => {
+                const name = card.querySelector('.name')?.textContent || '';
+                const url = card.querySelector('.url')?.textContent || '';
+                const matches = name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    url.toLowerCase().includes(searchTerm.toLowerCase());
+
+                card.style.display = matches ? 'flex' : 'none';
+                if (matches) visibleCount++;
+            });
+
+            // Show empty state if no matches
+            if (visibleCount === 0 && cards.length > 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'heartbeat-empty';
+                emptyState.textContent = `No servers match "${searchTerm}"`;
+                emptyState.id = 'searchEmptyState';
+                heartbeatList.appendChild(emptyState);
+            } else {
+                const existingEmpty = document.getElementById('searchEmptyState');
+                if (existingEmpty) {
+                    existingEmpty.remove();
+                }
+            }
         }
 
         function buildEndpoint(path) {
@@ -840,7 +1749,7 @@
                     plugins: {
                         legend: {
                             labels: {
-                                color: 'rgba(226, 232, 240, 0.9)',
+                                color: currentTheme === 'dark' ? 'rgba(226, 232, 240, 0.9)' : 'rgba(30, 41, 59, 0.9)',
                                 usePointStyle: true,
                                 boxHeight: 8,
                                 padding: 18
@@ -910,7 +1819,7 @@
                     plugins: {
                         legend: {
                             labels: {
-                                color: 'rgba(226, 232, 240, 0.9)',
+                                color: currentTheme === 'dark' ? 'rgba(226, 232, 240, 0.9)' : 'rgba(30, 41, 59, 0.9)',
                                 usePointStyle: true,
                                 boxHeight: 8,
                                 padding: 18
@@ -964,7 +1873,7 @@
                         legend: {
                             position: 'bottom',
                             labels: {
-                                color: 'rgba(226, 232, 240, 0.85)',
+                                color: currentTheme === 'dark' ? 'rgba(226, 232, 240, 0.85)' : 'rgba(30, 41, 59, 0.9)',
                                 usePointStyle: true,
                                 padding: 18
                             }
@@ -972,6 +1881,13 @@
                     }
                 }
             });
+        }
+
+        // Request Notification Permission
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                notificationPermission = await Notification.requestPermission();
+            }
         }
 
         function normalizeMetrics(raw) {
@@ -1080,6 +1996,12 @@
 
         async function fetchMetrics() {
             try {
+                // Only show loading overlay on initial load
+                if (isInitialLoad) {
+                    setLoadingState('initial', true);
+                }
+                // Don't show reconnecting status for normal requests
+
                 const monitoringUrl = buildEndpoint('/monitoring');
                 const filterPayload = pendingFilter;
                 const requestBody = filterPayload
@@ -1153,6 +2075,10 @@
 
                 updateTrends(latestNormalized, networkDelta, comparisonBaseline);
                 updateStatus(true);
+                updateConnectionStatus('online');
+
+                // Check thresholds and show alerts
+                checkThresholds(latestNormalized);
 
                 let uptimeStats = null;
                 if (historicalMode) {
@@ -1166,12 +2092,37 @@
                 }
 
                 previousMetrics = latestNormalized;
+                retryCount = 0; // Reset retry count on success
+
                 if (filterPayload) {
                     pendingFilter = null;
                 }
+
+                // Hide initial loading overlay after first successful load
+                if (isInitialLoad) {
+                    setLoadingState('initial', false);
+                    isInitialLoad = false;
+                }
             } catch (error) {
                 console.error('Error fetching metrics:', error);
-                showErrorState();
+                retryCount++;
+
+                // Connection status will be set based on retry logic below
+
+                // Hide loading even on error
+                if (isInitialLoad) {
+                    setLoadingState('initial', false);
+                    isInitialLoad = false;
+                }
+
+                if (retryCount <= maxRetries) {
+                    updateConnectionStatus('reconnecting', `Retrying... (${retryCount}/${maxRetries})`);
+                    showAlert('warning', `Connection failed, retrying... (${retryCount}/${maxRetries})`);
+                } else {
+                    updateConnectionStatus('offline', error.message);
+                    showAlert('error', `Connection failed: ${error.message}`);
+                    showErrorState(error.message);
+                }
             }
         }
 
@@ -1186,6 +2137,18 @@
             updateProgress('cpuBar', data.cpu_usage);
             updateProgress('memoryBar', data.memory?.percentage);
             updateProgress('diskBar', data.disk?.percentage);
+
+            // Update progress bar ARIA attributes
+            updateProgressAria('cpuBar', data.cpu_usage);
+            updateProgressAria('memoryBar', data.memory?.percentage);
+            updateProgressAria('diskBar', data.disk?.percentage);
+        }
+
+        function updateProgressAria(barId, value) {
+            const progressBar = document.getElementById(barId)?.closest('[role="progressbar"]');
+            if (progressBar && value != null) {
+                progressBar.setAttribute('aria-valuenow', Math.round(value));
+            }
         }
 
         function setMetricValue(id, value, digits = 1) {
@@ -1343,11 +2306,11 @@
                 const previousVal = Number.isFinite(Number(previous)) ? Number(previous) : 0;
 
                 if (currentVal > previousVal) {
-                    element.textContent = '↗';
+                    element.innerHTML = '<i class="fas fa-arrow-up"></i>';
                 } else if (currentVal < previousVal) {
-                    element.textContent = '↘';
+                    element.innerHTML = '<i class="fas fa-arrow-down"></i>';
                 } else {
-                    element.textContent = '→';
+                    element.innerHTML = '<i class="fas fa-minus"></i>';
                 }
             });
         }
@@ -1733,7 +2696,7 @@
                 let summaryText = `${onlineCount} online / ${servers.length} total`;
                 if (uptimeSamples > 0) {
                     const avgUptime = uptimeAccumulator / uptimeSamples;
-                    summaryText += ` · Avg ${avgUptime.toFixed(1)}% uptime`;
+                    summaryText += ` • Avg ${avgUptime.toFixed(1)}% uptime`;
                 }
                 summary.textContent = summaryText;
             }
@@ -1788,13 +2751,72 @@
         function scheduleNextFetch() {
             clearTimeout(refreshTimer);
             refreshTimer = setTimeout(async () => {
-                await fetchServerConfig(selectedBaseUrl);
-                await fetchMetrics();
-                scheduleNextFetch();
+                try {
+                    await fetchServerConfig(selectedBaseUrl);
+                    await fetchMetrics();
+                } catch (error) {
+                    console.error('Scheduled fetch failed:', error);
+                } finally {
+                    scheduleNextFetch();
+                }
             }, refreshInterval);
         }
 
+        // Cleanup function to prevent memory leaks
+        function cleanup() {
+            clearTimeout(refreshTimer);
+            chartUpdateQueue.length = 0;
+            activeAlerts.clear();
+            clearAllAlerts();
+
+            // Destroy charts
+            if (systemChart) {
+                systemChart.destroy();
+                systemChart = null;
+            }
+            if (networkChart) {
+                networkChart.destroy();
+                networkChart = null;
+            }
+            if (usageDonut) {
+                usageDonut.destroy();
+                usageDonut = null;
+            }
+        }
+
+        // Handle page visibility changes for performance
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearTimeout(refreshTimer);
+            } else {
+                scheduleNextFetch();
+            }
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', cleanup);
+
+        // Handle errors globally
+        window.addEventListener('error', (event) => {
+            console.error('Global error:', event.error);
+            showAlert('error', 'An unexpected error occurred');
+        });
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            showAlert('error', 'A network or processing error occurred');
+        });
+
         async function init() {
+            // Initialize theme
+            currentTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', currentTheme);
+            const themeIcon = document.getElementById('themeIcon');
+            themeIcon.className = currentTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+
+            // Request notification permission
+            await requestNotificationPermission();
+
             initializeCharts();
             renderServerButtons();
             filterElements = {
@@ -1804,18 +2826,71 @@
                 clearButton: document.getElementById('clearFilter')
             };
 
+            // Event listeners for existing functionality
             if (filterElements.applyButton) {
                 filterElements.applyButton.addEventListener('click', applyDateFilter);
             }
             if (filterElements.clearButton) {
                 filterElements.clearButton.addEventListener('click', clearDateFilter);
             }
+
+            // New event listeners
+            document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+            document.getElementById('exportTrigger')?.addEventListener('click', showExportPanel);
+            document.getElementById('exportClose')?.addEventListener('click', hideExportPanel);
+            document.getElementById('exportOverlay')?.addEventListener('click', hideExportPanel);
+            document.getElementById('exportCSV')?.addEventListener('click', () => exportData('csv'));
+            document.getElementById('exportJSON')?.addEventListener('click', () => exportData('json'));
+            document.getElementById('heartbeatRefresh')?.addEventListener('click', () => fetchMetrics());
+
+            // Range preset buttons
+            document.querySelectorAll('.range-btn').forEach(btn => {
+                btn.addEventListener('click', () => applyRangePreset(btn.dataset.range));
+            });
+
+            // Heartbeat search
+            const searchInput = document.getElementById('heartbeatSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    searchTerm = e.target.value;
+                    filterHeartbeats(searchTerm);
+                });
+            }
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key) {
+                        case 'e':
+                            e.preventDefault();
+                            showExportPanel();
+                            break;
+                        case 'r':
+                            e.preventDefault();
+                            fetchMetrics();
+                            break;
+                        case 't':
+                            e.preventDefault();
+                            toggleTheme();
+                            break;
+                    }
+                }
+                if (e.key === 'Escape') {
+                    hideExportPanel();
+                }
+            });
+
             await fetchServerConfig(selectedBaseUrl);
             await fetchMetrics();
             scheduleNextFetch();
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
     </script>
 </body>
 
