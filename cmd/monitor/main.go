@@ -330,8 +330,34 @@ func updateRAMMetrics(ram models.RAM, _ Config) {
 	printValue(row, colFourthValue, metricsValueWidth, availableText, availableColor)
 }
 
-func updateDiskMetrics(disk models.DiskSpace, _ Config) {
+func updateDiskMetrics(diskSpaces []models.DiskSpace, _ Config) {
 	row := metricsRow(2)
+	
+	// Find root disk or use first disk for backwards compatibility
+	var disk models.DiskSpace
+	if len(diskSpaces) > 0 {
+		// Look for root disk first
+		for _, d := range diskSpaces {
+			if d.Path == "/" {
+				disk = d
+				break
+			}
+		}
+		// If no root disk found, use the first one
+		if disk.Path == "" {
+			disk = diskSpaces[0]
+		}
+	}
+
+	// If no disks at all, show empty values
+	if len(diskSpaces) == 0 {
+		printValue(row, colFirstValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"), neutralColor)
+		printValue(row, colSecondValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"), neutralColor)
+		printValue(row, colThirdValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"), neutralColor)
+		printValue(row, colFourthValue, metricsValueWidth, fmt.Sprintf("%*s", metricsValueWidth, "N/A"), neutralColor)
+		return
+	}
+
 	usageText := fmt.Sprintf("%*.2f", metricsValueWidth, disk.UsedPct)
 	usageColor := getStatusColor(disk.UsedPct, 90, 70)
 	printValue(row, colFirstValue, metricsValueWidth, usageText, usageColor)

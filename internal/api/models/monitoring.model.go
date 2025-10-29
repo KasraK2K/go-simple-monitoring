@@ -5,7 +5,7 @@ import "time"
 type SystemMonitoring struct {
 	Timestamp time.Time     `json:"timestamp"`
 	CPU       CPU           `json:"cpu"`
-	DiskSpace DiskSpace     `json:"disk_space"`
+	DiskSpace []DiskSpace   `json:"disk_space"`
 	RAM       RAM           `json:"ram"`
 	NetworkIO NetworkIO     `json:"network_io"`
 	DiskIO    DiskIO        `json:"disk_io"`
@@ -22,6 +22,9 @@ type CPU struct {
 }
 
 type DiskSpace struct {
+	Path           string  `json:"path"`            // Mount path (e.g., "/", "/home", "/external")
+	Device         string  `json:"device"`          // Device name (e.g., "/dev/sda1", "/dev/disk1s1")
+	FileSystem     string  `json:"filesystem"`      // File system type (e.g., "ext4", "apfs")
 	TotalBytes     uint64  `json:"total_bytes"`     // Total disk space in bytes
 	UsedBytes      uint64  `json:"used_bytes"`      // Used disk space in bytes
 	AvailableBytes uint64  `json:"available_bytes"` // Available disk space in bytes

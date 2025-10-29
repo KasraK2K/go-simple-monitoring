@@ -36,10 +36,11 @@ func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLog
 			"ram_total_bytes":      data.RAM.TotalBytes,
 			"ram_used_bytes":       data.RAM.UsedBytes,
 			"ram_available_bytes":  data.RAM.AvailableBytes,
-			"disk_used_percent":    data.DiskSpace.UsedPct,
-			"disk_total_bytes":     data.DiskSpace.TotalBytes,
-			"disk_used_bytes":      data.DiskSpace.UsedBytes,
-			"disk_available_bytes": data.DiskSpace.AvailableBytes,
+			"disk_used_percent":    getRootDiskMetric(data.DiskSpace, "used_percent"),
+			"disk_total_bytes":     getRootDiskMetric(data.DiskSpace, "total_bytes"),
+			"disk_used_bytes":      getRootDiskMetric(data.DiskSpace, "used_bytes"),
+			"disk_available_bytes": getRootDiskMetric(data.DiskSpace, "available_bytes"),
+			"disk_spaces":          data.DiskSpace, // Full disk array for detailed info
 			"network_bytes_sent":   data.NetworkIO.BytesSent,
 			"network_bytes_recv":   data.NetworkIO.BytesRecv,
 			"network_packets_sent": data.NetworkIO.PacketsSent,
@@ -206,4 +207,45 @@ func CleanOldLogs(daysToKeep int) error {
 	}
 
 	return nil
+}
+
+// getRootDiskMetric extracts a specific metric from the root disk (/) for backwards compatibility
+func getRootDiskMetric(diskSpaces []models.DiskSpace, metric string) interface{} {
+	// Find root disk (path="/") or use the first disk as fallback
+	var rootDisk *models.DiskSpace
+	for i := range diskSpaces {
+		if diskSpaces[i].Path == "/" {
+			rootDisk = &diskSpaces[i]
+			break
+		}
+	}
+	
+	// If no root disk found, use the first disk
+	if rootDisk == nil && len(diskSpaces) > 0 {
+		rootDisk = &diskSpaces[0]
+	}
+	
+	// If no disks at all, return zero values
+	if rootDisk == nil {
+		switch metric {
+		case "used_percent":
+			return float64(0)
+		default:
+			return uint64(0)
+		}
+	}
+	
+	// Return the requested metric
+	switch metric {
+	case "used_percent":
+		return rootDisk.UsedPct
+	case "total_bytes":
+		return rootDisk.TotalBytes
+	case "used_bytes":
+		return rootDisk.UsedBytes
+	case "available_bytes":
+		return rootDisk.AvailableBytes
+	default:
+		return nil
+	}
 }

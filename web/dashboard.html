@@ -250,13 +250,34 @@
 
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 16px;
         }
 
-        @media (max-width: 1024px) {
+        .storage-card {
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        @media (max-width: 1200px) {
+            .metrics-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+            
+            .storage-card {
+                grid-column: span 3;
+                grid-row: span 1;
+            }
+        }
+
+        @media (max-width: 768px) {
             .metrics-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            
+            .storage-card {
+                grid-column: span 2;
+                grid-row: span 1;
             }
         }
 
@@ -740,7 +761,7 @@
             top: 20px;
             right: 20px;
             width: 320px;
-            max-height: 400px;
+            max-height: 100%;
             overflow-y: auto;
             z-index: 1000;
             display: flex;
@@ -1075,6 +1096,10 @@
             .metrics-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .storage-card {
+                grid-column: span 1;
+            }
 
             .chart-wrapper {
                 height: 240px;
@@ -1101,6 +1126,97 @@
             .heartbeat-controls {
                 flex-direction: column;
                 align-items: stretch;
+            }
+        }
+
+        /* Disk Container Styles */
+        .disk-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .disk-overview {
+            display: flex;
+            align-items: baseline;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .disk-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 8px 0;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .disk-item:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        .disk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .disk-path {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .disk-device {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.8;
+        }
+
+        .disk-usage {
+            font-size: 0.8rem;
+            color: var(--text-accent);
+            font-weight: 600;
+        }
+
+        .disk-progress {
+            width: 100%;
+            max-width: 300px;
+            height: 4px;
+            background: rgba(148, 163, 184, 0.15);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .disk-progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .disk-progress-fill.warning {
+            background: linear-gradient(135deg, #f59e0b, #f97316);
+        }
+
+        .disk-progress-fill.critical {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .disk-details {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        @media (max-width: 768px) {
+            .disk-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 2px;
             }
         }
     </style>
@@ -1186,6 +1302,22 @@
         </div>
 
         <section class="metrics-grid" role="region" aria-label="System metrics">
+            <article class="glass-panel metric-card storage-card">
+                <div class="metric-header">
+                    <div class="tooltip">
+                        <span class="metric-label">Storage Drives</span>
+                        <div class="tooltip-content">Disk space utilization across all mounted drives</div>
+                    </div>
+                    <span class="metric-trend" id="diskTrend" aria-label="Storage trend">--</span>
+                </div>
+                <div id="diskContainer" class="disk-container">
+                    <div class="disk-overview">
+                        <span class="metric-value" id="diskOverall" aria-label="Overall disk usage">--</span>
+                        <span class="metric-unit">%</span>
+                    </div>
+                </div>
+            </article>
+
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <div class="tooltip">
@@ -1217,23 +1349,6 @@
                 </div>
                 <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
                     <span class="progress-fill" id="memoryBar"></span>
-                </div>
-            </article>
-
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Disk Usage</span>
-                        <div class="tooltip-content">Storage space utilization</div>
-                    </div>
-                    <span class="metric-trend" id="diskTrend" aria-label="Disk trend">--</span>
-                </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="disk" aria-label="Disk usage percentage">--</span>
-                    <span class="metric-unit">%</span>
-                </div>
-                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    <span class="progress-fill" id="diskBar"></span>
                 </div>
             </article>
 
@@ -1462,8 +1577,7 @@
             // Browser notification if permission granted
             if (notificationPermission === 'granted' && type === 'error') {
                 new Notification('System Monitoring Alert', {
-                    body: message,
-                    icon: '/favicon.ico'
+                    body: message
                 });
             }
 
@@ -1502,14 +1616,30 @@
         function checkThresholds(data) {
             const checks = [
                 { name: 'CPU', value: data.cpu_usage, thresholds: thresholds.cpu, unit: '%' },
-                { name: 'Memory', value: data.memory?.percentage, thresholds: thresholds.memory, unit: '%' },
-                { name: 'Disk', value: data.disk?.percentage, thresholds: thresholds.disk, unit: '%' }
+                { name: 'Memory', value: data.memory?.percentage, thresholds: thresholds.memory, unit: '%' }
             ];
+
+            // Add disk checks for each individual disk
+            if (data.disk_spaces && Array.isArray(data.disk_spaces)) {
+                data.disk_spaces.forEach((disk, index) => {
+                    if (disk.used_pct != null && Number.isFinite(disk.used_pct)) {
+                        checks.push({
+                            name: `Disk ${disk.path || `#${index + 1}`}`,
+                            value: disk.used_pct,
+                            thresholds: thresholds.disk,
+                            unit: '%'
+                        });
+                    }
+                });
+            } else if (data.disk?.percentage != null) {
+                // Fallback to legacy single disk
+                checks.push({ name: 'Disk', value: data.disk.percentage, thresholds: thresholds.disk, unit: '%' });
+            }
 
             checks.forEach(check => {
                 if (check.value == null || !Number.isFinite(check.value)) return;
 
-                const alertKey = `threshold_${check.name.toLowerCase()}`;
+                const alertKey = `threshold_${check.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
                 if (check.value >= check.thresholds.critical) {
                     if (!activeAlerts.has(alertKey)) {
@@ -1895,6 +2025,44 @@
             }
         }
 
+        function calculateOverallDiskUsage(diskSpaces, container) {
+            if (!diskSpaces || diskSpaces.length === 0) {
+                // Fallback to legacy single disk data
+                const legacy = container.disk ?? {};
+                return {
+                    percentage: container.disk?.percentage
+                        ?? legacy.used_pct
+                        ?? container.disk_used_percent
+                        ?? null,
+                    total_bytes: legacy.total_bytes ?? container.disk_total_bytes ?? null,
+                    used_bytes: legacy.used_bytes ?? container.disk_used_bytes ?? null,
+                    available_bytes: legacy.available_bytes ?? container.disk_available_bytes ?? null
+                };
+            }
+
+            // Calculate weighted average based on total size
+            let totalBytes = 0;
+            let usedBytes = 0;
+            let availableBytes = 0;
+
+            for (const disk of diskSpaces) {
+                if (disk.total_bytes && typeof disk.total_bytes === 'number') {
+                    totalBytes += disk.total_bytes;
+                    usedBytes += disk.used_bytes || 0;
+                    availableBytes += disk.available_bytes || 0;
+                }
+            }
+
+            const percentage = totalBytes > 0 ? (usedBytes / totalBytes) * 100 : 0;
+
+            return {
+                percentage: Math.round(percentage * 100) / 100,
+                total_bytes: totalBytes,
+                used_bytes: usedBytes,
+                available_bytes: availableBytes
+            };
+        }
+
         function normalizeMetrics(raw) {
             if (!raw || typeof raw !== 'object') return {};
 
@@ -1904,7 +2072,7 @@
 
             const cpu = container.cpu ?? {};
             const ram = container.ram ?? {};
-            const disk = container.disk_space ?? container.disk ?? {};
+            const diskArray = container.disk_space ?? container.disk ?? [];
             const networkIO = container.network_io ?? container.network ?? {};
             const process = container.process ?? {};
 
@@ -1924,15 +2092,11 @@
                 buffer_bytes: ram.buffer_bytes ?? container.ram_buffer_bytes ?? null
             };
 
-            const diskInfo = {
-                percentage: container.disk?.percentage
-                    ?? disk.used_pct
-                    ?? container.disk_used_percent
-                    ?? null,
-                total_bytes: disk.total_bytes ?? container.disk_total_bytes ?? null,
-                used_bytes: disk.used_bytes ?? container.disk_used_bytes ?? null,
-                available_bytes: disk.available_bytes ?? container.disk_available_bytes ?? null
-            };
+            // Process disk array - ensure it's an array
+            const diskSpaces = Array.isArray(diskArray) ? diskArray : [diskArray].filter(d => d && Object.keys(d).length > 0);
+
+            // For backwards compatibility, calculate overall disk usage
+            const diskInfo = calculateOverallDiskUsage(diskSpaces, container);
 
             const network = {
                 bytes_received: networkIO.bytes_recv
@@ -1988,6 +2152,7 @@
                 cpu_usage: cpuUsage,
                 memory,
                 disk: diskInfo,
+                disk_spaces: diskSpaces,
                 network,
                 load_average: loadAverage,
                 heartbeat: container.heartbeat ?? raw.heartbeat ?? [],
@@ -2133,19 +2298,18 @@
         function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_sent: 0, durationSeconds: null }) {
             setMetricValue('cpu', data.cpu_usage, 1);
             setMetricValue('memory', data.memory?.percentage, 1);
-            setMetricValue('disk', data.disk?.percentage, 1);
+            setMetricValue('diskOverall', data.disk?.percentage, 1);
             setMetricValue('networkRx', bytesToMbPerSecond(networkDelta.bytes_received, networkDelta.durationSeconds), 2);
             setMetricValue('networkTx', bytesToMbPerSecond(networkDelta.bytes_sent, networkDelta.durationSeconds), 2);
             setMetricValue('loadAvg', data.load_average?.one_minute, 2);
 
             updateProgress('cpuBar', data.cpu_usage);
             updateProgress('memoryBar', data.memory?.percentage);
-            updateProgress('diskBar', data.disk?.percentage);
+            updateDiskSpaces(data.disk_spaces, data.disk?.percentage);
 
             // Update progress bar ARIA attributes
             updateProgressAria('cpuBar', data.cpu_usage);
             updateProgressAria('memoryBar', data.memory?.percentage);
-            updateProgressAria('diskBar', data.disk?.percentage);
         }
 
         function updateProgressAria(barId, value) {
@@ -2163,6 +2327,66 @@
                 return;
             }
             element.textContent = Number(value).toFixed(digits);
+        }
+
+        function updateDiskSpaces(diskSpaces, overallPercentage) {
+            const diskContainer = document.getElementById('diskContainer');
+            if (!diskContainer) return;
+
+            // Find the disk items container or create it
+            let diskItemsContainer = diskContainer.querySelector('.disk-items');
+            if (!diskItemsContainer) {
+                diskItemsContainer = document.createElement('div');
+                diskItemsContainer.className = 'disk-items';
+                diskContainer.appendChild(diskItemsContainer);
+            }
+
+            // Clear existing disk items
+            diskItemsContainer.innerHTML = '';
+
+            if (!diskSpaces || diskSpaces.length === 0) {
+                diskItemsContainer.innerHTML = '<div class="disk-item"><span class="disk-path">No disk data available</span></div>';
+                return;
+            }
+
+            // Create disk items for each disk space
+            diskSpaces.forEach(disk => {
+                const diskItem = document.createElement('div');
+                diskItem.className = 'disk-item';
+
+                const usagePercent = disk.used_pct || 0;
+                const totalGB = disk.total_bytes ? (disk.total_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
+                const usedGB = disk.used_bytes ? (disk.used_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
+                const availableGB = disk.available_bytes ? (disk.available_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
+
+                // Determine color class based on usage
+                let colorClass = '';
+                if (usagePercent >= thresholds.disk.critical) {
+                    colorClass = 'critical';
+                } else if (usagePercent >= thresholds.disk.warning) {
+                    colorClass = 'warning';
+                }
+
+                diskItem.innerHTML = `
+                    <div class="disk-header">
+                        <div>
+                            <div class="disk-path">${escapeHtml(disk.path || '/')}</div>
+                            <div class="disk-device">${escapeHtml(disk.device || 'Unknown device')}</div>
+                        </div>
+                        <div class="disk-usage">${usagePercent.toFixed(1)}%</div>
+                    </div>
+                    <div class="disk-progress">
+                        <div class="disk-progress-fill ${colorClass}" style="width: ${usagePercent}%"></div>
+                    </div>
+                    <div class="disk-details">
+                        <span>${usedGB}GB used</span>
+                        <span>${availableGB}GB free</span>
+                        <span>${totalGB}GB total</span>
+                    </div>
+                `;
+
+                diskItemsContainer.appendChild(diskItem);
+            });
         }
 
         function bytesToMb(bytes) {

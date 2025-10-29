@@ -183,7 +183,7 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	// Collect all system metrics in parallel for better performance
 	type result struct {
 		cpu       models.CPU
-		disk      models.DiskSpace
+		disk      []models.DiskSpace
 		ram       models.RAM
 		networkIO models.NetworkIO
 		diskIO    models.DiskIO
@@ -204,7 +204,7 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 			return
 		}
 
-		r.disk, r.err = getDiskSpace("/")
+		r.disk, r.err = getAllDiskSpaces()
 		if r.err != nil {
 			resultChan <- r
 			return
@@ -426,6 +426,101 @@ func getLoadAverage() (string, error) {
 	return "", fmt.Errorf("load average not available on %s", runtime.GOOS)
 }
 
+func getAllDiskSpaces() ([]models.DiskSpace, error) {
+	// Use gopsutil to get all disk partitions
+	partitions, err := disk.Partitions(false) // false = exclude pseudo-filesystems
+	if err != nil {
+		// Fallback to root filesystem only
+		rootDisk, rootErr := getDiskSpace("/")
+		if rootErr != nil {
+			return nil, fmt.Errorf("failed to get disk partitions and root disk: %v, %v", err, rootErr)
+		}
+		return []models.DiskSpace{rootDisk}, nil
+	}
+
+	var diskSpaces []models.DiskSpace
+	seenPaths := make(map[string]bool)
+
+	for _, partition := range partitions {
+		// Skip if we've already processed this mount point
+		if seenPaths[partition.Mountpoint] {
+			continue
+		}
+		seenPaths[partition.Mountpoint] = true
+
+		// Skip pseudo filesystems and network filesystems
+		if shouldSkipFileSystem(partition.Fstype, partition.Mountpoint) {
+			continue
+		}
+
+		diskSpace, err := getDiskSpaceForPartition(partition)
+		if err != nil {
+			// Log error but continue with other partitions
+			log.Printf("Warning: failed to get disk space for %s: %v", partition.Mountpoint, err)
+			continue
+		}
+
+		diskSpaces = append(diskSpaces, diskSpace)
+	}
+
+	// If no valid partitions found, fallback to root
+	if len(diskSpaces) == 0 {
+		rootDisk, err := getDiskSpace("/")
+		if err != nil {
+			return nil, fmt.Errorf("no valid disk partitions found and failed to get root disk: %v", err)
+		}
+		diskSpaces = append(diskSpaces, rootDisk)
+	}
+
+	return diskSpaces, nil
+}
+
+func shouldSkipFileSystem(fstype, mountpoint string) bool {
+	// Skip pseudo filesystems and network filesystems
+	skipFSTypes := []string{
+		"devfs", "devtmpfs", "tmpfs", "proc", "sysfs", "debugfs", "securityfs",
+		"cgroup", "cgroup2", "pstore", "bpf", "tracefs", "configfs", "fusectl",
+		"selinuxfs", "systemd-1", "mqueue", "hugetlbfs", "autofs", "nfs", "nfs4",
+		"cifs", "smbfs", "fuse", "overlay", "squashfs", "iso9660",
+	}
+
+	for _, skipType := range skipFSTypes {
+		if strings.Contains(strings.ToLower(fstype), strings.ToLower(skipType)) {
+			return true
+		}
+	}
+
+	// Skip certain mount points
+	skipMountpoints := []string{
+		"/dev", "/proc", "/sys", "/run", "/boot/efi", "/snap",
+	}
+
+	for _, skipMount := range skipMountpoints {
+		if strings.HasPrefix(mountpoint, skipMount) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getDiskSpaceForPartition(partition disk.PartitionStat) (models.DiskSpace, error) {
+	usage, err := disk.Usage(partition.Mountpoint)
+	if err != nil {
+		return models.DiskSpace{}, err
+	}
+
+	return models.DiskSpace{
+		Path:           partition.Mountpoint,
+		Device:         partition.Device,
+		FileSystem:     partition.Fstype,
+		TotalBytes:     usage.Total,
+		UsedBytes:      usage.Used,
+		AvailableBytes: usage.Free,
+		UsedPct:        math.Round(usage.UsedPercent*100) / 100, // Round to 2 decimal places
+	}, nil
+}
+
 func getDiskSpace(path string) (models.DiskSpace, error) {
 	var stat syscall.Statfs_t
 	err := syscall.Statfs(path, &stat)
@@ -439,6 +534,9 @@ func getDiskSpace(path string) (models.DiskSpace, error) {
 	usedPct := float64(usedBytes) / float64(totalBytes) * 100
 
 	return models.DiskSpace{
+		Path:           path,
+		Device:         "unknown",
+		FileSystem:     "unknown",
 		TotalBytes:     totalBytes,
 		UsedBytes:      usedBytes,
 		AvailableBytes: availableBytes,
