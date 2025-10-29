@@ -700,11 +700,6 @@
             color: var(--danger);
         }
 
-        .connection-status.reconnecting {
-            border-color: rgba(251, 191, 36, 0.5);
-            background: rgba(251, 191, 36, 0.1);
-            color: var(--warning);
-        }
 
         /* Theme Toggle */
         .theme-toggle {
@@ -1437,17 +1432,13 @@
                     textEl.textContent = message || 'Connection Lost';
                     statusEl.classList.remove('hidden');
                     break;
-                case 'reconnecting':
-                    textEl.textContent = 'Reconnecting...';
-                    statusEl.classList.remove('hidden');
-                    break;
             }
         }
 
         // Alert System
         function showAlert(type, message, duration = 5000) {
             const alertsPanel = document.getElementById('alertsPanel');
-            const alertId = Date.now() + Math.random();
+            const alertId = 'alert_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
             const alertEl = document.createElement('div');
             alertEl.className = `alert-item ${type}`;
@@ -2112,8 +2103,7 @@
                 }
 
                 if (retryCount <= maxRetries) {
-                    updateConnectionStatus('reconnecting', `Retrying... (${retryCount}/${maxRetries})`);
-                    showAlert('warning', `Connection failed, retrying... (${retryCount}/${maxRetries})`);
+                    // Retry silently without showing reconnecting status
                 } else {
                     updateConnectionStatus('offline', error.message);
                     showAlert('error', `Connection failed: ${error.message}`);
