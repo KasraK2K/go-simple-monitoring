@@ -250,35 +250,14 @@
 
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
         }
 
-        .storage-card {
-            grid-column: span 2;
-            grid-row: span 2;
-        }
-
-        @media (max-width: 1200px) {
-            .metrics-grid {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-            
-            .storage-card {
-                grid-column: span 3;
-                grid-row: span 1;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .metrics-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-            
-            .storage-card {
-                grid-column: span 2;
-                grid-row: span 1;
-            }
+        .storage-section {
+            grid-column: 1 / -1;
+            margin-top: 8px;
         }
 
         .heartbeat-section {
@@ -1129,94 +1108,203 @@
             }
         }
 
-        /* Disk Container Styles */
-        .disk-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
+        /* Storage Section Styles */
+        .storage-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
         }
 
-        .disk-overview {
+        .storage-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .storage-card:hover {
+            border-color: rgba(56, 189, 248, 0.3);
+            background: rgba(255, 255, 255, 0.04);
+            transform: translateY(-2px);
+        }
+
+        .storage-header {
             display: flex;
-            align-items: baseline;
-            gap: 4px;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .storage-info {
+            flex: 1;
+        }
+
+        .storage-path {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .storage-device {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .storage-filesystem {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            opacity: 0.6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .storage-usage-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--text-accent);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .storage-usage-badge.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.2);
+        }
+
+        .storage-usage-badge.critical {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .storage-progress {
+            width: 100%;
+            height: 8px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 12px 0;
+            position: relative;
+        }
+
+        .storage-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-primary));
+            border-radius: 10px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .storage-progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .storage-progress-fill.warning {
+            background: linear-gradient(90deg, #f59e0b, #f97316);
+        }
+
+        .storage-progress-fill.critical {
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+        }
+
+        .storage-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .storage-stat {
+            text-align: center;
+            padding: 8px;
+            background: rgba(148, 163, 184, 0.05);
+            border-radius: 8px;
+        }
+
+        .storage-stat-value {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .storage-stat-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .storage-overview {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(59, 130, 246, 0.1));
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .storage-overview-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .storage-overview-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 8px;
         }
 
-        .disk-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            padding: 8px 0;
-            border-top: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .disk-item:first-child {
-            border-top: none;
-            padding-top: 0;
-        }
-
-        .disk-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .disk-path {
-            font-size: 0.85rem;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        .disk-device {
-            font-size: 0.75rem;
+        .storage-overview-subtitle {
+            font-size: 0.9rem;
             color: var(--text-secondary);
             opacity: 0.8;
         }
 
-        .disk-usage {
-            font-size: 0.8rem;
-            color: var(--text-accent);
-            font-weight: 600;
-        }
-
-        .disk-progress {
-            width: 100%;
-            max-width: 300px;
-            height: 4px;
-            background: rgba(148, 163, 184, 0.15);
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .disk-progress-fill {
-            height: 100%;
-            background: var(--gradient-primary);
-            border-radius: 2px;
-            transition: width 0.3s ease;
-        }
-
-        .disk-progress-fill.warning {
-            background: linear-gradient(135deg, #f59e0b, #f97316);
-        }
-
-        .disk-progress-fill.critical {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-        }
-
-        .disk-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.7rem;
-            color: var(--text-secondary);
-            margin-top: 2px;
-        }
-
         @media (max-width: 768px) {
-            .disk-header {
+            .storage-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .storage-header {
                 flex-direction: column;
-                align-items: flex-start;
-                gap: 2px;
+                gap: 12px;
+            }
+            
+            .storage-stats {
+                grid-template-columns: 1fr;
+                gap: 8px;
             }
         }
     </style>
@@ -1302,22 +1390,6 @@
         </div>
 
         <section class="metrics-grid" role="region" aria-label="System metrics">
-            <article class="glass-panel metric-card storage-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Storage Drives</span>
-                        <div class="tooltip-content">Disk space utilization across all mounted drives</div>
-                    </div>
-                    <span class="metric-trend" id="diskTrend" aria-label="Storage trend">--</span>
-                </div>
-                <div id="diskContainer" class="disk-container">
-                    <div class="disk-overview">
-                        <span class="metric-value" id="diskOverall" aria-label="Overall disk usage">--</span>
-                        <span class="metric-unit">%</span>
-                    </div>
-                </div>
-            </article>
-
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <div class="tooltip">
@@ -1392,6 +1464,17 @@
                     <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
                 </div>
             </article>
+        </section>
+
+        <section class="glass-panel storage-section" role="region" aria-label="Storage drives">
+            <div class="storage-overview">
+                <h3 class="storage-overview-title">Storage Overview</h3>
+                <div class="storage-overview-value" id="diskOverall">--</div>
+                <div class="storage-overview-subtitle">Overall disk usage across all drives</div>
+            </div>
+            <div id="storageGrid" class="storage-grid">
+                <!-- Storage cards will be dynamically populated here -->
+            </div>
         </section>
 
         <section class="charts-grid" role="region" aria-label="Performance charts">
@@ -2330,62 +2413,79 @@
         }
 
         function updateDiskSpaces(diskSpaces, overallPercentage) {
-            const diskContainer = document.getElementById('diskContainer');
-            if (!diskContainer) return;
+            const storageGrid = document.getElementById('storageGrid');
+            if (!storageGrid) return;
 
-            // Find the disk items container or create it
-            let diskItemsContainer = diskContainer.querySelector('.disk-items');
-            if (!diskItemsContainer) {
-                diskItemsContainer = document.createElement('div');
-                diskItemsContainer.className = 'disk-items';
-                diskContainer.appendChild(diskItemsContainer);
-            }
-
-            // Clear existing disk items
-            diskItemsContainer.innerHTML = '';
+            // Clear existing storage cards
+            storageGrid.innerHTML = '';
 
             if (!diskSpaces || diskSpaces.length === 0) {
-                diskItemsContainer.innerHTML = '<div class="disk-item"><span class="disk-path">No disk data available</span></div>';
+                storageGrid.innerHTML = `
+                    <div class="storage-card">
+                        <div class="storage-header">
+                            <div class="storage-info">
+                                <div class="storage-path">No storage data available</div>
+                                <div class="storage-device">Please check your system configuration</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 return;
             }
 
-            // Create disk items for each disk space
+            // Create storage cards for each disk space
             diskSpaces.forEach(disk => {
-                const diskItem = document.createElement('div');
-                diskItem.className = 'disk-item';
+                const storageCard = document.createElement('div');
+                storageCard.className = 'storage-card';
 
                 const usagePercent = disk.used_pct || 0;
-                const totalGB = disk.total_bytes ? (disk.total_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
-                const usedGB = disk.used_bytes ? (disk.used_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
-                const availableGB = disk.available_bytes ? (disk.available_bytes / 1024 / 1024 / 1024).toFixed(1) : '?';
+                const totalGB = disk.total_bytes ? (disk.total_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
+                const usedGB = disk.used_bytes ? (disk.used_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
+                const availableGB = disk.available_bytes ? (disk.available_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
 
                 // Determine color class based on usage
-                let colorClass = '';
+                let badgeClass = '';
+                let progressClass = '';
                 if (usagePercent >= thresholds.disk.critical) {
-                    colorClass = 'critical';
+                    badgeClass = 'critical';
+                    progressClass = 'critical';
                 } else if (usagePercent >= thresholds.disk.warning) {
-                    colorClass = 'warning';
+                    badgeClass = 'warning';
+                    progressClass = 'warning';
                 }
 
-                diskItem.innerHTML = `
-                    <div class="disk-header">
-                        <div>
-                            <div class="disk-path">${escapeHtml(disk.path || '/')}</div>
-                            <div class="disk-device">${escapeHtml(disk.device || 'Unknown device')}</div>
+                storageCard.innerHTML = `
+                    <div class="storage-header">
+                        <div class="storage-info">
+                            <div class="storage-path">${escapeHtml(disk.path || '/')}</div>
+                            <div class="storage-device">${escapeHtml(disk.device || 'Unknown device')}</div>
+                            <div class="storage-filesystem">${escapeHtml(disk.filesystem || 'Unknown')}</div>
                         </div>
-                        <div class="disk-usage">${usagePercent.toFixed(1)}%</div>
+                        <div class="storage-usage-badge ${badgeClass}">
+                            <i class="fas fa-hdd"></i>
+                            ${usagePercent.toFixed(1)}%
+                        </div>
                     </div>
-                    <div class="disk-progress">
-                        <div class="disk-progress-fill ${colorClass}" style="width: ${usagePercent}%"></div>
+                    <div class="storage-progress">
+                        <div class="storage-progress-fill ${progressClass}" style="width: ${usagePercent}%"></div>
                     </div>
-                    <div class="disk-details">
-                        <span>${usedGB}GB used</span>
-                        <span>${availableGB}GB free</span>
-                        <span>${totalGB}GB total</span>
+                    <div class="storage-stats">
+                        <div class="storage-stat">
+                            <span class="storage-stat-value">${usedGB} GB</span>
+                            <span class="storage-stat-label">Used</span>
+                        </div>
+                        <div class="storage-stat">
+                            <span class="storage-stat-value">${availableGB} GB</span>
+                            <span class="storage-stat-label">Free</span>
+                        </div>
+                        <div class="storage-stat">
+                            <span class="storage-stat-value">${totalGB} GB</span>
+                            <span class="storage-stat-label">Total</span>
+                        </div>
                     </div>
                 `;
 
-                diskItemsContainer.appendChild(diskItem);
+                storageGrid.appendChild(storageCard);
             });
         }
 

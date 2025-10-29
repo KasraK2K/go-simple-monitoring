@@ -440,6 +440,7 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 
 	var diskSpaces []models.DiskSpace
 	seenPaths := make(map[string]bool)
+	seenStorageSignatures := make(map[string]models.DiskSpace) // Deduplicate by storage signature
 
 	for _, partition := range partitions {
 		// Skip if we've already processed this mount point
@@ -460,6 +461,24 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 			continue
 		}
 
+		// Create a signature to identify duplicate storage (same device or same size+usage)
+		signature := createStorageSignature(diskSpace)
+		
+		// Check if we already have this storage device/pool
+		if existingDisk, exists := seenStorageSignatures[signature]; exists {
+			// If this is a more "important" mount point, replace the existing one
+			if isMoreImportantMountPoint(diskSpace.Path, existingDisk.Path) {
+				seenStorageSignatures[signature] = diskSpace
+			}
+			// Otherwise skip this duplicate
+			continue
+		}
+
+		seenStorageSignatures[signature] = diskSpace
+	}
+
+	// Convert map to slice
+	for _, diskSpace := range seenStorageSignatures {
 		diskSpaces = append(diskSpaces, diskSpace)
 	}
 
@@ -473,6 +492,47 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 	}
 
 	return diskSpaces, nil
+}
+
+func createStorageSignature(diskSpace models.DiskSpace) string {
+	// For APFS and other shared storage pools, multiple volumes can have the same total size and usage
+	// We need to deduplicate these by treating them as one logical storage unit
+	
+	// If multiple volumes have identical total_bytes and used_pct, they're likely sharing the same storage pool
+	// Use size+usage pattern as signature to group them
+	sizeUsageSignature := fmt.Sprintf("size:%d:usage:%.2f", diskSpace.TotalBytes, diskSpace.UsedPct)
+	
+	// But still prefer device name for truly separate devices
+	if diskSpace.Device != "" && diskSpace.Device != "unknown" {
+		// For now, use the size+usage pattern for better deduplication
+		// This helps with APFS containers where multiple volumes share space
+		return sizeUsageSignature
+	}
+	
+	return sizeUsageSignature
+}
+
+func isMoreImportantMountPoint(newPath, existingPath string) bool {
+	// Priority order for mount points (higher priority = more important)
+	priorities := map[string]int{
+		"/":                    1000, // Root is most important
+		"/home":               900,   // Home directory
+		"/usr":                800,   // User programs
+		"/var":                700,   // Variable data
+		"/tmp":                600,   // Temporary files
+		"/boot":               500,   // Boot files
+		"/System/Volumes/Data": 450,  // macOS data volume
+	}
+	
+	newPriority := priorities[newPath]
+	existingPriority := priorities[existingPath]
+	
+	// If neither has a defined priority, prefer shorter paths (closer to root)
+	if newPriority == 0 && existingPriority == 0 {
+		return len(newPath) < len(existingPath)
+	}
+	
+	return newPriority > existingPriority
 }
 
 func shouldSkipFileSystem(fstype, mountpoint string) bool {
@@ -497,6 +557,22 @@ func shouldSkipFileSystem(fstype, mountpoint string) bool {
 
 	for _, skipMount := range skipMountpoints {
 		if strings.HasPrefix(mountpoint, skipMount) {
+			return true
+		}
+	}
+
+	// Skip macOS system volumes that are not useful for monitoring
+	macOSSystemVolumes := []string{
+		"/System/Volumes/xarts",
+		"/System/Volumes/iSCPreboot", 
+		"/System/Volumes/Hardware",
+		"/System/Volumes/Preboot",
+		"/System/Volumes/Update",
+		"/System/Volumes/VM", // Virtual memory - not a real storage volume
+	}
+
+	for _, systemVolume := range macOSSystemVolumes {
+		if mountpoint == systemVolume {
 			return true
 		}
 	}
