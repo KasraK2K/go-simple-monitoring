@@ -249,10 +249,15 @@
         }
 
         .metrics-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            display: flex;
+            flex-wrap: wrap;
             gap: 20px;
-            margin-bottom: 24px;
+            align-items: stretch;
+        }
+
+        .metrics-grid>.glass-panel.metric-card {
+            flex: 1 1 calc(20% - 16px);
+            min-width: 220px;
         }
 
         .heartbeat-section {
@@ -1068,11 +1073,16 @@
             }
 
             .metrics-grid {
-                grid-template-columns: 1fr;
+                flex-direction: column;
             }
-            
-            .storage-card {
-                grid-column: span 1;
+
+            .metrics-grid>.glass-panel.metric-card {
+                flex: 1 1 auto;
+                min-width: 0;
+            }
+
+            .storage-grid {
+                grid-template-columns: 1fr;
             }
 
             .chart-wrapper {
@@ -1105,7 +1115,10 @@
 
         /* Storage Section Styles */
         .storage-grid {
-            display: contents;
+            flex: 1 1 100%;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
         }
 
         .storage-card {
@@ -1206,8 +1219,13 @@
         }
 
         @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
         }
 
         .storage-progress-fill.warning {
@@ -1284,7 +1302,7 @@
                 flex-direction: column;
                 gap: 12px;
             }
-            
+
             .storage-stats {
                 grid-template-columns: 1fr;
                 gap: 8px;
