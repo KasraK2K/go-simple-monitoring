@@ -8,6 +8,7 @@ import {
   GridItem,
   SimpleGrid,
   Stack,
+  Heading,
   useColorMode
 } from '@chakra-ui/react';
 import { DashboardHeader } from './dashboard-header';
@@ -20,6 +21,7 @@ import { ResourceDonut } from './resource-donut';
 import { StorageGrid } from './storage-grid';
 import { HeartbeatList } from './heartbeat-list';
 import { AlertsPanel } from './alerts-panel';
+import { LoadingSkeleton } from '../ui/loading-skeleton';
 import { useDashboardStore } from '@/hooks/use-dashboard-store';
 import { useDashboardController } from '@/hooks/use-dashboard-controller';
 
@@ -105,38 +107,123 @@ export function DashboardPage() {
 
           <StatusBanner status={status} />
 
-          <Flex justify="space-between" align="center" direction={{ base: 'column', lg: 'row' }} gap={6}>
-            <DateRangeFilterControl value={filter} onChange={setFilter} />
-          </Flex>
-
-          <MetricsOverview metrics={metrics} networkDelta={networkDelta} />
-
-          <Grid templateColumns={{ base: 'repeat(1, 1fr)', xl: 'repeat(12, 1fr)' }} gap={8}>
-            <GridItem colSpan={{ base: 12, xl: 8 }} minH="400px">
-              <MetricTrendsChart series={series} colorMode={colorMode} />
-            </GridItem>
-            <GridItem colSpan={{ base: 12, xl: 4 }}>
-              <ResourceDonut metrics={metrics} colorMode={colorMode} />
-            </GridItem>
-          </Grid>
-
-          <Grid templateColumns={{ base: 'repeat(1, 1fr)', xl: 'repeat(12, 1fr)' }} gap={8}>
-            <GridItem colSpan={{ base: 12, xl: 8 }} minH="360px">
-              <NetworkTrendsChart series={series} colorMode={colorMode} />
-            </GridItem>
-            <GridItem colSpan={{ base: 12, xl: 4 }}>
-              <AlertsPanel alerts={alerts} onClearAlert={clearAlert} onClearAll={clearAllAlerts} />
-            </GridItem>
-          </Grid>
-
-          <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
+          <Stack spacing={{ base: 10, md: 12 }}>
+            {/* Filters Section */}
             <Box>
-              <StorageGrid disks={metrics?.disk_spaces} />
+              <Heading 
+                size="lg" 
+                color={colorMode === 'dark' ? 'white' : 'gray.900'}
+                mb={6}
+                fontWeight="800"
+              >
+                Dashboard Controls
+              </Heading>
+              <Flex justify="space-between" align="center" direction={{ base: 'column', lg: 'row' }} gap={6}>
+                <DateRangeFilterControl value={filter} onChange={setFilter} />
+              </Flex>
             </Box>
+
+            {/* Metrics Overview Section */}
             <Box>
-              <HeartbeatList heartbeats={heartbeats ?? []} />
+              <Heading 
+                size="lg" 
+                color={colorMode === 'dark' ? 'white' : 'gray.900'}
+                mb={6}
+                fontWeight="800"
+              >
+                System Metrics Overview
+              </Heading>
+              {!metrics ? (
+                <LoadingSkeleton variant="metrics" />
+              ) : (
+                <MetricsOverview metrics={metrics} networkDelta={networkDelta} />
+              )}
             </Box>
-          </SimpleGrid>
+
+            {/* Performance Analytics Section */}
+            <Box>
+              <Heading 
+                size="lg" 
+                color={colorMode === 'dark' ? 'white' : 'gray.900'}
+                mb={6}
+                fontWeight="800"
+              >
+                Performance Analytics
+              </Heading>
+              <Grid templateColumns={{ base: 'repeat(1, 1fr)', xl: 'repeat(12, 1fr)' }} gap={8}>
+                <GridItem colSpan={{ base: 12, xl: 8 }} minH="400px">
+                  {!series || series.length === 0 ? (
+                    <LoadingSkeleton variant="chart" />
+                  ) : (
+                    <MetricTrendsChart series={series} colorMode={colorMode} />
+                  )}
+                </GridItem>
+                <GridItem colSpan={{ base: 12, xl: 4 }}>
+                  {!metrics ? (
+                    <LoadingSkeleton variant="chart" />
+                  ) : (
+                    <ResourceDonut metrics={metrics} colorMode={colorMode} />
+                  )}
+                </GridItem>
+              </Grid>
+            </Box>
+
+            {/* Network & Alerts Section */}
+            <Box>
+              <Heading 
+                size="lg" 
+                color={colorMode === 'dark' ? 'white' : 'gray.900'}
+                mb={6}
+                fontWeight="800"
+              >
+                Network Monitoring & Alerts
+              </Heading>
+              <Grid templateColumns={{ base: 'repeat(1, 1fr)', xl: 'repeat(12, 1fr)' }} gap={8}>
+                <GridItem colSpan={{ base: 12, xl: 8 }} minH="360px">
+                  {!series || series.length === 0 ? (
+                    <LoadingSkeleton variant="chart" />
+                  ) : (
+                    <NetworkTrendsChart series={series} colorMode={colorMode} />
+                  )}
+                </GridItem>
+                <GridItem colSpan={{ base: 12, xl: 4 }}>
+                  {!alerts ? (
+                    <LoadingSkeleton variant="alerts" />
+                  ) : (
+                    <AlertsPanel alerts={alerts} onClearAlert={clearAlert} onClearAll={clearAllAlerts} />
+                  )}
+                </GridItem>
+              </Grid>
+            </Box>
+
+            {/* Infrastructure Status Section */}
+            <Box>
+              <Heading 
+                size="lg" 
+                color={colorMode === 'dark' ? 'white' : 'gray.900'}
+                mb={6}
+                fontWeight="800"
+              >
+                Infrastructure Status
+              </Heading>
+              <SimpleGrid columns={{ base: 1, xl: 2 }} spacing={8}>
+                <Box>
+                  {!metrics?.disk_spaces ? (
+                    <LoadingSkeleton variant="storage" />
+                  ) : (
+                    <StorageGrid disks={metrics.disk_spaces} />
+                  )}
+                </Box>
+                <Box>
+                  {!heartbeats ? (
+                    <LoadingSkeleton variant="list" count={5} />
+                  ) : (
+                    <HeartbeatList heartbeats={heartbeats} />
+                  )}
+                </Box>
+              </SimpleGrid>
+            </Box>
+          </Stack>
         </Stack>
       </Container>
     </Box>
