@@ -1324,10 +1324,6 @@
             <div class="heartbeat-controls">
                 <input type="text" class="heartbeat-search" id="heartbeatSearch" placeholder="Search servers..."
                     aria-label="Search heartbeat targets">
-                <button class="filter-action" id="heartbeatRefresh" type="button"
-                    aria-label="Refresh heartbeat data">
-                    <i class="fas fa-sync-alt"></i>
-                </button>
             </div>
             <div class="heartbeat-grid" id="heartbeatList">
                 <div class="heartbeat-empty">No heartbeat data yet</div>
@@ -2841,7 +2837,6 @@
             document.getElementById('exportOverlay')?.addEventListener('click', hideExportPanel);
             document.getElementById('exportCSV')?.addEventListener('click', () => exportData('csv'));
             document.getElementById('exportJSON')?.addEventListener('click', () => exportData('json'));
-            document.getElementById('heartbeatRefresh')?.addEventListener('click', () => fetchMetrics());
 
             // Range preset buttons
             document.querySelectorAll('.range-btn').forEach(btn => {
