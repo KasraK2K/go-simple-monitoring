@@ -1880,18 +1880,21 @@
                 if (matches) visibleCount++;
             });
 
-            // Show empty state if no matches
+            const existingEmpty = document.getElementById('searchEmptyState');
+
+            // Show empty state if no matches without duplicating placeholder
             if (visibleCount === 0 && cards.length > 0) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'heartbeat-empty';
-                emptyState.textContent = `No servers match "${searchTerm}"`;
-                emptyState.id = 'searchEmptyState';
-                heartbeatList.appendChild(emptyState);
-            } else {
-                const existingEmpty = document.getElementById('searchEmptyState');
                 if (existingEmpty) {
-                    existingEmpty.remove();
+                    existingEmpty.textContent = `No servers match "${searchTerm}"`;
+                } else {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'heartbeat-empty';
+                    emptyState.textContent = `No servers match "${searchTerm}"`;
+                    emptyState.id = 'searchEmptyState';
+                    heartbeatList.appendChild(emptyState);
                 }
+            } else if (existingEmpty) {
+                existingEmpty.remove();
             }
         }
 
