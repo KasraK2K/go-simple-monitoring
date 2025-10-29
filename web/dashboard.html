@@ -30,6 +30,10 @@
             --shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
             --calendar-indicator-filter: invert(0) brightness(1.1);
             --calendar-color-scheme: dark;
+            --gradient-primary: linear-gradient(90deg, #38bdf8, #818cf8);
+            --gradient-secondary: linear-gradient(90deg, rgba(45, 212, 191, 0.85), rgba(59, 130, 246, 0.85));
+            --surface-muted: rgba(148, 163, 184, 0.08);
+            --surface-strong: rgba(56, 189, 248, 0.22);
         }
 
         [data-theme="light"] {
@@ -49,6 +53,10 @@
             --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
             --calendar-indicator-filter: none;
             --calendar-color-scheme: light;
+            --gradient-primary: linear-gradient(90deg, #3b82f6, #6366f1);
+            --gradient-secondary: linear-gradient(90deg, rgba(59, 130, 246, 0.55), rgba(14, 165, 233, 0.55));
+            --surface-muted: rgba(148, 163, 184, 0.1);
+            --surface-strong: rgba(59, 130, 246, 0.18);
         }
 
         * {
@@ -118,6 +126,56 @@
             gap: 24px;
         }
 
+        .section-block {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-heading {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 4px;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .section-title h2 {
+            font-size: clamp(1.5rem, 2vw, 1.8rem);
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+
+        .section-copy {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            max-width: 420px;
+            line-height: 1.6;
+        }
+
+        .section-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            background: var(--surface-muted);
+            border: 1px solid var(--surface-strong);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
         .glass-panel {
             background: var(--glass-bg);
             border: 1px solid var(--border);
@@ -166,22 +224,36 @@
             gap: 24px;
         }
 
+        .hero-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
         .hero h1 {
             font-size: clamp(2.2rem, 4vw, 2.8rem);
             font-weight: 700;
             letter-spacing: -0.03em;
         }
 
-        .hero p {
+        .hero-subtitle {
             color: var(--text-secondary);
             max-width: 520px;
-            margin-top: 8px;
+            font-size: 1rem;
+            line-height: 1.7;
         }
 
         .hero-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
+            padding: 6px 0;
         }
 
         .pill,
@@ -192,16 +264,24 @@
             padding: 10px 16px;
             border-radius: 999px;
             border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(148, 163, 184, 0.08);
+            background: var(--surface-muted);
             font-size: 0.9rem;
             color: var(--text-secondary);
             letter-spacing: 0.02em;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
         }
 
         .status-pill {
             color: var(--text-primary);
             border-color: rgba(52, 211, 153, 0.45);
             background: rgba(52, 211, 153, 0.12);
+        }
+
+        .pill:hover,
+        .status-pill:hover {
+            transform: translateY(-2px);
+            border-color: rgba(59, 130, 246, 0.35);
+            background: rgba(56, 189, 248, 0.16);
         }
 
         .status-pill.offline {
@@ -253,15 +333,9 @@
         }
 
         .metrics-grid {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
-            align-items: stretch;
-        }
-
-        .metrics-grid>.glass-panel.metric-card {
-            flex: 1 1 calc(20% - 16px);
-            min-width: 220px;
         }
 
         .heartbeat-section {
@@ -413,10 +487,36 @@
             display: flex;
             flex-direction: column;
             gap: 18px;
+            position: relative;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+            overflow: hidden;
+            z-index: 0;
         }
 
         .metric-card::before {
             display: none;
+        }
+
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(56, 189, 248, 0.35);
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.35);
+        }
+
+        .metric-card:hover::after {
+            opacity: 1;
         }
 
         .metric-header {
@@ -466,7 +566,7 @@
             position: absolute;
             inset: 0;
             border-radius: 999px;
-            background: linear-gradient(90deg, rgba(56, 189, 248, 0.6), rgba(45, 212, 191, 0.65));
+            background: var(--gradient-secondary);
             transition: width 0.5s ease;
             width: 0;
         }
@@ -482,10 +582,32 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            position: relative;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+            overflow: hidden;
+            z-index: 0;
         }
 
         .chart-card::before {
-            display: none;
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at top right, rgba(99, 102, 241, 0.18), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.35s ease;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-6px);
+            border-color: rgba(99, 102, 241, 0.35);
+            box-shadow: 0 24px 48px rgba(15, 23, 42, 0.32);
+        }
+
+        .chart-card:hover::before {
+            opacity: 1;
         }
 
         .chart-header {
@@ -514,6 +636,9 @@
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(148, 163, 184, 0.05);
         }
 
         .server-button {
@@ -967,21 +1092,29 @@
         }
 
         .range-btn {
-            padding: 6px 12px;
-            border: 1px solid var(--border);
-            background: var(--glass-bg);
+            padding: 6px 14px;
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            background: var(--surface-muted);
             color: var(--text-secondary);
-            border-radius: 6px;
+            border-radius: 999px;
             font-size: 0.8rem;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         .range-btn:hover,
         .range-btn.active {
-            border-color: var(--accent);
+            border-color: rgba(56, 189, 248, 0.45);
             color: var(--text-primary);
-            background: var(--accent-soft);
+            background: rgba(56, 189, 248, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .range-btn:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
         }
 
         /* Heartbeat Search */
@@ -1070,13 +1203,12 @@
                 padding: 24px;
             }
 
-            .metrics-grid {
-                flex-direction: column;
+            .section-heading {
+                align-items: flex-start;
             }
 
-            .metrics-grid>.glass-panel.metric-card {
-                flex: 1 1 auto;
-                min-width: 0;
+            .metrics-grid {
+                grid-template-columns: 1fr;
             }
 
             .storage-grid {
@@ -1113,9 +1245,9 @@
 
         /* Storage Section Styles */
         .storage-grid {
-            flex: 1 1 100%;
+            grid-column: 1 / -1;
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
             gap: 20px;
         }
 
@@ -1199,7 +1331,7 @@
 
         .storage-progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--gradient-primary));
+            background: var(--gradient-primary);
             border-radius: 10px;
             transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -1342,8 +1474,12 @@
     <main class="container">
         <header class="glass-panel hero">
             <div class="hero-top">
-                <div>
+                <div class="hero-copy">
                     <h1>System Monitoring</h1>
+                    <p class="hero-subtitle">Beautiful, real-time observability for every API, server, and heartbeat your team cares about.</p>
+                </div>
+                <div class="hero-actions">
+                    <span class="section-badge">Live Overview</span>
                 </div>
             </div>
             <div class="hero-meta">
@@ -1357,8 +1493,9 @@
                 </div>
                 <span class="pill">Last updated <span id="lastUpdated">--</span></span>
                 <button class="filter-action" id="exportTrigger" type="button" aria-label="Export data">
-                    <i class="fas fa-download"></i> Export
-                    Export</button>
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
             </div>
             <div class="server-switcher" id="serverSwitcher" role="group" aria-label="Server selection"></div>
             <div class="date-filter">
@@ -1388,116 +1525,135 @@
             <span class="loading-text">Loading dashboard...</span>
         </div>
 
-        <section class="metrics-grid" role="region" aria-label="System metrics">
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">CPU Usage</span>
-                        <div class="tooltip-content">Current CPU utilization percentage</div>
+        <section class="section-block" role="region" aria-label="System metrics">
+            <div class="section-heading">
+                <div class="section-title">
+                    <span class="section-badge">Live Signals</span>
+                    <h2>Real-time Metrics</h2>
+                </div>
+                <p class="section-copy">Track the heartbeat of your infrastructure across compute, memory, network, and storage without leaving this dashboard.</p>
+            </div>
+            <div class="metrics-grid">
+                <article class="glass-panel metric-card">
+                    <div class="metric-header">
+                        <div class="tooltip">
+                            <span class="metric-label">CPU Usage</span>
+                            <div class="tooltip-content">Current CPU utilization percentage</div>
+                        </div>
+                        <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
                     </div>
-                    <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
-                </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="cpu" aria-label="CPU usage percentage">--</span>
-                    <span class="metric-unit">%</span>
-                </div>
-                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    <span class="progress-fill" id="cpuBar"></span>
-                </div>
-            </article>
+                    <div class="metric-value-wrap">
+                        <span class="metric-value" id="cpu" aria-label="CPU usage percentage">--</span>
+                        <span class="metric-unit">%</span>
+                    </div>
+                    <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <span class="progress-fill" id="cpuBar"></span>
+                    </div>
+                </article>
 
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Memory</span>
-                        <div class="tooltip-content">RAM usage percentage</div>
+                <article class="glass-panel metric-card">
+                    <div class="metric-header">
+                        <div class="tooltip">
+                            <span class="metric-label">Memory</span>
+                            <div class="tooltip-content">RAM usage percentage</div>
+                        </div>
+                        <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
                     </div>
-                    <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
-                </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="memory" aria-label="Memory usage percentage">--</span>
-                    <span class="metric-unit">%</span>
-                </div>
-                <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
-                    <span class="progress-fill" id="memoryBar"></span>
-                </div>
-            </article>
+                    <div class="metric-value-wrap">
+                        <span class="metric-value" id="memory" aria-label="Memory usage percentage">--</span>
+                        <span class="metric-unit">%</span>
+                    </div>
+                    <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                        <span class="progress-fill" id="memoryBar"></span>
+                    </div>
+                </article>
 
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Network In</span>
-                        <div class="tooltip-content">Incoming network traffic rate</div>
+                <article class="glass-panel metric-card">
+                    <div class="metric-header">
+                        <div class="tooltip">
+                            <span class="metric-label">Network In</span>
+                            <div class="tooltip-content">Incoming network traffic rate</div>
+                        </div>
+                        <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
                     </div>
-                    <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
-                </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="networkRx" aria-label="Network incoming rate">--</span>
-                    <span class="metric-unit">MB/s</span>
-                </div>
-            </article>
+                    <div class="metric-value-wrap">
+                        <span class="metric-value" id="networkRx" aria-label="Network incoming rate">--</span>
+                        <span class="metric-unit">MB/s</span>
+                    </div>
+                </article>
 
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Network Out</span>
-                        <div class="tooltip-content">Outgoing network traffic rate</div>
+                <article class="glass-panel metric-card">
+                    <div class="metric-header">
+                        <div class="tooltip">
+                            <span class="metric-label">Network Out</span>
+                            <div class="tooltip-content">Outgoing network traffic rate</div>
+                        </div>
+                        <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
                     </div>
-                    <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
-                </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="networkTx" aria-label="Network outgoing rate">--</span>
-                    <span class="metric-unit">MB/s</span>
-                </div>
-            </article>
+                    <div class="metric-value-wrap">
+                        <span class="metric-value" id="networkTx" aria-label="Network outgoing rate">--</span>
+                        <span class="metric-unit">MB/s</span>
+                    </div>
+                </article>
 
-            <article class="glass-panel metric-card">
-                <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Load Average (1m)</span>
-                        <div class="tooltip-content">System load over the last minute</div>
+                <article class="glass-panel metric-card">
+                    <div class="metric-header">
+                        <div class="tooltip">
+                            <span class="metric-label">Load Average (1m)</span>
+                            <div class="tooltip-content">System load over the last minute</div>
+                        </div>
+                        <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
                     </div>
-                    <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
+                    <div class="metric-value-wrap">
+                        <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
+                    </div>
+                </article>
+
+                <div id="storageGrid" class="storage-grid" role="region" aria-label="Storage drives">
+                    <!-- Storage cards will be dynamically populated here -->
                 </div>
-                <div class="metric-value-wrap">
-                    <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
-                </div>
-            </article>
-            <div id="storageGrid" class="storage-grid" role="region" aria-label="Storage drives">
-                <!-- Storage cards will be dynamically populated here -->
             </div>
         </section>
 
-        <section class="charts-grid" role="region" aria-label="Performance charts">
-            <article class="glass-panel chart-card">
-                <div class="chart-header">
-                    <h3>System Performance</h3>
-                    <span class="chart-subtitle">CPU and memory usage over time</span>
+        <section class="section-block" role="region" aria-label="Performance charts">
+            <div class="section-heading">
+                <div class="section-title">
+                    <span class="section-badge">Trends</span>
+                    <h2>Performance Visualisations</h2>
                 </div>
-                <div class="chart-wrapper">
-                    <canvas id="systemChart" aria-label="System performance chart"></canvas>
-                </div>
-            </article>
+                <p class="section-copy">Understand how utilisation trends evolve over time with polished charts that inherit the active theme.</p>
+            </div>
+            <div class="charts-grid">
+                <article class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <h3>System Performance</h3>
+                        <span class="chart-subtitle">CPU and memory usage over time</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="systemChart" aria-label="System performance chart"></canvas>
+                    </div>
+                </article>
 
-            <article class="glass-panel chart-card">
-                <div class="chart-header">
-                    <h3>Network Throughput</h3>
-                    <span class="chart-subtitle">Inbound vs outbound throughput (MB/s)</span>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="networkChart" aria-label="Network throughput chart"></canvas>
-                </div>
-            </article>
+                <article class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <h3>Network Throughput</h3>
+                        <span class="chart-subtitle">Inbound vs outbound throughput (MB/s)</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="networkChart" aria-label="Network throughput chart"></canvas>
+                    </div>
+                </article>
 
-            <article class="glass-panel chart-card">
-                <div class="chart-header">
-                    <h3>Resource Distribution</h3>
-                    <span class="chart-subtitle">CPU, memory, and disk utilisation snapshot</span>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="usageDonut" aria-label="Resource usage distribution chart"></canvas>
-                </div>
-            </article>
+                <article class="glass-panel chart-card">
+                    <div class="chart-header">
+                        <h3>Resource Distribution</h3>
+                        <span class="chart-subtitle">CPU, memory, and disk utilisation snapshot</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="usageDonut" aria-label="Resource usage distribution chart"></canvas>
+                    </div>
+                </article>
+            </div>
         </section>
 
         <section class="glass-panel heartbeat-section" role="region" aria-label="Server heartbeat status">
