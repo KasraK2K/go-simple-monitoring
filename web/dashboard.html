@@ -255,11 +255,6 @@
             margin-bottom: 24px;
         }
 
-        .storage-section {
-            grid-column: 1 / -1;
-            margin-top: 8px;
-        }
-
         .heartbeat-section {
             display: flex;
             flex-direction: column;
@@ -1110,24 +1105,16 @@
 
         /* Storage Section Styles */
         .storage-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-            margin-top: 16px;
+            display: contents;
         }
 
         .storage-card {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
         }
 
         .storage-card:hover {
-            border-color: rgba(56, 189, 248, 0.3);
-            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(56, 189, 248, 0.35);
+            box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
             transform: translateY(-2px);
         }
 
@@ -1293,10 +1280,6 @@
         }
 
         @media (max-width: 768px) {
-            .storage-grid {
-                grid-template-columns: 1fr;
-            }
-            
             .storage-header {
                 flex-direction: column;
                 gap: 12px;
@@ -1464,15 +1447,7 @@
                     <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
                 </div>
             </article>
-        </section>
-
-        <section class="glass-panel storage-section" role="region" aria-label="Storage drives">
-            <div class="storage-overview">
-                <h3 class="storage-overview-title">Storage Overview</h3>
-                <div class="storage-overview-value" id="diskOverall">--</div>
-                <div class="storage-overview-subtitle">Overall disk usage across all drives</div>
-            </div>
-            <div id="storageGrid" class="storage-grid">
+            <div id="storageGrid" class="storage-grid" role="region" aria-label="Storage drives">
                 <!-- Storage cards will be dynamically populated here -->
             </div>
         </section>
@@ -2421,22 +2396,22 @@
 
             if (!diskSpaces || diskSpaces.length === 0) {
                 storageGrid.innerHTML = `
-                    <div class="storage-card">
+                    <article class="glass-panel metric-card storage-card">
                         <div class="storage-header">
                             <div class="storage-info">
                                 <div class="storage-path">No storage data available</div>
                                 <div class="storage-device">Please check your system configuration</div>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 `;
                 return;
             }
 
             // Create storage cards for each disk space
             diskSpaces.forEach(disk => {
-                const storageCard = document.createElement('div');
-                storageCard.className = 'storage-card';
+                const storageCard = document.createElement('article');
+                storageCard.className = 'glass-panel metric-card storage-card';
 
                 const usagePercent = disk.used_pct || 0;
                 const totalGB = disk.total_bytes ? (disk.total_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
