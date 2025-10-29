@@ -28,6 +28,8 @@
             --danger: #f87171;
             --warning: #fbbf24;
             --shadow: 0 18px 40px rgba(15, 23, 42, 0.45);
+            --calendar-indicator-filter: invert(0) brightness(1.1);
+            --calendar-color-scheme: dark;
         }
 
         [data-theme="light"] {
@@ -45,6 +47,8 @@
             --danger: #ef4444;
             --warning: #f59e0b;
             --shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            --calendar-indicator-filter: none;
+            --calendar-color-scheme: light;
         }
 
         * {
@@ -565,6 +569,7 @@
             color: var(--text-primary);
             font-size: 0.9rem;
             min-width: 200px;
+            color-scheme: var(--calendar-color-scheme, auto);
         }
 
         body[data-theme="dark"] .date-filter input[type="datetime-local"] {
@@ -577,15 +582,8 @@
         }
 
         .date-filter input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            filter: invert(var(--calendar-icon-invert, 0));
-        }
-
-        body[data-theme="light"] {
-            --calendar-icon-invert: 0;
-        }
-
-        body[data-theme="dark"] {
-            --calendar-icon-invert: 1;
+            filter: var(--calendar-indicator-filter, none);
+            opacity: 0.9;
         }
 
         .filter-action {
@@ -2876,6 +2874,7 @@
                 historicalSeries = [];
                 clearTimeout(refreshTimer);
                 resetCharts();
+                document.querySelectorAll('.range-btn.active').forEach(btn => btn.classList.remove('active'));
                 await fetchMetrics();
                 scheduleNextFetch();
                 return;
@@ -2916,6 +2915,8 @@
                 if (filterElements.fromInput) filterElements.fromInput.value = '';
                 if (filterElements.toInput) filterElements.toInput.value = '';
             }
+
+            document.querySelectorAll('.range-btn.active').forEach(btn => btn.classList.remove('active'));
 
             clearTimeout(refreshTimer);
             resetCharts();
