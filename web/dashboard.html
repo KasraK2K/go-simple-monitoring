@@ -1471,15 +1471,30 @@
         }
 
         function removeAlert(alertId) {
-            const alertEl = activeAlerts.get(alertId);
-            if (alertEl) {
-                alertEl.remove();
+            const storedValue = activeAlerts.get(alertId);
+            if (storedValue) {
+                // If it's a string, it's an alert ID - find the actual element
+                if (typeof storedValue === 'string') {
+                    const alertEl = activeAlerts.get(storedValue);
+                    if (alertEl && alertEl.remove) {
+                        alertEl.remove();
+                        activeAlerts.delete(storedValue);
+                    }
+                }
+                // If it has a remove method, it's a DOM element
+                else if (storedValue && typeof storedValue.remove === 'function') {
+                    storedValue.remove();
+                }
                 activeAlerts.delete(alertId);
             }
         }
 
         function clearAllAlerts() {
-            activeAlerts.forEach((alertEl) => alertEl.remove());
+            activeAlerts.forEach((storedValue) => {
+                if (storedValue && typeof storedValue.remove === 'function') {
+                    storedValue.remove();
+                }
+            });
             activeAlerts.clear();
         }
 
@@ -1498,13 +1513,13 @@
 
                 if (check.value >= check.thresholds.critical) {
                     if (!activeAlerts.has(alertKey)) {
-                        showAlert('error', `${check.name} usage critical: ${check.value.toFixed(1)}${check.unit}`, 0);
-                        activeAlerts.set(alertKey, true);
+                        const alertId = showAlert('error', `${check.name} usage critical: ${check.value.toFixed(1)}${check.unit}`, 0);
+                        activeAlerts.set(alertKey, alertId);
                     }
                 } else if (check.value >= check.thresholds.warning) {
                     if (!activeAlerts.has(alertKey)) {
-                        showAlert('warning', `${check.name} usage high: ${check.value.toFixed(1)}${check.unit}`, 10000);
-                        activeAlerts.set(alertKey, true);
+                        const alertId = showAlert('warning', `${check.name} usage high: ${check.value.toFixed(1)}${check.unit}`, 10000);
+                        activeAlerts.set(alertKey, alertId);
                     }
                 } else {
                     // Remove threshold alert if it exists and value is now normal
