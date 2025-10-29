@@ -637,11 +637,11 @@
             backdrop-filter: blur(8px);
             z-index: 9999;
         }
-        
+
         body[data-theme="light"] .loading-overlay {
             background: rgba(255, 255, 255, 0.8);
         }
-        
+
         body[data-theme="light"] #initialLoading {
             background: rgba(255, 255, 255, 0.9);
         }
@@ -737,7 +737,7 @@
         /* Alerts Panel */
         .alerts-panel {
             position: fixed;
-            top: 80px;
+            top: 20px;
             right: 20px;
             width: 320px;
             max-height: 400px;
@@ -747,12 +747,15 @@
             flex-direction: column;
             gap: 8px;
             /* Hide scrollbar */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+            -ms-overflow-style: none;
+            /* IE and Edge */
         }
-        
+
         .alerts-panel::-webkit-scrollbar {
-            display: none; /* Chrome, Safari, Opera */
+            display: none;
+            /* Chrome, Safari, Opera */
         }
 
         .alert-item {
@@ -1181,7 +1184,7 @@
             <div class="loading-spinner"></div>
             <span class="loading-text">Loading dashboard...</span>
         </div>
-        
+
         <section class="metrics-grid" role="region" aria-label="System metrics">
             <article class="glass-panel metric-card">
                 <div class="metric-header">
