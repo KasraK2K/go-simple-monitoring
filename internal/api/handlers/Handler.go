@@ -17,13 +17,21 @@ func setHeader(w http.ResponseWriter, status int, responseData string) {
 	_, _ = w.Write([]byte(responseData))
 }
 
-func checkMethod(r *http.Request, w http.ResponseWriter, method string) bool {
-	if r.Method != method {
-		setHeader(w, http.StatusMethodNotAllowed, `{"status":false, "error": "Method not allowed"}`)
-		return false
+func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		next(w, r)
 	}
-	return true
 }
+
 
 func getTokenFromHeader(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")

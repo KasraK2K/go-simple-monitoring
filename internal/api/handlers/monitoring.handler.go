@@ -58,9 +58,9 @@ func MonitoringRoutes() {
 	}
 
 	// Serve dashboard UI
-	http.HandleFunc("/", MethodMiddleware(http.MethodGet)(dashboardHandler))
+	http.HandleFunc("/", CORSMiddleware(MethodMiddleware(http.MethodGet)(dashboardHandler)))
 	// Serve monitoring configuration for UI
-	http.HandleFunc("/api/v1/server-config", MethodMiddleware(http.MethodGet)(configHandler))
+	http.HandleFunc("/api/v1/server-config", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler)))
 
 	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Check token only in production
@@ -124,5 +124,5 @@ func MonitoringRoutes() {
 	}
 
 	// Apply middleware to restrict to POST method only
-	http.HandleFunc("/monitoring", MethodMiddleware(http.MethodPost)(monitoringHandler))
+	http.HandleFunc("/monitoring", CORSMiddleware(MethodMiddleware(http.MethodPost, http.MethodOptions)(monitoringHandler)))
 }

@@ -50,3 +50,6 @@ monitoring.db
 api-server
 monitor
 go-monitoring
+dashboard/node_modules/
+.next/
+out/
