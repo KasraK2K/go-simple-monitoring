@@ -653,19 +653,51 @@
             border-radius: 999px;
             font-size: 0.9rem;
             letter-spacing: 0.02em;
-            transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-weight: 500;
+            position: relative;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .server-button:hover {
             border-color: rgba(56, 189, 248, 0.55);
             color: var(--text-primary);
+            background: rgba(148, 163, 184, 0.12);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .server-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .server-button.active {
             border-color: rgba(56, 189, 248, 0.65);
             background: rgba(56, 189, 248, 0.16);
             color: var(--text-primary);
+            box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
         }
+
+        .server-button.remote {
+            border-color: rgba(168, 85, 247, 0.35);
+            background: rgba(168, 85, 247, 0.08);
+        }
+
+
+        .server-button.remote:hover {
+            border-color: rgba(168, 85, 247, 0.55);
+            background: rgba(168, 85, 247, 0.12);
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.15);
+        }
+
+        .server-button.remote.active {
+            border-color: rgba(168, 85, 247, 0.65);
+            background: rgba(168, 85, 247, 0.16);
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.25);
+        }
+
 
         .server-button[disabled] {
             opacity: 0.6;
@@ -2930,6 +2962,13 @@
                 button.type = 'button';
                 button.className = 'server-button';
                 button.textContent = server.name;
+
+                // Add local or remote class based on server type
+                if (server === LOCAL_SERVER_OPTION || !server.address) {
+                    button.classList.add('local');
+                } else {
+                    button.classList.add('remote');
+                }
 
                 const serverAddress = sanitizeBaseUrl(server.address || '');
                 if (serverAddress === activeAddress) {
