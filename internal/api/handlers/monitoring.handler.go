@@ -24,6 +24,8 @@ func MonitoringRoutes() {
 	logics.InitMonitoringConfig()
 
 	dashboardPath := filepath.Join("web", "dashboard.html")
+	componentsDir := http.StripPrefix("/components/", http.FileServer(http.Dir(filepath.Join("web", "components"))))
+	jsDir := http.StripPrefix("/js/", http.FileServer(http.Dir(filepath.Join("web", "js"))))
 
 	dashboardHandler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -31,6 +33,14 @@ func MonitoringRoutes() {
 			return
 		}
 		http.ServeFile(w, r, dashboardPath)
+	}
+
+	componentsHandler := func(w http.ResponseWriter, r *http.Request) {
+		componentsDir.ServeHTTP(w, r)
+	}
+
+	jsHandler := func(w http.ResponseWriter, r *http.Request) {
+		jsDir.ServeHTTP(w, r)
 	}
 
 	configHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +69,10 @@ func MonitoringRoutes() {
 
 	// Serve dashboard UI
 	http.HandleFunc("/", CORSMiddleware(MethodMiddleware(http.MethodGet)(dashboardHandler)))
+	// Serve HTMX component fragments
+	http.HandleFunc("/components/", CORSMiddleware(MethodMiddleware(http.MethodGet)(componentsHandler)))
+	// Serve dashboard JavaScript bundle
+	http.HandleFunc("/js/", CORSMiddleware(MethodMiddleware(http.MethodGet)(jsHandler)))
 	// Serve monitoring configuration for UI
 	http.HandleFunc("/api/v1/server-config", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler)))
 

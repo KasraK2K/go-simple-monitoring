@@ -1,0 +1,89 @@
+<section class="section-block" data-component="metrics" role="region" aria-label="System metrics">
+    <div class="section-heading">
+        <div class="section-title">
+            <span class="section-badge">Live Signals</span>
+            <h2>Real-time Metrics</h2>
+        </div>
+        <p class="section-copy">Track the heartbeat of your infrastructure across compute, memory, network, and storage without leaving this dashboard.</p>
+    </div>
+    <div class="metrics-grid">
+        <article class="glass-panel metric-card">
+            <div class="metric-header">
+                <div class="tooltip">
+                    <span class="metric-label">CPU Usage</span>
+                    <div class="tooltip-content">Current CPU utilization percentage</div>
+                </div>
+                <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
+            </div>
+            <div class="metric-value-wrap">
+                <span class="metric-value" id="cpu" aria-label="CPU usage percentage">--</span>
+                <span class="metric-unit">%</span>
+            </div>
+            <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <span class="progress-fill" id="cpuBar"></span>
+            </div>
+        </article>
+
+        <article class="glass-panel metric-card">
+            <div class="metric-header">
+                <div class="tooltip">
+                    <span class="metric-label">Memory</span>
+                    <div class="tooltip-content">RAM usage percentage</div>
+                </div>
+                <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
+            </div>
+            <div class="metric-value-wrap">
+                <span class="metric-value" id="memory" aria-label="Memory usage percentage">--</span>
+                <span class="metric-unit">%</span>
+            </div>
+            <div class="metric-progress" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                <span class="progress-fill" id="memoryBar"></span>
+            </div>
+        </article>
+
+        <article class="glass-panel metric-card">
+            <div class="metric-header">
+                <div class="tooltip">
+                    <span class="metric-label">Network In</span>
+                    <div class="tooltip-content">Incoming network traffic rate</div>
+                </div>
+                <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
+            </div>
+            <div class="metric-value-wrap">
+                <span class="metric-value" id="networkRx" aria-label="Network incoming rate">--</span>
+                <span class="metric-unit">MB/s</span>
+            </div>
+        </article>
+
+        <article class="glass-panel metric-card">
+            <div class="metric-header">
+                <div class="tooltip">
+                    <span class="metric-label">Network Out</span>
+                    <div class="tooltip-content">Outgoing network traffic rate</div>
+                </div>
+                <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
+            </div>
+            <div class="metric-value-wrap">
+                <span class="metric-value" id="networkTx" aria-label="Network outgoing rate">--</span>
+                <span class="metric-unit">MB/s</span>
+            </div>
+        </article>
+
+        <article class="glass-panel metric-card">
+            <div class="metric-header">
+                <div class="tooltip">
+                    <span class="metric-label">Load Average (1m)</span>
+                    <div class="tooltip-content">System load over the last minute</div>
+                </div>
+                <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
+            </div>
+            <div class="metric-value-wrap">
+                <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
+            </div>
+        </article>
+
+        <div id="storageGrid" class="storage-grid" role="region" aria-label="Storage drives">
+            <!-- Storage cards will be dynamically populated here -->
+        </div>
+    </div>
+</section>
