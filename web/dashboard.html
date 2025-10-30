@@ -2158,6 +2158,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
+
             *,
             *::before,
             *::after {
@@ -2169,6 +2170,7 @@
         }
 
         @supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+
             .glass-panel,
             .theme-toggle,
             .connection-status,
@@ -2186,16 +2188,23 @@
 </head>
 
 <body>
-    <div id="backgroundComponent" hx-get="components/background.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
+    <div id="backgroundComponent" hx-get="components/background.html" hx-trigger="load" hx-target="this"
+        hx-swap="outerHTML"></div>
 
-    <div id="chromeComponent" hx-get="components/chrome.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
+    <div id="chromeComponent" hx-get="components/chrome.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+    </div>
 
     <main class="container">
-        <div id="heroComponent" hx-get="components/hero.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
-        <div id="initialLoadingComponent" hx-get="components/initial-loading.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
-        <div id="metricsComponent" hx-get="components/metrics.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
-        <div id="chartsComponent" hx-get="components/charts.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
-        <div id="heartbeatsComponent" hx-get="components/heartbeats.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML"></div>
+        <div id="heroComponent" hx-get="components/hero.html" hx-trigger="load" hx-target="this" hx-swap="outerHTML">
+        </div>
+        <div id="initialLoadingComponent" hx-get="components/initial-loading.html" hx-trigger="load" hx-target="this"
+            hx-swap="outerHTML"></div>
+        <div id="metricsComponent" hx-get="components/metrics.html" hx-trigger="load" hx-target="this"
+            hx-swap="outerHTML"></div>
+        <div id="chartsComponent" hx-get="components/charts.html" hx-trigger="load" hx-target="this"
+            hx-swap="outerHTML"></div>
+        <div id="heartbeatsComponent" hx-get="components/heartbeats.html" hx-trigger="load" hx-target="this"
+            hx-swap="outerHTML"></div>
     </main>
     <script type="module" src="js/dashboard/index.js"></script>
 </body>
