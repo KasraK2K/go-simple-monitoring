@@ -6,6 +6,7 @@ import (
 	"go-log/internal/api/models"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -159,6 +160,58 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 	// Write the complete JSON array to file
 	if err := os.WriteFile(logPath, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to write log file: %w", err)
+	}
+
+	return nil
+}
+
+// WriteServerLogToFile persists remote server payloads into per-server log files.
+func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload []byte) error {
+	if strings.TrimSpace(basePath) == "" {
+		return fmt.Errorf("log path is not configured")
+	}
+
+	if strings.TrimSpace(server.TableName) == "" {
+		return nil
+	}
+
+	dirName := SanitizeFilesystemName(server.TableName)
+	if dirName == "" {
+		return nil
+	}
+
+	now := time.Now()
+	serverDir := filepath.Join(basePath, "servers", dirName)
+	if err := os.MkdirAll(serverDir, 0755); err != nil {
+		return fmt.Errorf("failed to create server log directory: %w", err)
+	}
+
+	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
+	logPath := filepath.Join(serverDir, filename)
+
+	var entries []models.ServerLogEntry
+
+	if data, err := os.ReadFile(logPath); err == nil && len(data) > 0 {
+		if err := json.Unmarshal(data, &entries); err != nil {
+			entries = []models.ServerLogEntry{}
+		}
+	} else if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to read server log file: %w", err)
+	}
+
+	entry := models.ServerLogEntry{
+		Time:    now.Format(time.RFC3339Nano),
+		Payload: json.RawMessage(payload),
+	}
+	entries = append(entries, entry)
+
+	jsonData, err := json.Marshal(entries)
+	if err != nil {
+		return fmt.Errorf("failed to marshal server log entries: %w", err)
+	}
+
+	if err := os.WriteFile(logPath, jsonData, 0644); err != nil {
+		return fmt.Errorf("failed to write server log file: %w", err)
 	}
 
 	return nil

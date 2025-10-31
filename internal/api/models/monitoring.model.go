@@ -1,6 +1,9 @@
 package models
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type SystemMonitoring struct {
 	Timestamp time.Time     `json:"timestamp"`
@@ -57,12 +60,13 @@ const (
 )
 
 type MonitoringConfig struct {
-	Path        string           `json:"path"`         // Log file destination path
-	RefreshTime string           `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
-	Storage     string           `json:"storage"`      // Storage type: "file", "db", "both", or "none"
-	Heartbeat   []ServerConfig   `json:"heartbeat"`
-	Servers     []ServerEndpoint `json:"servers"`
-	LogRotate   *LogRotateConfig `json:"logrotate,omitempty"`
+	Path              string           `json:"path"`         // Log file destination path
+	RefreshTime       string           `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
+	Storage           string           `json:"storage"`      // Storage type: "file", "db", "both", or "none"
+	PersistServerLogs bool             `json:"persist_server_logs"`
+	Heartbeat         []ServerConfig   `json:"heartbeat"`
+	Servers           []ServerEndpoint `json:"servers"`
+	LogRotate         *LogRotateConfig `json:"logrotate,omitempty"`
 }
 
 type LogRotateConfig struct {
@@ -88,8 +92,9 @@ type NetworkIO struct {
 }
 
 type ServerEndpoint struct {
-	Name    string `json:"name"`
-	Address string `json:"address"`
+	Name      string `json:"name"`
+	Address   string `json:"address"`
+	TableName string `json:"table_name"`
 }
 
 type DiskIO struct {
@@ -116,4 +121,9 @@ type Process struct {
 type MonitoringLogEntry struct {
 	Time string         `json:"time"`
 	Body map[string]any `json:"body"`
+}
+
+type ServerLogEntry struct {
+	Time    string          `json:"time"`
+	Payload json.RawMessage `json:"payload"`
 }

@@ -2,6 +2,7 @@
   "path": "./logs",
   "refresh_time": "5s",
   "storage": "both",
+  "persist_server_logs": false,
   "logrotate": {
     "enabled": true,
     "max_age_days": 30
@@ -31,11 +32,13 @@
   "servers": [
     {
       "name": "Production",
-      "address": "https://monitoring.example.com"
+      "address": "https://monitoring.example.com",
+      "table_name": "prod_monitoring"
     },
     {
       "name": "Staging",
-      "address": "https://staging-monitor.example.com"
+      "address": "https://staging-monitor.example.com",
+      "table_name": "staging_monitoring"
     }
   ]
 }

@@ -42,6 +42,7 @@ sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
   "path": "/var/log/monitoring",
   "refresh_time": "5s",
   "storage": "file",
+  "persist_server_logs": false,
   "logrotate": {
     "enabled": true,
     "max_age_days": 30
@@ -61,11 +62,13 @@ sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
   "servers": [
     {
       "name": "Production",
-      "address": "https://monitoring.example.com"
+      "address": "https://monitoring.example.com",
+      "table_name": "production_monitoring"
     },
     {
       "name": "Staging",
-      "address": "https://staging-monitor.example.com"
+      "address": "https://staging-monitor.example.com",
+      "table_name": "staging_monitoring"
     }
   ]
 }

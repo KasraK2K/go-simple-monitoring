@@ -64,6 +64,11 @@ In `configs.json`, you can control where logs are stored using the `storage` fie
 - `"both"` - Write logs to both files and database
 - `"none"` - Disable persistence entirely (no files or database writes and log rotation is skipped)
 
+### Server Log Persistence
+
+- `"persist_server_logs"` - When `true`, fetch `/monitoring` from each configured server and persist the response.
+- Each server entry accepts `"table_name"`; when populated, a subdirectory is created under `path/servers/<table_name>` for file storage and the same identifier is used for the SQLite table. If `table_name` is empty the server is skipped.
+
 ### Automatic Log Rotation
 
 Configure the `logrotate` block to prune old log files and database rows automatically:

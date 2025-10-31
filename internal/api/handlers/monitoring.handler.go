@@ -44,6 +44,7 @@ func MonitoringRoutes() {
 			"servers":                  cfg.Servers,
 			"storage":                  cfg.Storage,
 			"path":                     cfg.Path,
+			"persist_server_logs":      cfg.PersistServerLogs,
 		}
 
 		jsonData, err := json.Marshal(payload)

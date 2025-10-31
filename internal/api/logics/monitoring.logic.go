@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-log/internal/api/models"
 	"go-log/internal/utils"
+	"io"
 	"log"
 	"math"
 	"net/http"
@@ -169,11 +170,12 @@ func ensureConfigLoaded() {
 // getDefaultConfig returns default configuration
 func getDefaultConfig() *models.MonitoringConfig {
 	return &models.MonitoringConfig{
-		Path:        "./logs",
-		RefreshTime: "2s",
-		Storage:     "file",
-		Heartbeat:   []models.ServerConfig{},
-		Servers:     []models.ServerEndpoint{},
+		Path:              "./logs",
+		RefreshTime:       "2s",
+		Storage:           "file",
+		PersistServerLogs: false,
+		Heartbeat:         []models.ServerConfig{},
+		Servers:           []models.ServerEndpoint{},
 		LogRotate: &models.LogRotateConfig{
 			Enabled:    true,
 			MaxAgeDays: 30,
@@ -851,6 +853,8 @@ func startAutoLogging() {
 						fmt.Printf("Warning: failed to log monitoring data: %v\n", logErr)
 					}
 				}
+
+				persistServerLogs()
 			case <-loggingStopChan:
 				return
 			}
@@ -931,6 +935,98 @@ func stopLogRotation() {
 		close(logRotateStopChan)
 		logRotateStopChan = nil
 	}
+}
+
+func persistServerLogs() {
+	monitoringConfigMu.RLock()
+	cfg := monitoringConfig
+	monitoringConfigMu.RUnlock()
+
+	if cfg == nil || !cfg.PersistServerLogs {
+		return
+	}
+
+	storage := strings.ToLower(strings.TrimSpace(cfg.Storage))
+	if storage == "none" {
+		return
+	}
+
+	writeFile := storage == "file" || storage == "both"
+	writeDB := (storage == "db" || storage == "both") && utils.IsDatabaseInitialized()
+
+	if writeFile && strings.TrimSpace(cfg.Path) == "" {
+		fmt.Printf("Warning: persist_server_logs enabled but log path is empty; skipping file persistence\n")
+		writeFile = false
+	}
+
+	if !writeFile && !writeDB {
+		return
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	for _, server := range cfg.Servers {
+		if strings.TrimSpace(server.TableName) == "" {
+			continue
+		}
+
+		if strings.TrimSpace(server.Address) == "" {
+			continue
+		}
+
+		payload, err := fetchServerMonitoring(client, server.Address)
+		if err != nil {
+			fmt.Printf("Warning: failed to fetch monitoring data from %s: %v\n", server.Address, err)
+			continue
+		}
+
+		if writeFile {
+			if err := utils.WriteServerLogToFile(cfg.Path, server, payload); err != nil {
+				fmt.Printf("Warning: failed to write server log file for %s: %v\n", server.Address, err)
+			}
+		}
+
+		if writeDB {
+			if err := utils.WriteServerLogToDatabase(server.TableName, payload); err != nil {
+				fmt.Printf("Warning: failed to write server log to database for %s: %v\n", server.Address, err)
+			}
+		}
+	}
+}
+
+func fetchServerMonitoring(client *http.Client, baseAddress string) ([]byte, error) {
+	if client == nil {
+		return nil, fmt.Errorf("http client is not configured")
+	}
+
+	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader("{}"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response: %w", err)
+	}
+
+	return body, nil
 }
 
 // getNetworkIO returns network I/O statistics

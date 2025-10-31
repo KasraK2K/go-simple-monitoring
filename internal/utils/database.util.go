@@ -5,13 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"sync"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
-	db *sql.DB
+	db              *sql.DB
+	serverLogTables sync.Map
 )
 
 // InitDatabase initializes the SQLite database
@@ -74,6 +76,35 @@ func WriteToDatabase(entry models.MonitoringLogEntry) error {
 	_, err = db.Exec(query, entry.Time, string(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to write to database: %w", err)
+	}
+
+	return nil
+}
+
+// WriteServerLogToDatabase writes remote server payloads into a dedicated table.
+func WriteServerLogToDatabase(tableName string, payload []byte) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	sanitized, err := ensureServerLogTable(tableName)
+	if err != nil {
+		return err
+	}
+
+	entry := models.ServerLogEntry{
+		Time:    time.Now().Format(time.RFC3339Nano),
+		Payload: json.RawMessage(payload),
+	}
+
+	jsonData, err := json.Marshal(entry)
+	if err != nil {
+		return fmt.Errorf("failed to marshal server log entry: %w", err)
+	}
+
+	query := fmt.Sprintf("INSERT INTO %s (timestamp, data) VALUES (?, ?)", sanitized)
+	if _, err := db.Exec(query, entry.Time, string(jsonData)); err != nil {
+		return fmt.Errorf("failed to write server log to database: %w", err)
 	}
 
 	return nil
@@ -269,4 +300,35 @@ func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, 
 	}
 
 	return entries, nil
+}
+
+func ensureServerLogTable(rawName string) (string, error) {
+	sanitized := SanitizeTableName(rawName)
+	if sanitized == "" {
+		return "", fmt.Errorf("invalid table name")
+	}
+
+	if _, exists := serverLogTables.Load(sanitized); exists {
+		return sanitized, nil
+	}
+
+	statements := []string{
+		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			timestamp TEXT NOT NULL,
+			data TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`, sanitized),
+		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp);`, sanitized, sanitized),
+		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_at ON %s(created_at);`, sanitized, sanitized),
+	}
+
+	for _, stmt := range statements {
+		if _, err := db.Exec(stmt); err != nil {
+			return "", fmt.Errorf("failed to ensure table %s: %w", sanitized, err)
+		}
+	}
+
+	serverLogTables.Store(sanitized, struct{}{})
+	return sanitized, nil
 }
