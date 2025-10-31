@@ -41,6 +41,11 @@ sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
   "path": "/var/log/monitoring",
   "refresh_time": "5s",
+  "storage": "file",
+  "logrotate": {
+    "enabled": true,
+    "max_age_days": 30
+  },
   "heartbeat": [
     {
       "name": "Google",

@@ -33,6 +33,8 @@ var (
 	lastConfigModTime    time.Time
 	loggingTicker        *time.Ticker
 	loggingStopChan      chan struct{}
+	logRotateTicker      *time.Ticker
+	logRotateStopChan    chan struct{}
 )
 
 // InitMonitoringConfig loads the monitoring configuration once at startup
@@ -172,6 +174,10 @@ func getDefaultConfig() *models.MonitoringConfig {
 		Storage:     "file",
 		Heartbeat:   []models.ServerConfig{},
 		Servers:     []models.ServerEndpoint{},
+		LogRotate: &models.LogRotateConfig{
+			Enabled:    true,
+			MaxAgeDays: 30,
+		},
 	}
 }
 
@@ -463,7 +469,7 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 
 		// Create a signature to identify duplicate storage (same device or same size+usage)
 		signature := createStorageSignature(diskSpace)
-		
+
 		// Check if we already have this storage device/pool
 		if existingDisk, exists := seenStorageSignatures[signature]; exists {
 			// If this is a more "important" mount point, replace the existing one
@@ -497,18 +503,18 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 func createStorageSignature(diskSpace models.DiskSpace) string {
 	// For APFS and other shared storage pools, multiple volumes can have the same total size and usage
 	// We need to deduplicate these by treating them as one logical storage unit
-	
+
 	// If multiple volumes have identical total_bytes and used_pct, they're likely sharing the same storage pool
 	// Use size+usage pattern as signature to group them
 	sizeUsageSignature := fmt.Sprintf("size:%d:usage:%.2f", diskSpace.TotalBytes, diskSpace.UsedPct)
-	
+
 	// But still prefer device name for truly separate devices
 	if diskSpace.Device != "" && diskSpace.Device != "unknown" {
 		// For now, use the size+usage pattern for better deduplication
 		// This helps with APFS containers where multiple volumes share space
 		return sizeUsageSignature
 	}
-	
+
 	return sizeUsageSignature
 }
 
@@ -516,22 +522,22 @@ func isMoreImportantMountPoint(newPath, existingPath string) bool {
 	// Priority order for mount points (higher priority = more important)
 	priorities := map[string]int{
 		"/":                    1000, // Root is most important
-		"/home":               900,   // Home directory
-		"/usr":                800,   // User programs
-		"/var":                700,   // Variable data
-		"/tmp":                600,   // Temporary files
-		"/boot":               500,   // Boot files
+		"/home":                900,  // Home directory
+		"/usr":                 800,  // User programs
+		"/var":                 700,  // Variable data
+		"/tmp":                 600,  // Temporary files
+		"/boot":                500,  // Boot files
 		"/System/Volumes/Data": 450,  // macOS data volume
 	}
-	
+
 	newPriority := priorities[newPath]
 	existingPriority := priorities[existingPath]
-	
+
 	// If neither has a defined priority, prefer shorter paths (closer to root)
 	if newPriority == 0 && existingPriority == 0 {
 		return len(newPath) < len(existingPath)
 	}
-	
+
 	return newPriority > existingPriority
 }
 
@@ -564,7 +570,7 @@ func shouldSkipFileSystem(fstype, mountpoint string) bool {
 	// Skip macOS system volumes that are not useful for monitoring
 	macOSSystemVolumes := []string{
 		"/System/Volumes/xarts",
-		"/System/Volumes/iSCPreboot", 
+		"/System/Volumes/iSCPreboot",
 		"/System/Volumes/Hardware",
 		"/System/Volumes/Preboot",
 		"/System/Volumes/Update",
@@ -822,6 +828,7 @@ func startAutoLogging() {
 
 	// Stop existing ticker if running
 	stopAutoLogging()
+	configureLogRotation()
 
 	// Parse refresh time
 	refreshDuration, err := time.ParseDuration(monitoringConfig.RefreshTime)
@@ -860,6 +867,65 @@ func stopAutoLogging() {
 	if loggingStopChan != nil {
 		close(loggingStopChan)
 		loggingStopChan = nil
+	}
+	stopLogRotation()
+}
+
+func configureLogRotation() {
+	stopLogRotation()
+
+	if monitoringConfig == nil {
+		return
+	}
+
+	rotateCfg := monitoringConfig.LogRotate
+	if rotateCfg == nil || !rotateCfg.Enabled {
+		return
+	}
+
+	maxAge := rotateCfg.MaxAgeDays
+	if maxAge <= 0 {
+		maxAge = 30
+	}
+
+	performCleanup := func(retention int) {
+		if err := utils.CleanOldLogs(retention); err != nil {
+			fmt.Printf("Warning: log cleanup failed: %v\n", err)
+		}
+
+		cutoff := time.Now().AddDate(0, 0, -retention)
+		if utils.IsDatabaseInitialized() {
+			if err := utils.CleanOldDatabaseEntries(cutoff); err != nil {
+				fmt.Printf("Warning: database cleanup failed: %v\n", err)
+			}
+		}
+	}
+
+	performCleanup(maxAge)
+
+	logRotateTicker = time.NewTicker(24 * time.Hour)
+	logRotateStopChan = make(chan struct{})
+
+	go func(retention int) {
+		for {
+			select {
+			case <-logRotateTicker.C:
+				performCleanup(retention)
+			case <-logRotateStopChan:
+				return
+			}
+		}
+	}(maxAge)
+}
+
+func stopLogRotation() {
+	if logRotateTicker != nil {
+		logRotateTicker.Stop()
+		logRotateTicker = nil
+	}
+	if logRotateStopChan != nil {
+		close(logRotateStopChan)
+		logRotateStopChan = nil
 	}
 }
 

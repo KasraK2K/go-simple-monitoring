@@ -63,6 +63,20 @@ In `configs.json`, you can control where logs are stored using the `storage` fie
 - `"db"` - Write logs only to database
 - `"both"` - Write logs to both files and database
 
+### Automatic Log Rotation
+
+Configure the `logrotate` block to prune old log files and database rows automatically:
+
+```json
+"logrotate": {
+  "enabled": true,
+  "max_age_days": 30
+}
+```
+
+- `enabled`: set to `false` to disable builtin cleanup.
+- `max_age_days`: number of days to retain logs (default 30). The scheduler runs once per day and cleans up immediately on startup (files and SQLite rows).
+
 ### Storage Requirements
 
 | Interval | Daily Size | Weekly Size | Monthly Size | Yearly Size |

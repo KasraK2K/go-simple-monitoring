@@ -62,6 +62,12 @@ type MonitoringConfig struct {
 	Storage     string           `json:"storage"`      // Storage type: "file", "db", or "both"
 	Heartbeat   []ServerConfig   `json:"heartbeat"`
 	Servers     []ServerEndpoint `json:"servers"`
+	LogRotate   *LogRotateConfig `json:"logrotate,omitempty"`
+}
+
+type LogRotateConfig struct {
+	Enabled    bool `json:"enabled"`
+	MaxAgeDays int  `json:"max_age_days"`
 }
 
 type ServerConfig struct {

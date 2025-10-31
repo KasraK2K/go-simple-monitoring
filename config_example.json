@@ -2,6 +2,10 @@
   "path": "./logs",
   "refresh_time": "5s",
   "storage": "both",
+  "logrotate": {
+    "enabled": true,
+    "max_age_days": 30
+  },
   "heartbeat": [
     {
       "name": "Google",
