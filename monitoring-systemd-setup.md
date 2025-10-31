@@ -10,6 +10,7 @@ This guide sets up your Go-built binary **`monitoring`** to run as a systemd ser
 > - You already have a compiled binary named `monitoring` (no extension).
 > - You have root (or sudo) access.
 > - Your `configs.json` file is configured properly.
+> - When rebuilding, run `templ generate ./web/views` before `go build` so the dashboard templ files are compiled into the binary.
 
 ---
 
@@ -265,6 +266,9 @@ find /var/log/monitoring/ -name "*.log" -mtime +7 -delete
 ## 10) Updating the binary
 
 ```bash
+# Regenerate templ output (if any UI changes were made)
+templ generate ./web/views
+
 # Copy new binary
 sudo cp /path/to/new/monitoring /opt/monitoring/monitoring
 sudo chown monitoring:monitoring /opt/monitoring/monitoring

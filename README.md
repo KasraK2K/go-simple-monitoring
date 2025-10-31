@@ -1,16 +1,45 @@
 # Log
 
-## Run Project:
+## Prerequisites
+
+- Go 1.21 or newer (module target: Go 1.24.6).
+- [Templ CLI](https://templ.guide) for generating the dashboard components:
+
+  ```bash
+  go install github.com/a-h/templ/cmd/templ@latest
+  ```
+
+  Ensure the `templ` binary is on your `PATH` so generated Go files stay in sync with `.templ` sources.
+
+## Local Development
+
+1. Generate templ bindings (rerun whenever `web/views/*.templ` changes):
+
+   ```bash
+   templ generate ./web/views
+   ```
+
+2. Start the API/UI server:
+
+   ```bash
+   go run ./cmd
+   ```
+
+   or use the watcher:
+
+   ```bash
+   ./scripts/dev.sh
+   ```
+
+   The dashboard is available at http://localhost:3500.
+
+## Build for Linux
+
+Always regenerate templ output before creating release binaries:
 
 ```bash
-go run ./cmd
-```
+templ generate ./web/views
 
----
-
-## Build for linux:
-
-```bash
 GOOS=linux GOARCH=amd64 \
 CGO_ENABLED=0 \
 go build \
