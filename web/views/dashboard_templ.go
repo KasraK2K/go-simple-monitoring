@@ -112,6 +112,10 @@ func DashboardShell(props DashboardProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
+		templ_7745c5c3_Err = ServersSection().Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
 		templ_7745c5c3_Err = HeartbeatSection().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
@@ -210,7 +214,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 94, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 95, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -311,7 +315,7 @@ func ChartsSection() templ.Component {
 	})
 }
 
-func HeartbeatSection() templ.Component {
+func ServersSection() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -332,7 +336,36 @@ func HeartbeatSection() templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section class=\"glass-panel heartbeat-section\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\"><div class=\"heartbeat-header\"><div><div class=\"heartbeat-title\">Domain Heartbeat</div><div class=\"heartbeat-meta\">Live status across configured targets</div></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section class=\"glass-panel servers-section\" data-component=\"servers\" role=\"region\" aria-label=\"Remote server metrics\"><div class=\"servers-header\"><div><div class=\"servers-title\">Remote Servers</div><div class=\"servers-meta\">Latest health signals from configured servers</div></div><div class=\"servers-summary\" id=\"serverMetricsSummary\">-- tracked</div></div><div class=\"servers-grid\" id=\"serverMetricsList\"><div class=\"servers-empty\" id=\"serverMetricsEmpty\">Server metrics will appear here soon</div></div></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func HeartbeatSection() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var11 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var11 == nil {
+			templ_7745c5c3_Var11 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<section class=\"glass-panel heartbeat-section\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\"><div class=\"heartbeat-header\"><div><div class=\"heartbeat-title\">Domain Heartbeat</div><div class=\"heartbeat-meta\">Live status across configured targets</div></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

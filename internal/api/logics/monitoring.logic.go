@@ -36,7 +36,14 @@ var (
 	loggingStopChan      chan struct{}
 	logRotateTicker      *time.Ticker
 	logRotateStopChan    chan struct{}
+	serverMetricsCache   = map[string]cachedServerMetric{}
+	serverMetricsCacheMu sync.RWMutex
 )
+
+type cachedServerMetric struct {
+	metric    models.ServerMetrics
+	fetchedAt time.Time
+}
 
 // InitMonitoringConfig loads the monitoring configuration once at startup
 func InitMonitoringConfig() {
@@ -184,6 +191,7 @@ func getDefaultConfig() *models.MonitoringConfig {
 }
 
 func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
+	cfg := GetMonitoringConfig()
 	monitoring := &models.SystemMonitoring{
 		Timestamp: time.Now(),
 	}
@@ -261,8 +269,330 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	monitoring.DiskIO = r.diskIO
 	monitoring.Process = r.process
 	monitoring.Heartbeat = r.heartbeat
+	monitoring.ServerMetrics = collectServerMetrics(cfg)
 
 	return monitoring, nil
+}
+
+func collectServerMetrics(cfg *models.MonitoringConfig) []models.ServerMetrics {
+	if cfg == nil || len(cfg.Servers) == 0 {
+		return nil
+	}
+
+	refreshDuration := defaultRefreshDuration(cfg.RefreshTime)
+
+	results := make([]models.ServerMetrics, len(cfg.Servers))
+	var wg sync.WaitGroup
+
+	for idx, server := range cfg.Servers {
+		wg.Add(1)
+		go func(i int, srv models.ServerEndpoint) {
+			defer wg.Done()
+			results[i] = buildServerMetricSnapshot(srv, refreshDuration)
+		}(idx, server)
+	}
+
+	wg.Wait()
+
+	filtered := make([]models.ServerMetrics, 0, len(results))
+	for _, metric := range results {
+		if metric.Name == "" && metric.Address == "" && metric.Status == "" {
+			continue
+		}
+		filtered = append(filtered, metric)
+	}
+
+	return filtered
+}
+
+func buildServerMetricSnapshot(server models.ServerEndpoint, refresh time.Duration) models.ServerMetrics {
+	normalized := normalizeServerAddress(server.Address)
+	metric := models.ServerMetrics{
+		Name:    server.Name,
+		Address: normalized,
+	}
+
+	if normalized == "" {
+		metric.Status = "error"
+		metric.Message = "server address is missing"
+		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		return metric
+	}
+
+	if cached, ok := getCachedServerMetric(normalized); ok && !isCacheStale(cached, refresh) {
+		existing := cached.metric
+		if existing.Name == "" {
+			existing.Name = metric.Name
+		}
+		if existing.Address == "" {
+			existing.Address = metric.Address
+		}
+		if existing.Status == "" {
+			existing.Status = "ok"
+		}
+		return existing
+	}
+
+	fetched, err := fetchAndCacheServerMetric(server)
+	if err != nil {
+		metric.Status = "error"
+		metric.Message = err.Error()
+		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		return metric
+	}
+
+	result := *fetched
+	if result.Name == "" {
+		result.Name = metric.Name
+	}
+	if result.Address == "" {
+		result.Address = metric.Address
+	}
+	if result.Status == "" {
+		result.Status = "ok"
+	}
+
+	return result
+}
+
+func defaultRefreshDuration(value string) time.Duration {
+	if d, err := time.ParseDuration(value); err == nil && d > 0 {
+		return d
+	}
+	return 2 * time.Second
+}
+
+func getCachedServerMetric(address string) (cachedServerMetric, bool) {
+	serverMetricsCacheMu.RLock()
+	defer serverMetricsCacheMu.RUnlock()
+	entry, ok := serverMetricsCache[address]
+	return entry, ok
+}
+
+func isCacheStale(entry cachedServerMetric, refresh time.Duration) bool {
+	if refresh <= 0 {
+		refresh = 2 * time.Second
+	}
+	staleness := refresh * 2
+	if staleness <= 0 {
+		staleness = 5 * time.Second
+	}
+	return time.Since(entry.fetchedAt) > staleness
+}
+
+func fetchAndCacheServerMetric(server models.ServerEndpoint) (*models.ServerMetrics, error) {
+	normalized := normalizeServerAddress(server.Address)
+	if normalized == "" {
+		return nil, fmt.Errorf("server address is empty")
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	payload, err := fetchServerMonitoring(client, normalized)
+	if err != nil {
+		return nil, err
+	}
+
+	return updateServerMetricsCache(server, payload)
+}
+
+func updateServerMetricsCache(server models.ServerEndpoint, payload []byte) (*models.ServerMetrics, error) {
+	metric, err := processServerMetricsPayload(server, payload)
+	if err != nil {
+		return nil, err
+	}
+
+	normalized := normalizeServerAddress(server.Address)
+	if metric.Name == "" {
+		metric.Name = server.Name
+	}
+	if metric.Address == "" {
+		metric.Address = normalized
+	}
+	if metric.Status == "" {
+		metric.Status = "ok"
+	}
+	if metric.Timestamp == "" {
+		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+	}
+
+	serverMetricsCacheMu.Lock()
+	serverMetricsCache[normalized] = cachedServerMetric{
+		metric:    *metric,
+		fetchedAt: time.Now(),
+	}
+	serverMetricsCacheMu.Unlock()
+
+	return metric, nil
+}
+
+func processServerMetricsPayload(server models.ServerEndpoint, payload []byte) (*models.ServerMetrics, error) {
+	if len(payload) == 0 {
+		return nil, fmt.Errorf("empty payload for server %s", server.Address)
+	}
+
+	var snapshots []models.SystemMonitoring
+	if err := json.Unmarshal(payload, &snapshots); err == nil && len(snapshots) > 0 {
+		metric := buildMetricsFromSnapshot(server, snapshots[0])
+		return &metric, nil
+	}
+
+	var generic []map[string]any
+	if err := json.Unmarshal(payload, &generic); err == nil && len(generic) > 0 {
+		if metric, err := buildMetricsFromGenericMap(server, generic[0]); err == nil {
+			return metric, nil
+		}
+	}
+
+	var logs []models.MonitoringLogEntry
+	if err := json.Unmarshal(payload, &logs); err == nil && len(logs) > 0 {
+		for _, entry := range logs {
+			if metric, err := buildMetricsFromGenericMap(server, entry.Body); err == nil {
+				if metric.Timestamp == "" {
+					metric.Timestamp = entry.Time
+				}
+				return metric, nil
+			}
+		}
+	}
+
+	var wrapper map[string]any
+	if err := json.Unmarshal(payload, &wrapper); err == nil {
+		if data, ok := wrapper["data"]; ok {
+			nested, err := json.Marshal(data)
+			if err == nil {
+				return processServerMetricsPayload(server, nested)
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("failed to parse server payload for %s", server.Address)
+}
+
+func buildMetricsFromSnapshot(server models.ServerEndpoint, snapshot models.SystemMonitoring) models.ServerMetrics {
+	metric := models.ServerMetrics{
+		Name:              server.Name,
+		Address:           normalizeServerAddress(server.Address),
+		CPUUsage:          snapshot.CPU.UsagePercent,
+		MemoryUsedPercent: snapshot.RAM.UsedPct,
+		DiskUsedPercent:   computeDiskUsedPercent(snapshot.DiskSpace),
+		NetworkInBytes:    snapshot.NetworkIO.BytesRecv,
+		NetworkOutBytes:   snapshot.NetworkIO.BytesSent,
+		LoadAverage:       snapshot.CPU.LoadAverage,
+		Status:            "ok",
+	}
+
+	if !snapshot.Timestamp.IsZero() {
+		metric.Timestamp = snapshot.Timestamp.Format(time.RFC3339Nano)
+	} else {
+		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+	}
+
+	return metric
+}
+
+func buildMetricsFromGenericMap(server models.ServerEndpoint, body map[string]any) (*models.ServerMetrics, error) {
+	if len(body) == 0 {
+		return nil, fmt.Errorf("empty server payload body")
+	}
+
+	if data, err := json.Marshal(body); err == nil {
+		var snapshot models.SystemMonitoring
+		if err := json.Unmarshal(data, &snapshot); err == nil {
+			metric := buildMetricsFromSnapshot(server, snapshot)
+			return &metric, nil
+		}
+	}
+
+	metric := models.ServerMetrics{
+		Name:      server.Name,
+		Address:   normalizeServerAddress(server.Address),
+		Status:    "ok",
+		Timestamp: time.Now().Format(time.RFC3339Nano),
+	}
+
+	if value, ok := body["cpu_usage_percent"]; ok {
+		metric.CPUUsage = toFloat64(value)
+	} else if value, ok := body["cpu_usage"]; ok {
+		metric.CPUUsage = toFloat64(value)
+	}
+
+	if value, ok := body["ram_used_percent"]; ok {
+		metric.MemoryUsedPercent = toFloat64(value)
+	} else if ram, ok := body["ram"].(map[string]any); ok {
+		metric.MemoryUsedPercent = toFloat64(ram["used_pct"])
+	}
+
+	if value, ok := body["disk_used_percent"]; ok {
+		metric.DiskUsedPercent = toFloat64(value)
+	}
+
+	if value, ok := body["network_bytes_recv"]; ok {
+		metric.NetworkInBytes = toUint64(value)
+	}
+
+	if value, ok := body["network_bytes_sent"]; ok {
+		metric.NetworkOutBytes = toUint64(value)
+	}
+
+	if value, ok := body["cpu_load_average"]; ok {
+		metric.LoadAverage = fmt.Sprint(value)
+	}
+
+	return &metric, nil
+}
+
+func computeDiskUsedPercent(disks []models.DiskSpace) float64 {
+	if len(disks) == 0 {
+		return 0
+	}
+
+	for _, disk := range disks {
+		if disk.Path == "/" {
+			return disk.UsedPct
+		}
+	}
+
+	return disks[0].UsedPct
+}
+
+func toFloat64(value any) float64 {
+	switch v := value.(type) {
+	case float64:
+		return v
+	case float32:
+		return float64(v)
+	case int:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case uint64:
+		return float64(v)
+	case json.Number:
+		if f, err := v.Float64(); err == nil {
+			return f
+		}
+	case string:
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			return f
+		}
+	}
+	return 0
+}
+
+func toUint64(value any) uint64 {
+	f := toFloat64(value)
+	if f <= 0 {
+		return 0
+	}
+	return uint64(f)
+}
+
+func normalizeServerAddress(address string) string {
+	trimmed := strings.TrimSpace(address)
+	if trimmed == "" {
+		return ""
+	}
+	return strings.TrimRight(trimmed, "/")
 }
 
 func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, error) {
@@ -282,7 +612,7 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 		// Query specific table
 		filteredData, err = utils.QueryFilteredTableData(tableName, from, to)
 	}
-	
+
 	if err != nil {
 		return []any{}, fmt.Errorf("failed to query filtered monitoring data: %w", err)
 	}
@@ -988,6 +1318,10 @@ func persistServerLogs() {
 		if err != nil {
 			fmt.Printf("Warning: failed to fetch monitoring data from %s: %v\n", server.Address, err)
 			continue
+		}
+
+		if _, err := updateServerMetricsCache(server, payload); err != nil {
+			fmt.Printf("Warning: failed to parse server metrics from %s: %v\n", server.Address, err)
 		}
 
 		if writeFile {

@@ -27,6 +27,7 @@ export const state = {
   retryCount: 0,
   maxRetries: 3,
   filteredHeartbeats: [],
+  serverMetrics: [],
   searchTerm: '',
   isInitialLoad: true,
   chartUpdateQueue: [],

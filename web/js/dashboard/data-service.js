@@ -4,6 +4,7 @@ import { renderHistoricalCharts, resetCharts, updateCharts } from './charts.js';
 import { calculateHeartbeatUptime, updateHeartbeat } from './heartbeat.js';
 import { calculateNetworkDelta } from './network.js';
 import { state } from './state.js';
+import { updateServerMetricsSection } from './servers.js';
 import { setLoadingState, showErrorState, updateConnectionStatus, updateRefreshDisplay, updateStatus } from './ui.js';
 import { sanitizeBaseUrl } from './utils.js';
 import { updateMetrics, updateTrends } from './metrics.js';
@@ -99,6 +100,7 @@ export async function fetchMetrics() {
       uptimeStats = calculateHeartbeatUptime(activeSeries);
     }
     updateHeartbeat(latestNormalized.heartbeat || [], uptimeStats);
+    updateServerMetricsSection(latestNormalized.server_metrics || [], state.serverConfig?.servers || []);
 
     const lastUpdated = document.getElementById('lastUpdated');
     if (lastUpdated) {
@@ -171,6 +173,8 @@ export async function fetchServerConfig(baseUrl = '') {
       renderServerButtons();
     }
 
+    updateServerMetricsSection(state.serverMetrics || [], config.servers || []);
+
     const candidate = Number(config.refresh_interval_seconds) * 1000;
     if (!Number.isNaN(candidate) && candidate > 0) {
       state.refreshInterval = candidate;
@@ -235,6 +239,7 @@ export async function handleServerSelection(server) {
 
   updateStatus(false);
   updateHeartbeat();
+  updateServerMetricsSection([], state.serverConfig?.servers || []);
   const lastUpdated = document.getElementById('lastUpdated');
   if (lastUpdated) {
     lastUpdated.textContent = '--';
@@ -375,6 +380,7 @@ function normalizeMetrics(raw) {
     network,
     load_average: loadAverage,
     heartbeat: container.heartbeat ?? raw.heartbeat ?? [],
+    server_metrics: container.server_metrics ?? raw.server_metrics ?? [],
     disk_io: container.disk_io ?? {},
     process,
     raw

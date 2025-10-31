@@ -690,6 +690,212 @@ body[data-theme="light"] .glass-panel::after {
   z-index: -1;
 }
 
+.servers-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 28px 32px;
+}
+
+.servers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.servers-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.servers-meta {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.servers-summary {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 999px;
+  padding: 6px 16px;
+  white-space: nowrap;
+}
+
+.servers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.servers-empty {
+  border: 1px dashed var(--border);
+  border-radius: 18px;
+  padding: 32px;
+  text-align: center;
+  color: var(--text-secondary);
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(14px);
+  font-size: 0.95rem;
+}
+
+.server-card {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--glass-bg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 200px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.22);
+  transition: transform var(--transition-base),
+    border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.server-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.08),
+    transparent 60%
+  );
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  pointer-events: none;
+}
+
+.server-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 24px 42px rgba(15, 23, 42, 0.3);
+}
+
+.server-card:hover::before {
+  opacity: 1;
+}
+
+.server-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.server-card__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.server-card__address {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  word-break: break-word;
+}
+
+.server-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
+}
+
+.server-status--ok {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.24);
+  color: #34d399;
+}
+
+.server-status--error {
+  background: rgba(248, 113, 113, 0.16);
+  border-color: rgba(248, 113, 113, 0.24);
+  color: #f87171;
+}
+
+.server-status--stale {
+  background: rgba(250, 204, 21, 0.16);
+  border-color: rgba(250, 204, 21, 0.24);
+  color: #facc15;
+}
+
+.server-status--unknown {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: rgba(148, 163, 184, 0.22);
+  color: #cbd5f5;
+}
+
+.server-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px 20px;
+}
+
+.server-card__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.server-card__metric-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.server-card__metric-value {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.server-card__footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: var(--text-tertiary);
+  font-size: 0.85rem;
+}
+
+.server-card__timestamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.server-card__message {
+  color: #fb923c;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .servers-section {
+    padding: 24px;
+  }
+
+  .servers-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .server-card {
+    padding: 20px;
+  }
+}
+
 .heartbeat-section {
   display: flex;
   flex-direction: column;
@@ -1060,7 +1266,6 @@ body[data-theme="dark"] .heartbeat-card {
   z-index: 0;
 }
 
-
 .chart-card::before,
 .chart-card::after {
   content: none;
@@ -1120,7 +1325,7 @@ body[data-theme="light"] .chart-wrapper {
 .chart-wrapper::before {
   content: "";
   position: absolute;
-  inset: -20% -30% 40% -30%;
+  inset: -20% -30% 0 -30%;
   background: radial-gradient(
     circle,
     rgba(99, 102, 241, 0.18),

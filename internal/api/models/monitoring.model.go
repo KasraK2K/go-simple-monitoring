@@ -6,14 +6,15 @@ import (
 )
 
 type SystemMonitoring struct {
-	Timestamp time.Time     `json:"timestamp"`
-	CPU       CPU           `json:"cpu"`
-	DiskSpace []DiskSpace   `json:"disk_space"`
-	RAM       RAM           `json:"ram"`
-	NetworkIO NetworkIO     `json:"network_io"`
-	DiskIO    DiskIO        `json:"disk_io"`
-	Process   Process       `json:"process"`
-	Heartbeat []ServerCheck `json:"heartbeat"`
+	Timestamp     time.Time       `json:"timestamp"`
+	CPU           CPU             `json:"cpu"`
+	DiskSpace     []DiskSpace     `json:"disk_space"`
+	RAM           RAM             `json:"ram"`
+	NetworkIO     NetworkIO       `json:"network_io"`
+	DiskIO        DiskIO          `json:"disk_io"`
+	Process       Process         `json:"process"`
+	ServerMetrics []ServerMetrics `json:"server_metrics,omitempty"`
+	Heartbeat     []ServerCheck   `json:"heartbeat"`
 }
 
 type CPU struct {
@@ -89,6 +90,20 @@ type NetworkIO struct {
 	ErrorsOut   uint64 `json:"errors_out"`   // Output errors
 	DropsIn     uint64 `json:"drops_in"`     // Input drops
 	DropsOut    uint64 `json:"drops_out"`    // Output drops
+}
+
+type ServerMetrics struct {
+	Name              string  `json:"name"`
+	Address           string  `json:"address"`
+	CPUUsage          float64 `json:"cpu_usage"`
+	MemoryUsedPercent float64 `json:"memory_used_percent"`
+	DiskUsedPercent   float64 `json:"disk_used_percent"`
+	NetworkInBytes    uint64  `json:"network_in_bytes"`
+	NetworkOutBytes   uint64  `json:"network_out_bytes"`
+	LoadAverage       string  `json:"load_average"`
+	Timestamp         string  `json:"timestamp"`
+	Status            string  `json:"status"`
+	Message           string  `json:"message,omitempty"`
 }
 
 type ServerEndpoint struct {

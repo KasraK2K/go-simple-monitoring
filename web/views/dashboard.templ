@@ -38,6 +38,7 @@ templ DashboardShell(props DashboardProps) {
         @InitialLoadingOverlay()
         @MetricsSection()
         @ChartsSection()
+        @ServersSection()
         @HeartbeatSection()
     </main>
 }
@@ -261,6 +262,21 @@ templ ChartsSection() {
                     <canvas id="usageDonut" aria-label="Resource usage distribution chart"></canvas>
                 </div>
             </article>
+        </div>
+    </section>
+}
+
+templ ServersSection() {
+    <section class="glass-panel servers-section" data-component="servers" role="region" aria-label="Remote server metrics">
+        <div class="servers-header">
+            <div>
+                <div class="servers-title">Remote Servers</div>
+                <div class="servers-meta">Latest health signals from configured servers</div>
+            </div>
+            <div class="servers-summary" id="serverMetricsSummary">-- tracked</div>
+        </div>
+        <div class="servers-grid" id="serverMetricsList">
+            <div class="servers-empty" id="serverMetricsEmpty">Server metrics will appear here soon</div>
         </div>
     </section>
 }

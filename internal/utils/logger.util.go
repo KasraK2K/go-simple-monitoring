@@ -65,6 +65,7 @@ func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLog
 			"process_load_avg_5":   data.Process.LoadAvg5,
 			"process_load_avg_15":  data.Process.LoadAvg15,
 			"heartbeat":            formatHeartbeatForLog(data.Heartbeat),
+			"server_metrics":       data.ServerMetrics,
 		},
 	}
 }
