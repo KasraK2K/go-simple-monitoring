@@ -41,18 +41,18 @@ func InitDatabase() error {
 	return nil
 }
 
-// createTable creates the monitoring_logs table
+// createTable creates the default table
 func createTable() error {
 	query := `
-	CREATE TABLE IF NOT EXISTS monitoring_logs (
+	CREATE TABLE IF NOT EXISTS [default] (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		timestamp TEXT NOT NULL,
 		data TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	
-	CREATE INDEX IF NOT EXISTS idx_timestamp ON monitoring_logs(timestamp);
-	CREATE INDEX IF NOT EXISTS idx_created_at ON monitoring_logs(created_at);
+	CREATE INDEX IF NOT EXISTS idx_timestamp ON [default](timestamp);
+	CREATE INDEX IF NOT EXISTS idx_created_at ON [default](created_at);
 	`
 
 	_, err := db.Exec(query)
@@ -72,7 +72,7 @@ func WriteToDatabase(entry models.MonitoringLogEntry) error {
 	}
 
 	// Insert into database
-	query := `INSERT INTO monitoring_logs (timestamp, data) VALUES (?, ?)`
+	query := `INSERT INTO [default] (timestamp, data) VALUES (?, ?)`
 	_, err = db.Exec(query, entry.Time, string(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to write to database: %w", err)
@@ -124,7 +124,7 @@ func GetFromDatabase(timestamp string) (*models.MonitoringLogEntry, error) {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	query := `SELECT timestamp, data FROM monitoring_logs WHERE timestamp = ? LIMIT 1`
+	query := `SELECT timestamp, data FROM [default] WHERE timestamp = ? LIMIT 1`
 	row := db.QueryRow(query, timestamp)
 
 	var dbTimestamp, jsonData string
@@ -148,7 +148,7 @@ func ListDatabaseTimestamps(prefix string) ([]string, error) {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	query := `SELECT timestamp FROM monitoring_logs WHERE timestamp LIKE ? ORDER BY created_at DESC`
+	query := `SELECT timestamp FROM [default] WHERE timestamp LIKE ? ORDER BY created_at DESC`
 	rows, err := db.Query(query, prefix+"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query database: %w", err)
@@ -178,7 +178,7 @@ func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 		return fmt.Errorf("database not initialized")
 	}
 
-	query := `DELETE FROM monitoring_logs WHERE created_at < ?`
+	query := `DELETE FROM [default] WHERE created_at < ?`
 	result, err := db.Exec(query, cutoffDate)
 	if err != nil {
 		return fmt.Errorf("failed to delete old entries: %w", err)
@@ -203,7 +203,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Count total entries
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM monitoring_logs").Scan(&count)
+	err := db.QueryRow("SELECT COUNT(*) FROM [default]").Scan(&count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count entries: %w", err)
 	}
@@ -211,7 +211,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Get oldest entry
 	var oldestTimestamp sql.NullString
-	err = db.QueryRow("SELECT timestamp FROM monitoring_logs ORDER BY created_at ASC LIMIT 1").Scan(&oldestTimestamp)
+	err = db.QueryRow("SELECT timestamp FROM [default] ORDER BY created_at ASC LIMIT 1").Scan(&oldestTimestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to get oldest entry: %w", err)
 	}
@@ -221,7 +221,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Get newest entry
 	var newestTimestamp sql.NullString
-	err = db.QueryRow("SELECT timestamp FROM monitoring_logs ORDER BY created_at DESC LIMIT 1").Scan(&newestTimestamp)
+	err = db.QueryRow("SELECT timestamp FROM [default] ORDER BY created_at DESC LIMIT 1").Scan(&newestTimestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to get newest entry: %w", err)
 	}
@@ -254,17 +254,17 @@ func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, 
 
 	// Build query based on provided filters
 	if from != "" && to != "" {
-		query = `SELECT timestamp, data FROM monitoring_logs 
+		query = `SELECT timestamp, data FROM [default] 
 				WHERE created_at >= ? AND created_at <= ? 
 				ORDER BY created_at DESC`
 		args = []any{from, to}
 	} else if from != "" {
-		query = `SELECT timestamp, data FROM monitoring_logs 
+		query = `SELECT timestamp, data FROM [default] 
 				WHERE created_at >= ? 
 				ORDER BY created_at DESC`
 		args = []any{from}
 	} else if to != "" {
-		query = `SELECT timestamp, data FROM monitoring_logs 
+		query = `SELECT timestamp, data FROM [default] 
 				WHERE created_at <= ? 
 				ORDER BY created_at DESC`
 		args = []any{to}
