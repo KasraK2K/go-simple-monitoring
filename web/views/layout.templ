@@ -1,0 +1,55 @@
+package views
+
+type LayoutProps struct {
+    Title       string
+    Description string
+    Stylesheets []string
+    Scripts     []ScriptAsset
+    Body        templ.Component
+}
+
+type ScriptAsset struct {
+    Src    string
+    Module bool
+    Defer  bool
+}
+
+templ Layout(props LayoutProps) {
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <title>{ props.Title }</title>
+            if props.Description != "" {
+                <meta name="description" content={ props.Description }/>
+            }
+            <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+            <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style"/>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+            for _, href := range props.Stylesheets {
+                <link rel="stylesheet" href={ href }/>
+            }
+        </head>
+        <body>
+            @props.Body
+            for _, script := range props.Scripts {
+                if script.Module {
+                    if script.Defer {
+                        <script type="module" src={ script.Src } defer></script>
+                    } else {
+                        <script type="module" src={ script.Src }></script>
+                    }
+                } else {
+                    if script.Defer {
+                        <script src={ script.Src } defer></script>
+                    } else {
+                        <script src={ script.Src }></script>
+                    }
+                }
+            }
+        </body>
+    </html>
+}

@@ -3,11 +3,16 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"go-log/internal/api/logics"
 	"io"
 	"net/http"
 	"path/filepath"
 	"time"
+
+	"github.com/a-h/templ"
+
+	"go-log/internal/api/logics"
+	"go-log/internal/api/models"
+	"go-log/web/views"
 )
 
 type TokenClaims struct {
@@ -23,25 +28,8 @@ func MonitoringRoutes() {
 	// Initialize monitoring configuration at startup
 	logics.InitMonitoringConfig()
 
-	dashboardPath := filepath.Join("web", "dashboard.html")
-	componentsDir := http.StripPrefix("/components/", http.FileServer(http.Dir(filepath.Join("web", "components"))))
 	jsDir := http.StripPrefix("/js/", http.FileServer(http.Dir(filepath.Join("web", "js"))))
-
-	dashboardHandler := func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		http.ServeFile(w, r, dashboardPath)
-	}
-
-	componentsHandler := func(w http.ResponseWriter, r *http.Request) {
-		componentsDir.ServeHTTP(w, r)
-	}
-
-	jsHandler := func(w http.ResponseWriter, r *http.Request) {
-		jsDir.ServeHTTP(w, r)
-	}
+	assetsDir := http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join("web", "assets"))))
 
 	configHandler := func(w http.ResponseWriter, r *http.Request) {
 		cfg := logics.GetMonitoringConfig()
@@ -67,12 +55,52 @@ func MonitoringRoutes() {
 		setHeader(w, http.StatusOK, string(jsonData))
 	}
 
-	// Serve dashboard UI
-	http.HandleFunc("/", CORSMiddleware(MethodMiddleware(http.MethodGet)(dashboardHandler)))
-	// Serve HTMX component fragments
-	http.HandleFunc("/components/", CORSMiddleware(MethodMiddleware(http.MethodGet)(componentsHandler)))
+	// Serve dashboard UI via templ
+	http.HandleFunc("/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+
+		cfg := logics.GetMonitoringConfig()
+		dashboard := views.DashboardPage(views.DashboardProps{Config: cfg})
+		templ.Handler(dashboard).ServeHTTP(w, r)
+	})))
+
+	// Serve HTMX component fragments using templ
+	registerComponent := func(path string, builder func() templ.Component) {
+		http.HandleFunc(path, CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+			templ.Handler(builder()).ServeHTTP(w, r)
+		})))
+	}
+
+	registerComponent("/components/background.html", views.BackgroundComponent)
+	registerComponent("/components/initial-loading.html", views.InitialLoadingOverlay)
+	registerComponent("/components/charts.html", views.ChartsSection)
+	registerComponent("/components/metrics.html", func() templ.Component {
+		return views.MetricsSection()
+	})
+	registerComponent("/components/heartbeats.html", func() templ.Component {
+		return views.HeartbeatSection()
+	})
+	registerComponent("/components/chrome.html", func() templ.Component {
+		return views.ChromeComponent()
+	})
+	registerComponent("/components/hero.html", func() templ.Component {
+		cfg := logics.GetMonitoringConfig()
+		return views.HeroSection(views.HeroProps{RefreshLabel: refreshLabelFromConfig(cfg)})
+	})
+
 	// Serve dashboard JavaScript bundle
-	http.HandleFunc("/js/", CORSMiddleware(MethodMiddleware(http.MethodGet)(jsHandler)))
+	http.HandleFunc("/js/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		jsDir.ServeHTTP(w, r)
+	})))
+
+	// Serve compiled assets (CSS)
+	http.HandleFunc("/assets/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		assetsDir.ServeHTTP(w, r)
+	})))
+
 	// Serve monitoring configuration for UI
 	http.HandleFunc("/api/v1/server-config", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler)))
 
@@ -139,4 +167,14 @@ func MonitoringRoutes() {
 
 	// Apply middleware to restrict to POST method only
 	http.HandleFunc("/monitoring", CORSMiddleware(MethodMiddleware(http.MethodPost, http.MethodOptions)(monitoringHandler)))
+}
+
+func refreshLabelFromConfig(cfg *models.MonitoringConfig) string {
+	if cfg == nil || cfg.RefreshTime == "" {
+		return "2s"
+	}
+	if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
+		return fmt.Sprintf("%.0fs", d.Seconds())
+	}
+	return cfg.RefreshTime
 }
