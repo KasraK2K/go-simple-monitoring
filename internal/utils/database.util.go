@@ -11,6 +11,8 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+const DefaultTableName = "[default]"
+
 var (
 	db              *sql.DB
 	serverLogTables sync.Map
@@ -33,34 +35,41 @@ func InitDatabase() error {
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Create table if not exists
-	if err = createTable(); err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
+	// Create default table directly
+	if err = ensureTable(DefaultTableName); err != nil {
+		return fmt.Errorf("failed to create default table: %w", err)
 	}
 
 	return nil
 }
 
-// createTable creates the default table
-func createTable() error {
-	query := `
-	CREATE TABLE IF NOT EXISTS [default] (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		timestamp TEXT NOT NULL,
-		data TEXT NOT NULL,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
+// ensureTable creates a table with the given name if it doesn't exist
+func ensureTable(tableName string) error {
+	// Get clean name for index naming (remove brackets, quotes etc.)
+	cleanName := SanitizeTableName(tableName)
 	
-	CREATE INDEX IF NOT EXISTS idx_timestamp ON [default](timestamp);
-	CREATE INDEX IF NOT EXISTS idx_created_at ON [default](created_at);
-	`
+	statements := []string{
+		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			timestamp TEXT NOT NULL,
+			data TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`, tableName),
+		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp);`, cleanName, tableName),
+		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_at ON %s(created_at);`, cleanName, tableName),
+	}
 
-	_, err := db.Exec(query)
-	return err
+	for _, stmt := range statements {
+		if _, err := db.Exec(stmt); err != nil {
+			return fmt.Errorf("failed to ensure table %s: %w", tableName, err)
+		}
+	}
+
+	return nil
 }
 
-// WriteToDatabase writes a log entry to SQLite database
-func WriteToDatabase(entry models.MonitoringLogEntry) error {
+// writeToTableInternal is the internal implementation for writing to any table
+func writeToTableInternal(tableName string, entry models.MonitoringLogEntry) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -71,14 +80,24 @@ func WriteToDatabase(entry models.MonitoringLogEntry) error {
 		return fmt.Errorf("failed to marshal log entry for database: %w", err)
 	}
 
-	// Insert into database
-	query := `INSERT INTO [default] (timestamp, data) VALUES (?, ?)`
+	// Insert into table
+	query := fmt.Sprintf(`INSERT INTO %s (timestamp, data) VALUES (?, ?)`, tableName)
 	_, err = db.Exec(query, entry.Time, string(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to write to database: %w", err)
 	}
 
 	return nil
+}
+
+// WriteToDatabase writes a log entry to the default table
+func WriteToDatabase(entry models.MonitoringLogEntry) error {
+	return writeToTableInternal(DefaultTableName, entry)
+}
+
+// WriteToTable writes a log entry to a specific table
+func WriteToTable(tableName string, entry models.MonitoringLogEntry) error {
+	return writeToTableInternal(tableName, entry)
 }
 
 // WriteServerLogToDatabase writes remote server payloads into a dedicated table.
@@ -120,11 +139,16 @@ func CloseDatabase() error {
 
 // GetFromDatabase retrieves a log entry from SQLite by timestamp
 func GetFromDatabase(timestamp string) (*models.MonitoringLogEntry, error) {
+	return GetFromTable(DefaultTableName, timestamp)
+}
+
+// GetFromTable retrieves a log entry from a specific table by timestamp
+func GetFromTable(tableName, timestamp string) (*models.MonitoringLogEntry, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	query := `SELECT timestamp, data FROM [default] WHERE timestamp = ? LIMIT 1`
+	query := fmt.Sprintf(`SELECT timestamp, data FROM %s WHERE timestamp = ? LIMIT 1`, tableName)
 	row := db.QueryRow(query, timestamp)
 
 	var dbTimestamp, jsonData string
@@ -144,11 +168,16 @@ func GetFromDatabase(timestamp string) (*models.MonitoringLogEntry, error) {
 
 // ListDatabaseTimestamps returns all timestamps in the database with optional prefix filter
 func ListDatabaseTimestamps(prefix string) ([]string, error) {
+	return ListTableTimestamps(DefaultTableName, prefix)
+}
+
+// ListTableTimestamps returns all timestamps in a specific table with optional prefix filter
+func ListTableTimestamps(tableName, prefix string) ([]string, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
 
-	query := `SELECT timestamp FROM [default] WHERE timestamp LIKE ? ORDER BY created_at DESC`
+	query := fmt.Sprintf(`SELECT timestamp FROM %s WHERE timestamp LIKE ? ORDER BY created_at DESC`, tableName)
 	rows, err := db.Query(query, prefix+"%")
 	if err != nil {
 		return nil, fmt.Errorf("failed to query database: %w", err)
@@ -174,11 +203,16 @@ func ListDatabaseTimestamps(prefix string) ([]string, error) {
 
 // CleanOldDatabaseEntries removes database entries older than specified date
 func CleanOldDatabaseEntries(cutoffDate time.Time) error {
+	return CleanOldTableEntries(DefaultTableName, cutoffDate)
+}
+
+// CleanOldTableEntries removes entries from a specific table older than specified date
+func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
 	}
 
-	query := `DELETE FROM [default] WHERE created_at < ?`
+	query := fmt.Sprintf(`DELETE FROM %s WHERE created_at < ?`, tableName)
 	result, err := db.Exec(query, cutoffDate)
 	if err != nil {
 		return fmt.Errorf("failed to delete old entries: %w", err)
@@ -189,12 +223,17 @@ func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 
-	fmt.Printf("Cleaned up %d old database entries\n", rowsAffected)
+	fmt.Printf("Cleaned up %d old entries from table %s\n", rowsAffected, tableName)
 	return nil
 }
 
 // GetDatabaseStats returns basic statistics about the database
 func GetDatabaseStats() (map[string]any, error) {
+	return GetTableStats(DefaultTableName)
+}
+
+// GetTableStats returns basic statistics about a specific table
+func GetTableStats(tableName string) (map[string]any, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -203,7 +242,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Count total entries
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM [default]").Scan(&count)
+	err := db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)).Scan(&count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count entries: %w", err)
 	}
@@ -211,7 +250,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Get oldest entry
 	var oldestTimestamp sql.NullString
-	err = db.QueryRow("SELECT timestamp FROM [default] ORDER BY created_at ASC LIMIT 1").Scan(&oldestTimestamp)
+	err = db.QueryRow(fmt.Sprintf("SELECT timestamp FROM %s ORDER BY created_at ASC LIMIT 1", tableName)).Scan(&oldestTimestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to get oldest entry: %w", err)
 	}
@@ -221,7 +260,7 @@ func GetDatabaseStats() (map[string]any, error) {
 
 	// Get newest entry
 	var newestTimestamp sql.NullString
-	err = db.QueryRow("SELECT timestamp FROM [default] ORDER BY created_at DESC LIMIT 1").Scan(&newestTimestamp)
+	err = db.QueryRow(fmt.Sprintf("SELECT timestamp FROM %s ORDER BY created_at DESC LIMIT 1", tableName)).Scan(&newestTimestamp)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("failed to get newest entry: %w", err)
 	}
@@ -245,6 +284,11 @@ func IsDatabaseInitialized() bool {
 
 // QueryFilteredMonitoringData retrieves monitoring data within a date range
 func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, error) {
+	return QueryFilteredTableData(DefaultTableName, from, to)
+}
+
+// QueryFilteredTableData retrieves data from a specific table within a date range
+func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogEntry, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
 	}
@@ -254,19 +298,19 @@ func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, 
 
 	// Build query based on provided filters
 	if from != "" && to != "" {
-		query = `SELECT timestamp, data FROM [default] 
+		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at >= ? AND created_at <= ? 
-				ORDER BY created_at DESC`
+				ORDER BY created_at DESC`, tableName)
 		args = []any{from, to}
 	} else if from != "" {
-		query = `SELECT timestamp, data FROM [default] 
+		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at >= ? 
-				ORDER BY created_at DESC`
+				ORDER BY created_at DESC`, tableName)
 		args = []any{from}
 	} else if to != "" {
-		query = `SELECT timestamp, data FROM [default] 
+		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at <= ? 
-				ORDER BY created_at DESC`
+				ORDER BY created_at DESC`, tableName)
 		args = []any{to}
 	} else {
 		return nil, fmt.Errorf("either from or to filter must be provided")
@@ -312,21 +356,8 @@ func ensureServerLogTable(rawName string) (string, error) {
 		return sanitized, nil
 	}
 
-	statements := []string{
-		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			timestamp TEXT NOT NULL,
-			data TEXT NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);`, sanitized),
-		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp);`, sanitized, sanitized),
-		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_at ON %s(created_at);`, sanitized, sanitized),
-	}
-
-	for _, stmt := range statements {
-		if _, err := db.Exec(stmt); err != nil {
-			return "", fmt.Errorf("failed to ensure table %s: %w", sanitized, err)
-		}
+	if err := ensureTable(sanitized); err != nil {
+		return "", err
 	}
 
 	serverLogTables.Store(sanitized, struct{}{})
