@@ -878,6 +878,10 @@ func configureLogRotation() {
 		return
 	}
 
+	if strings.EqualFold(monitoringConfig.Storage, "none") {
+		return
+	}
+
 	rotateCfg := monitoringConfig.LogRotate
 	if rotateCfg == nil || !rotateCfg.Enabled {
 		return

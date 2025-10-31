@@ -62,6 +62,7 @@ In `configs.json`, you can control where logs are stored using the `storage` fie
 - `"file"` - Write logs only to log files (recommended for production)
 - `"db"` - Write logs only to database
 - `"both"` - Write logs to both files and database
+- `"none"` - Disable persistence entirely (no files or database writes and log rotation is skipped)
 
 ### Automatic Log Rotation
 

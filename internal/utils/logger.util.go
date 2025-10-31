@@ -80,6 +80,8 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 
 	// Write to storage based on configuration
 	switch logConfig.Storage {
+	case "none":
+		return nil
 	case "file":
 		return writeLogEntry(logEntry)
 	case "db":
@@ -179,6 +181,17 @@ func CleanOldLogs(daysToKeep int) error {
 		return fmt.Errorf("logger not initialized")
 	}
 
+	if logConfig.Path == "" {
+		return nil
+	}
+
+	if _, err := os.Stat(logConfig.Path); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("failed to access log directory: %w", err)
+	}
+
 	// Read log directory
 	files, err := os.ReadDir(logConfig.Path)
 	if err != nil {
@@ -219,12 +232,12 @@ func getRootDiskMetric(diskSpaces []models.DiskSpace, metric string) interface{}
 			break
 		}
 	}
-	
+
 	// If no root disk found, use the first disk
 	if rootDisk == nil && len(diskSpaces) > 0 {
 		rootDisk = &diskSpaces[0]
 	}
-	
+
 	// If no disks at all, return zero values
 	if rootDisk == nil {
 		switch metric {
@@ -234,7 +247,7 @@ func getRootDiskMetric(diskSpaces []models.DiskSpace, metric string) interface{}
 			return uint64(0)
 		}
 	}
-	
+
 	// Return the requested metric
 	switch metric {
 	case "used_percent":
