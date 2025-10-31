@@ -1060,47 +1060,16 @@ body[data-theme="dark"] .heartbeat-card {
   z-index: 0;
 }
 
-.chart-card::before {
-  content: "";
-  position: absolute;
-  inset: 1px;
-  border-radius: calc(var(--radius-lg) - 10px);
-  border: 1px solid rgba(99, 102, 241, 0.16);
-  pointer-events: none;
-  opacity: 0.35;
-  transition: border-color var(--transition-base),
-    opacity var(--transition-base);
-  z-index: -1;
-}
 
+.chart-card::before,
 .chart-card::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    circle at 50% 0%,
-    rgba(99, 102, 241, 0.22),
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity var(--transition-base);
-  pointer-events: none;
-  z-index: -1;
+  content: none;
 }
 
 .chart-card:hover {
   transform: translateY(-9px);
   border-color: rgba(99, 102, 241, 0.32);
   box-shadow: 0 26px 58px rgba(15, 23, 42, 0.34);
-}
-
-.chart-card:hover::before {
-  opacity: 0.8;
-  border-color: rgba(99, 102, 241, 0.4);
-}
-
-.chart-card:hover::after {
-  opacity: 1;
 }
 
 .chart-card:focus-within {
