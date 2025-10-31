@@ -67,11 +67,13 @@ In `configs.json`, you can control where logs are stored using the `storage` fie
 
 | Interval | Daily Size | Weekly Size | Monthly Size | Yearly Size |
 | -------- | ---------- | ----------- | ------------ | ----------- |
-| 2s       | ~59 MB     | ~413 MB     | ~1.8 GB      | ~21.5 GB    |
-| 5s       | ~23.6 MB   | ~165 MB     | ~708 MB      | ~8.6 GB     |
-| 10s      | ~11.8 MB   | ~83 MB      | ~354 MB      | ~4.3 GB     |
+| 2s       | ~69 MB     | ~485 MB     | ~2.1 GB      | ~24.7 GB    |
+| 5s       | ~28 MB     | ~194 MB     | ~0.83 GB     | ~9.9 GB     |
+| 10s      | ~14 MB     | ~97 MB      | ~0.41 GB     | ~4.9 GB     |
 
-**Note**: Use the `CleanOldLogs()` function to automatically remove logs older than specified days to manage disk space.
+**Notes**:
+- Estimates assume each log entry is ~1.65 KB (two disks + three heartbeat targets). Actual usage will vary with disk count, heartbeat list, and payload size.
+- Use the `CleanOldLogs()` function to automatically remove logs older than specified days to manage disk space.
 
 ---
 
