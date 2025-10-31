@@ -253,23 +253,96 @@ func CleanOldLogs(daysToKeep int) error {
 
 	cutoffDate := time.Now().AddDate(0, 0, -daysToKeep)
 
+	// Clean main log files
 	for _, file := range files {
 		if !file.IsDir() && filepath.Ext(file.Name()) == ".log" {
-			// Parse date from filename (YYYY-MM-DD.log)
-			dateStr := file.Name()[:len(file.Name())-4] // Remove .log extension
-			fileDate, err := time.Parse("2006-01-02", dateStr)
-			if err != nil {
-				continue // Skip files that don't match date format
+			if err := cleanLogFile(logConfig.Path, file.Name(), cutoffDate); err != nil {
+				fmt.Printf("Warning: %v\n", err)
 			}
+		} else if file.IsDir() && file.Name() == "servers" {
+			// Clean server log subdirectories
+			serversDir := filepath.Join(logConfig.Path, "servers")
+			if err := cleanServerLogDirectories(serversDir, cutoffDate); err != nil {
+				fmt.Printf("Warning: failed to clean server logs: %v\n", err)
+			}
+		}
+	}
 
-			// Remove file if older than cutoff
-			if fileDate.Before(cutoffDate) {
-				filePath := filepath.Join(logConfig.Path, file.Name())
-				if err := os.Remove(filePath); err != nil {
-					fmt.Printf("Warning: failed to remove old log file %s: %v\n", filePath, err)
+	return nil
+}
+
+// cleanLogFile removes a single log file if it's older than the cutoff date
+func cleanLogFile(dir, filename string, cutoffDate time.Time) error {
+	// Parse date from filename (YYYY-MM-DD.log)
+	dateStr := filename[:len(filename)-4] // Remove .log extension
+	fileDate, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return nil // Skip files that don't match date format
+	}
+
+	// Remove file if older than cutoff
+	if fileDate.Before(cutoffDate) {
+		filePath := filepath.Join(dir, filename)
+		if err := os.Remove(filePath); err != nil {
+			return fmt.Errorf("failed to remove old log file %s: %v", filePath, err)
+		}
+		fmt.Printf("Cleaned up old log file: %s\n", filePath)
+	}
+	return nil
+}
+
+// cleanServerLogDirectories recursively cleans log files in server subdirectories
+func cleanServerLogDirectories(serversDir string, cutoffDate time.Time) error {
+	if _, err := os.Stat(serversDir); os.IsNotExist(err) {
+		return nil // servers directory doesn't exist
+	}
+
+	serverDirs, err := os.ReadDir(serversDir)
+	if err != nil {
+		return fmt.Errorf("failed to read servers directory: %w", err)
+	}
+
+	for _, serverDir := range serverDirs {
+		if !serverDir.IsDir() {
+			continue
+		}
+
+		serverPath := filepath.Join(serversDir, serverDir.Name())
+		logFiles, err := os.ReadDir(serverPath)
+		if err != nil {
+			fmt.Printf("Warning: failed to read server directory %s: %v\n", serverPath, err)
+			continue
+		}
+
+		for _, logFile := range logFiles {
+			if !logFile.IsDir() && filepath.Ext(logFile.Name()) == ".log" {
+				if err := cleanLogFile(serverPath, logFile.Name(), cutoffDate); err != nil {
+					fmt.Printf("Warning: %v\n", err)
 				}
 			}
 		}
+
+		// Remove empty server directories
+		if err := removeEmptyDir(serverPath); err != nil {
+			fmt.Printf("Warning: failed to remove empty directory %s: %v\n", serverPath, err)
+		}
+	}
+
+	return nil
+}
+
+// removeEmptyDir removes a directory if it's empty
+func removeEmptyDir(dir string) error {
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	if len(files) == 0 {
+		if err := os.Remove(dir); err != nil {
+			return err
+		}
+		fmt.Printf("Removed empty server log directory: %s\n", dir)
 	}
 
 	return nil

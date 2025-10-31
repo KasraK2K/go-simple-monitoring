@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"strings"
 	"sync"
 	"time"
 
@@ -201,13 +202,43 @@ func ListTableTimestamps(tableName, prefix string) ([]string, error) {
 	return timestamps, nil
 }
 
-// CleanOldDatabaseEntries removes database entries older than specified date
+// CleanOldDatabaseEntries removes database entries older than specified date from all tables
 func CleanOldDatabaseEntries(cutoffDate time.Time) error {
-	return CleanOldTableEntries(DefaultTableName, cutoffDate)
+	var totalCleaned int64
+	var errors []string
+	var checkedTables []string
+
+	fmt.Printf("Starting database cleanup for entries older than %s\n", cutoffDate.Format("2006-01-02 15:04:05"))
+
+	// Clean default table first
+	fmt.Printf("Checking default table: %s\n", DefaultTableName)
+	checkedTables = append(checkedTables, DefaultTableName)
+	if err := cleanTableEntries(DefaultTableName, cutoffDate, &totalCleaned); err != nil {
+		errors = append(errors, fmt.Sprintf("default table: %v", err))
+	}
+
+	// Clean all server tables
+	serverLogTables.Range(func(key, value interface{}) bool {
+		tableName := key.(string)
+		fmt.Printf("Checking server table: %s\n", tableName)
+		checkedTables = append(checkedTables, tableName)
+		if err := cleanTableEntries(tableName, cutoffDate, &totalCleaned); err != nil {
+			errors = append(errors, fmt.Sprintf("table %s: %v", tableName, err))
+		}
+		return true // continue iteration
+	})
+
+	if len(errors) > 0 {
+		return fmt.Errorf("cleanup failed for some tables: %v", errors)
+	}
+
+	fmt.Printf("Database cleanup completed: %d old entries removed from %d tables (%s)\n", 
+		totalCleaned, len(checkedTables), strings.Join(checkedTables, ", "))
+	return nil
 }
 
-// CleanOldTableEntries removes entries from a specific table older than specified date
-func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
+// cleanTableEntries is an internal helper that cleans a single table and accumulates the count
+func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int64) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
 	}
@@ -223,8 +254,19 @@ func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 
-	fmt.Printf("Cleaned up %d old entries from table %s\n", rowsAffected, tableName)
+	*totalCleaned += rowsAffected
+	if rowsAffected > 0 {
+		fmt.Printf("  ✓ Cleaned %d old entries from table %s\n", rowsAffected, tableName)
+	} else {
+		fmt.Printf("  ✓ No old entries found in table %s\n", tableName)
+	}
 	return nil
+}
+
+// CleanOldTableEntries removes entries from a specific table older than specified date
+func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
+	var totalCleaned int64
+	return cleanTableEntries(tableName, cutoffDate, &totalCleaned)
 }
 
 // GetDatabaseStats returns basic statistics about the database
