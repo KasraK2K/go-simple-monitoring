@@ -47,20 +47,6 @@ func getTokenFromHeader(r *http.Request) string {
 	return parts[1]
 }
 
-func ValidateTokenAndGetBusinessID(r *http.Request) (int, error) {
-	encryptedToken := getTokenFromHeader(r)
-	if encryptedToken == "" {
-		return 0, utils.ErrMissingToken
-	}
-
-	businessID, err := utils.DecryptAndExtractBusinessID(encryptedToken, aesSecret, jwtSecret)
-	if err != nil {
-		return 0, err
-	}
-
-	return businessID, nil
-}
-
 func ValidateTokenAndParseGeneric[T any](r *http.Request) (*T, error) {
 	encryptedToken := getTokenFromHeader(r)
 	if encryptedToken == "" {

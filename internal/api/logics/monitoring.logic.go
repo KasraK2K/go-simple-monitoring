@@ -954,7 +954,7 @@ func persistServerLogs() {
 	writeFile := storage == "file" || storage == "both"
 	writeDB := (storage == "db" || storage == "both") && utils.IsDatabaseInitialized()
 
-	if writeFile && strings.TrimSpace(cfg.Path) == "" {
+	if writeFile && utils.IsEmptyOrWhitespace(cfg.Path) {
 		fmt.Printf("Warning: persist_server_logs enabled but log path is empty; skipping file persistence\n")
 		writeFile = false
 	}
@@ -966,11 +966,11 @@ func persistServerLogs() {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	for _, server := range cfg.Servers {
-		if strings.TrimSpace(server.TableName) == "" {
+		if utils.IsEmptyOrWhitespace(server.TableName) {
 			continue
 		}
 
-		if strings.TrimSpace(server.Address) == "" {
+		if utils.IsEmptyOrWhitespace(server.Address) {
 			continue
 		}
 

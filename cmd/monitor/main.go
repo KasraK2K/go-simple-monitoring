@@ -22,8 +22,6 @@ type Config struct {
 	ServerURL   string
 	RefreshRate time.Duration
 	AuthToken   string
-	ShowDetails bool
-	CompactMode bool
 }
 
 type DisplayState struct {
@@ -103,8 +101,6 @@ func parseFlags() Config {
 	flag.StringVar(&config.ServerURL, "url", "", "Monitoring server URL (e.g., http://localhost:3500/monitoring)")
 	flag.DurationVar(&config.RefreshRate, "refresh", 2*time.Second, "Refresh rate (e.g., 2s, 500ms)")
 	flag.StringVar(&config.AuthToken, "token", "", "Authentication token for remote monitoring")
-	flag.BoolVar(&config.ShowDetails, "details", false, "Show detailed information")
-	flag.BoolVar(&config.CompactMode, "compact", false, "Compact display mode")
 
 	flag.Parse()
 	return config

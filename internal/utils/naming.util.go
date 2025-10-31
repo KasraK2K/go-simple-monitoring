@@ -2,12 +2,17 @@ package utils
 
 import "strings"
 
+// IsEmptyOrWhitespace checks if a string is empty or contains only whitespace
+func IsEmptyOrWhitespace(s string) bool {
+	return strings.TrimSpace(s) == ""
+}
+
 // SanitizeFilesystemName converts a string into a filesystem-friendly slug.
 func SanitizeFilesystemName(input string) string {
-	name := strings.TrimSpace(input)
-	if name == "" {
+	if IsEmptyOrWhitespace(input) {
 		return ""
 	}
+	name := strings.TrimSpace(input)
 
 	name = strings.ToLower(name)
 
@@ -41,10 +46,10 @@ func SanitizeFilesystemName(input string) string {
 
 // SanitizeTableName converts a string into a SQLite-friendly table identifier.
 func SanitizeTableName(input string) string {
-	name := strings.TrimSpace(input)
-	if name == "" {
+	if IsEmptyOrWhitespace(input) {
 		return ""
 	}
+	name := strings.TrimSpace(input)
 
 	name = strings.ToLower(name)
 

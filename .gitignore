@@ -53,3 +53,4 @@ go-monitoring
 dashboard/node_modules/
 .next/
 out/
+.claude/

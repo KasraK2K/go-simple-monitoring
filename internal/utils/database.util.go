@@ -96,10 +96,6 @@ func WriteToDatabase(entry models.MonitoringLogEntry) error {
 	return writeToTableInternal(DefaultTableName, entry)
 }
 
-// WriteToTable writes a log entry to a specific table
-func WriteToTable(tableName string, entry models.MonitoringLogEntry) error {
-	return writeToTableInternal(tableName, entry)
-}
 
 // WriteServerLogToDatabase writes remote server payloads into a dedicated table.
 func WriteServerLogToDatabase(tableName string, payload []byte) error {
@@ -138,70 +134,6 @@ func CloseDatabase() error {
 	return nil
 }
 
-// GetFromDatabase retrieves a log entry from SQLite by timestamp
-func GetFromDatabase(timestamp string) (*models.MonitoringLogEntry, error) {
-	return GetFromTable(DefaultTableName, timestamp)
-}
-
-// GetFromTable retrieves a log entry from a specific table by timestamp
-func GetFromTable(tableName, timestamp string) (*models.MonitoringLogEntry, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	query := fmt.Sprintf(`SELECT timestamp, data FROM %s WHERE timestamp = ? LIMIT 1`, tableName)
-	row := db.QueryRow(query, timestamp)
-
-	var dbTimestamp, jsonData string
-	err := row.Scan(&dbTimestamp, &jsonData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get from database: %w", err)
-	}
-
-	var entry models.MonitoringLogEntry
-	err = json.Unmarshal([]byte(jsonData), &entry)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal data: %w", err)
-	}
-
-	return &entry, nil
-}
-
-// ListDatabaseTimestamps returns all timestamps in the database with optional prefix filter
-func ListDatabaseTimestamps(prefix string) ([]string, error) {
-	return ListTableTimestamps(DefaultTableName, prefix)
-}
-
-// ListTableTimestamps returns all timestamps in a specific table with optional prefix filter
-func ListTableTimestamps(tableName, prefix string) ([]string, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	query := fmt.Sprintf(`SELECT timestamp FROM %s WHERE timestamp LIKE ? ORDER BY created_at DESC`, tableName)
-	rows, err := db.Query(query, prefix+"%")
-	if err != nil {
-		return nil, fmt.Errorf("failed to query database: %w", err)
-	}
-	defer rows.Close()
-
-	var timestamps []string
-	for rows.Next() {
-		var timestamp string
-		err := rows.Scan(&timestamp)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan row: %w", err)
-		}
-		timestamps = append(timestamps, timestamp)
-	}
-
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("row iteration error: %w", err)
-	}
-
-	return timestamps, nil
-}
-
 // CleanOldDatabaseEntries removes database entries older than specified date from all tables
 func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 	var totalCleaned int64
@@ -218,7 +150,7 @@ func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 	}
 
 	// Clean all server tables
-	serverLogTables.Range(func(key, value interface{}) bool {
+	serverLogTables.Range(func(key, value any) bool {
 		tableName := key.(string)
 		fmt.Printf("Checking server table: %s\n", tableName)
 		checkedTables = append(checkedTables, tableName)
@@ -269,49 +201,6 @@ func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
 	return cleanTableEntries(tableName, cutoffDate, &totalCleaned)
 }
 
-// GetDatabaseStats returns basic statistics about the database
-func GetDatabaseStats() (map[string]any, error) {
-	return GetTableStats(DefaultTableName)
-}
-
-// GetTableStats returns basic statistics about a specific table
-func GetTableStats(tableName string) (map[string]any, error) {
-	if db == nil {
-		return nil, fmt.Errorf("database not initialized")
-	}
-
-	stats := make(map[string]any)
-
-	// Count total entries
-	var count int
-	err := db.QueryRow(fmt.Sprintf("SELECT COUNT(*) FROM %s", tableName)).Scan(&count)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count entries: %w", err)
-	}
-	stats["total_entries"] = count
-
-	// Get oldest entry
-	var oldestTimestamp sql.NullString
-	err = db.QueryRow(fmt.Sprintf("SELECT timestamp FROM %s ORDER BY created_at ASC LIMIT 1", tableName)).Scan(&oldestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("failed to get oldest entry: %w", err)
-	}
-	if oldestTimestamp.Valid {
-		stats["oldest_entry"] = oldestTimestamp.String
-	}
-
-	// Get newest entry
-	var newestTimestamp sql.NullString
-	err = db.QueryRow(fmt.Sprintf("SELECT timestamp FROM %s ORDER BY created_at DESC LIMIT 1", tableName)).Scan(&newestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("failed to get newest entry: %w", err)
-	}
-	if newestTimestamp.Valid {
-		stats["newest_entry"] = newestTimestamp.String
-	}
-
-	return stats, nil
-}
 
 // IsDatabaseInitialized checks if the database is initialized and accessible
 func IsDatabaseInitialized() bool {

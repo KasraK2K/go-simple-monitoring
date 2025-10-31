@@ -6,7 +6,6 @@ import (
 	"go-log/internal/api/models"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -167,11 +166,11 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 
 // WriteServerLogToFile persists remote server payloads into per-server log files.
 func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload []byte) error {
-	if strings.TrimSpace(basePath) == "" {
+	if IsEmptyOrWhitespace(basePath) {
 		return fmt.Errorf("log path is not configured")
 	}
 
-	if strings.TrimSpace(server.TableName) == "" {
+	if IsEmptyOrWhitespace(server.TableName) {
 		return nil
 	}
 
