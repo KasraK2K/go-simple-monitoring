@@ -148,3 +148,61 @@ curl -X POST http://localhost:3500/monitoring \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -d '{}'
 ```
+
+### Table-Specific Queries
+
+The monitoring endpoint supports querying specific tables using the `table_name` parameter. This allows you to get data from specific server tables or the default monitoring table.
+
+**List available tables:**
+
+```bash
+curl -X GET http://localhost:3500/api/v1/tables
+```
+
+Response:
+```json
+{
+  "tables": ["default", "server_api_prod", "server_web_staging"],
+  "count": 3
+}
+```
+
+**Query specific table (all data):**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "server_api_prod"
+  }'
+```
+
+**Query specific table with date range:**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "server_api_prod",
+    "from": "2024-01-01",
+    "to": "2024-01-31"
+  }'
+```
+
+**Query default table explicitly:**
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "default",
+    "from": "2024-01-01"
+  }'
+```
+
+**Notes:**
+- If `table_name` is omitted or empty, the default monitoring table is queried
+- Use `"table_name": "default"` to explicitly query the main monitoring table
+- Server tables are created automatically when servers are configured with `table_name` in `configs.json`
+- Use `/api/v1/tables` endpoint to discover available table names
+- Table-specific queries support all the same date filtering options as default queries

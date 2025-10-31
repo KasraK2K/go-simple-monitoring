@@ -20,8 +20,9 @@ type TokenClaims struct {
 }
 
 type FilterRequest struct {
-	From string `json:"from,omitempty"`
-	To   string `json:"to,omitempty"`
+	From      string `json:"from,omitempty"`
+	To        string `json:"to,omitempty"`
+	TableName string `json:"table_name,omitempty"`
 }
 
 func MonitoringRoutes() {
@@ -105,6 +106,26 @@ func MonitoringRoutes() {
 	// Serve monitoring configuration for UI
 	http.HandleFunc("/api/v1/server-config", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler)))
 
+	// Serve available tables endpoint
+	tablesHandler := func(w http.ResponseWriter, r *http.Request) {
+		tables := logics.GetAvailableTables()
+		
+		payload := map[string]any{
+			"tables": tables,
+			"count":  len(tables),
+		}
+
+		jsonData, err := json.Marshal(payload)
+		if err != nil {
+			setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal tables data"}`)
+			return
+		}
+
+		setHeader(w, http.StatusOK, string(jsonData))
+	}
+
+	http.HandleFunc("/api/v1/tables", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(tablesHandler)))
+
 	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Check token only in production
 		if IsProduction() {
@@ -138,9 +159,9 @@ func MonitoringRoutes() {
 		var responseArray []any
 		var err error
 
-		if filter.From != "" || filter.To != "" {
-			// Use filtered data from database
-			filteredData, err := logics.MonitoringDataGeneratorWithFilter(filter.From, filter.To)
+		if filter.From != "" || filter.To != "" || filter.TableName != "" {
+			// Use filtered data from database (with optional table specification)
+			filteredData, err := logics.MonitoringDataGeneratorWithTableFilter(filter.TableName, filter.From, filter.To)
 			if err != nil {
 				setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
 				return

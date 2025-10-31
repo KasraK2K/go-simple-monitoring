@@ -244,7 +244,9 @@ func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogE
 				ORDER BY created_at DESC`, tableName)
 		args = []any{to}
 	} else {
-		return nil, fmt.Errorf("either from or to filter must be provided")
+		// No date filters, get all entries from the table
+		query = fmt.Sprintf(`SELECT timestamp, data FROM %s ORDER BY created_at DESC`, tableName)
+		args = []any{}
 	}
 
 	rows, err := db.Query(query, args...)
@@ -275,6 +277,20 @@ func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogE
 	}
 
 	return entries, nil
+}
+
+// GetAvailableTables returns a list of available table names for querying
+func GetAvailableTables() []string {
+	tables := []string{"default"} // Return clean name for API
+	
+	// Add all server tables
+	serverLogTables.Range(func(key, value any) bool {
+		tableName := key.(string)
+		tables = append(tables, tableName)
+		return true // continue iteration
+	})
+	
+	return tables
 }
 
 func ensureServerLogTable(rawName string) (string, error) {

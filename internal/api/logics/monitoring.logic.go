@@ -265,14 +265,24 @@ func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	return monitoring, nil
 }
 
-func MonitoringDataGeneratorWithFilter(from, to string) ([]any, error) {
+func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, error) {
 	// Check if database is initialized and accessible
 	if !utils.IsDatabaseInitialized() {
 		return []any{}, fmt.Errorf("database is not accessible or not initialized")
 	}
 
-	// Query filtered data from database
-	filteredData, err := utils.QueryFilteredMonitoringData(from, to)
+	// Determine which table to query
+	var filteredData []models.MonitoringLogEntry
+	var err error
+
+	if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {
+		// Query default table (handle both empty string and "default" API parameter)
+		filteredData, err = utils.QueryFilteredMonitoringData(from, to)
+	} else {
+		// Query specific table
+		filteredData, err = utils.QueryFilteredTableData(tableName, from, to)
+	}
+	
 	if err != nil {
 		return []any{}, fmt.Errorf("failed to query filtered monitoring data: %w", err)
 	}
@@ -1129,4 +1139,9 @@ func getProcessStats() (models.Process, error) {
 		LoadAvg5:       math.Round(loadStats.Load5*100) / 100,
 		LoadAvg15:      math.Round(loadStats.Load15*100) / 100,
 	}, nil
+}
+
+// GetAvailableTables returns a list of available table names for querying
+func GetAvailableTables() []string {
+	return utils.GetAvailableTables()
 }
