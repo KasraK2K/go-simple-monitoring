@@ -101,7 +101,20 @@ templ HeroSection(props HeroProps) {
                 <span>Export</span>
             </button>
         </div>
-        <div class="server-switcher" id="serverSwitcher" role="group" aria-label="Server selection"></div>
+        <div class="remote-context hidden" id="remoteContext" role="status" aria-live="polite">
+            <div class="remote-context__indicator">
+                <span class="status-dot"></span>
+                <span class="remote-context__label">Remote Source</span>
+            </div>
+            <div class="remote-context__details">
+                <span class="remote-context__value" id="remoteContextName">Remote server</span>
+                <span class="remote-context__hint">Live metrics via remote node</span>
+            </div>
+            <button class="remote-context__action" id="remoteContextReset" type="button" aria-label="Return to default server">
+                <i class="fas fa-times"></i>
+                <span>Disconnect</span>
+            </button>
+        </div>
         <div class="date-filter">
             <label>
                 <span>From</span>

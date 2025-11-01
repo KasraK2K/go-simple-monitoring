@@ -59,3 +59,24 @@ export function updateRefreshDisplay() {
   if (!display) return;
   display.textContent = `${(state.refreshInterval / 1000).toFixed(1)}s`;
 }
+
+export function updateRemoteContext() {
+  const banner = document.getElementById('remoteContext');
+  const nameEl = document.getElementById('remoteContextName');
+  if (!banner || !nameEl) {
+    return;
+  }
+
+  const activeBase = (state.selectedBaseUrl || '').trim();
+  if (!activeBase) {
+    banner.classList.add('hidden');
+    return;
+  }
+
+  const remoteName = state.selectedServer?.name
+    || (typeof state.serverConfig?.name === 'string' && state.serverConfig.name.trim())
+    || activeBase;
+
+  nameEl.textContent = remoteName;
+  banner.classList.remove('hidden');
+}

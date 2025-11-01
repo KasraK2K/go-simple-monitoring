@@ -6,7 +6,7 @@ import { captureFilterElements } from './filters.js';
 import { registerLifecycleHandlers } from './lifecycle.js';
 import { state } from './state.js';
 import { initializeTheme, requestNotificationPermission } from './theme.js';
-import { updateRefreshDisplay } from './ui.js';
+import { updateRefreshDisplay, updateRemoteContext } from './ui.js';
 
 export async function initDashboard() {
   initializeTheme();
@@ -17,6 +17,7 @@ export async function initDashboard() {
   state.filterElements = elements;
 
   renderServerButtons();
+  updateRemoteContext();
   registerEventHandlers();
   registerLifecycleHandlers();
 

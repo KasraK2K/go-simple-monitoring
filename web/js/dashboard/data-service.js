@@ -5,7 +5,7 @@ import { calculateHeartbeatUptime, updateHeartbeat } from './heartbeat.js';
 import { calculateNetworkDelta } from './network.js';
 import { state } from './state.js';
 import { updateServerMetricsSection } from './servers.js';
-import { setLoadingState, showErrorState, updateConnectionStatus, updateRefreshDisplay, updateStatus } from './ui.js';
+import { setLoadingState, showErrorState, updateConnectionStatus, updateRefreshDisplay, updateRemoteContext, updateStatus } from './ui.js';
 import { sanitizeBaseUrl } from './utils.js';
 import { updateMetrics, updateTrends } from './metrics.js';
 
@@ -178,6 +178,7 @@ export async function fetchServerConfig(baseUrl = '') {
       }
     }
     renderServerButtons();
+    updateRemoteContext();
 
     updateServerMetricsSection(state.serverMetrics || [], config.servers || []);
 
@@ -272,6 +273,7 @@ export async function handleServerSelection(server) {
 
   resetCharts();
   renderServerButtons();
+  updateRemoteContext();
 
   clearTimeout(state.refreshTimer);
   await fetchServerConfig(state.selectedBaseUrl);
@@ -449,3 +451,5 @@ function normalizeConfiguredServers(servers) {
 
   return normalized;
 }
+
+state.handleServerSelection = handleServerSelection;

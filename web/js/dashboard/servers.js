@@ -108,7 +108,35 @@ function createServerCard(metric) {
 
   status.append(statusDot, statusText);
 
-  header.append(titleWrap, status);
+  const actions = document.createElement('div');
+  actions.className = 'server-card__actions';
+  actions.append(status);
+
+  const normalizedAddress = normalizeAddress(metric.address || metric.raw?.address || '');
+  const activeAddress = normalizeAddress(state.selectedBaseUrl);
+  if (normalizedAddress) {
+    const switchBtn = document.createElement('button');
+    switchBtn.type = 'button';
+    switchBtn.className = 'server-card__switch';
+
+    const isActive = normalizedAddress === activeAddress && activeAddress !== '';
+    if (isActive) {
+      switchBtn.textContent = 'Viewing live';
+      switchBtn.classList.add('server-card__switch--active');
+      switchBtn.disabled = true;
+    } else {
+      switchBtn.textContent = 'View remotely';
+      switchBtn.addEventListener('click', () => {
+        if (typeof state.handleServerSelection === 'function') {
+          state.handleServerSelection({ name: metric.name, address: normalizedAddress });
+        }
+      });
+    }
+
+    actions.appendChild(switchBtn);
+  }
+
+  header.append(titleWrap, actions);
 
   const metricsWrap = document.createElement('div');
   metricsWrap.className = 'server-card__metrics';

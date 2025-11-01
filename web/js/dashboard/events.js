@@ -1,7 +1,8 @@
 import { exportData, hideExportPanel, showExportPanel } from './exporter.js';
 import { applyDateFilter, applyRangePreset, clearDateFilter } from './filters.js';
 import { filterHeartbeats } from './heartbeat.js';
-import { fetchMetrics } from './data-service.js';
+import { fetchMetrics, handleServerSelection } from './data-service.js';
+import { LOCAL_SERVER_OPTION } from './constants.js';
 import { state } from './state.js';
 import { toggleTheme } from './theme.js';
 
@@ -43,6 +44,10 @@ export function registerEventHandlers() {
       filterHeartbeats(event.target.value);
     });
   }
+
+  document.getElementById('remoteContextReset')?.addEventListener('click', () => {
+    handleServerSelection(LOCAL_SERVER_OPTION);
+  });
 
   const keydownHandler = (event) => {
     if (event.ctrlKey || event.metaKey) {
