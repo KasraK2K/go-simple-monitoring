@@ -12,7 +12,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const DefaultTableName = "[default]"
+const DefaultTableName = "`default`"
 
 var (
 	db              *sql.DB
@@ -178,7 +178,7 @@ func collectCleanupTables() ([]string, error) {
 
 	tables := []string{DefaultTableName}
 	existing := map[string]struct{}{
-		strings.Trim(DefaultTableName, "[]"): {},
+		strings.Trim(DefaultTableName, "`"): {},
 	}
 
 	for rows.Next() {
@@ -204,7 +204,7 @@ func collectCleanupTables() ([]string, error) {
 }
 
 func displayTableName(tableName string) string {
-	return strings.Trim(tableName, "[]")
+	return strings.Trim(tableName, "`")
 }
 
 // cleanTableEntries is an internal helper that cleans a single table and accumulates the count

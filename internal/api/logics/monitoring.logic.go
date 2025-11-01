@@ -647,23 +647,183 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 		return nil, fmt.Errorf("empty log entry body")
 	}
 
-	data, err := json.Marshal(entry.Body)
-	if err != nil {
-		return nil, err
-	}
+	snapshot := &models.SystemMonitoring{}
 
-	var snapshot models.SystemMonitoring
-	if err := json.Unmarshal(data, &snapshot); err != nil {
-		return nil, err
-	}
-
+	// Parse timestamp
 	if entry.Time != "" {
 		if ts, err := time.Parse(time.RFC3339Nano, entry.Time); err == nil {
 			snapshot.Timestamp = ts
 		}
 	}
 
-	return &snapshot, nil
+	// Helper function to safely convert to float64
+	toFloat64 := func(v interface{}) float64 {
+		switch val := v.(type) {
+		case float64:
+			return val
+		case float32:
+			return float64(val)
+		case int:
+			return float64(val)
+		case int64:
+			return float64(val)
+		case uint64:
+			return float64(val)
+		default:
+			return 0
+		}
+	}
+
+	// Helper function to safely convert to uint64
+	toUint64 := func(v interface{}) uint64 {
+		switch val := v.(type) {
+		case uint64:
+			return val
+		case int64:
+			if val >= 0 {
+				return uint64(val)
+			}
+			return 0
+		case int:
+			if val >= 0 {
+				return uint64(val)
+			}
+			return 0
+		case float64:
+			if val >= 0 {
+				return uint64(val)
+			}
+			return 0
+		default:
+			return 0
+		}
+	}
+
+	// Helper function to safely convert to int
+	toInt := func(v interface{}) int {
+		switch val := v.(type) {
+		case int:
+			return val
+		case int64:
+			return int(val)
+		case float64:
+			return int(val)
+		default:
+			return 0
+		}
+	}
+
+	// Helper function to safely convert to string
+	toString := func(v interface{}) string {
+		if v == nil {
+			return ""
+		}
+		if s, ok := v.(string); ok {
+			return s
+		}
+		return fmt.Sprintf("%v", v)
+	}
+
+	// Map CPU fields
+	snapshot.CPU = models.CPU{
+		UsagePercent: toFloat64(entry.Body["cpu_usage_percent"]),
+		CoreCount:    toInt(entry.Body["cpu_cores"]),
+		Goroutines:   toInt(entry.Body["cpu_goroutines"]),
+		LoadAverage:  toString(entry.Body["cpu_load_average"]),
+		Architecture: toString(entry.Body["cpu_architecture"]),
+	}
+
+	// Map RAM fields
+	snapshot.RAM = models.RAM{
+		TotalBytes:     toUint64(entry.Body["ram_total_bytes"]),
+		UsedBytes:      toUint64(entry.Body["ram_used_bytes"]),
+		AvailableBytes: toUint64(entry.Body["ram_available_bytes"]),
+		UsedPct:        toFloat64(entry.Body["ram_used_percent"]),
+		BufferBytes:    0, // Not stored in flat format
+	}
+
+	// Map NetworkIO fields
+	snapshot.NetworkIO = models.NetworkIO{
+		BytesSent:   toUint64(entry.Body["network_bytes_sent"]),
+		BytesRecv:   toUint64(entry.Body["network_bytes_recv"]),
+		PacketsSent: toUint64(entry.Body["network_packets_sent"]),
+		PacketsRecv: toUint64(entry.Body["network_packets_recv"]),
+		ErrorsIn:    toUint64(entry.Body["network_errors_in"]),
+		ErrorsOut:   toUint64(entry.Body["network_errors_out"]),
+		DropsIn:     toUint64(entry.Body["network_drops_in"]),
+		DropsOut:    toUint64(entry.Body["network_drops_out"]),
+	}
+
+	// Map DiskIO fields
+	snapshot.DiskIO = models.DiskIO{
+		ReadBytes:  toUint64(entry.Body["diskio_read_bytes"]),
+		WriteBytes: toUint64(entry.Body["diskio_write_bytes"]),
+		ReadCount:  toUint64(entry.Body["diskio_read_count"]),
+		WriteCount: toUint64(entry.Body["diskio_write_count"]),
+		ReadTime:   toUint64(entry.Body["diskio_read_time"]),
+		WriteTime:  toUint64(entry.Body["diskio_write_time"]),
+		IOTime:     toUint64(entry.Body["diskio_io_time"]),
+	}
+
+	// Map Process fields
+	snapshot.Process = models.Process{
+		TotalProcesses: toInt(entry.Body["process_total"]),
+		RunningProcs:   toInt(entry.Body["process_running"]),
+		SleepingProcs:  toInt(entry.Body["process_sleeping"]),
+		ZombieProcs:    toInt(entry.Body["process_zombie"]),
+		StoppedProcs:   toInt(entry.Body["process_stopped"]),
+		LoadAvg1:       toFloat64(entry.Body["process_load_avg_1"]),
+		LoadAvg5:       toFloat64(entry.Body["process_load_avg_5"]),
+		LoadAvg15:      toFloat64(entry.Body["process_load_avg_15"]),
+	}
+
+	// Map DiskSpace fields - try to get from disk_spaces array first, fallback to flat fields
+	if diskSpaces, ok := entry.Body["disk_spaces"]; ok {
+		if diskArray, ok := diskSpaces.([]interface{}); ok {
+			for _, diskItem := range diskArray {
+				if diskMap, ok := diskItem.(map[string]interface{}); ok {
+					disk := models.DiskSpace{
+						Path:           toString(diskMap["path"]),
+						Device:         toString(diskMap["device"]),
+						FileSystem:     toString(diskMap["filesystem"]),
+						TotalBytes:     toUint64(diskMap["total_bytes"]),
+						UsedBytes:      toUint64(diskMap["used_bytes"]),
+						AvailableBytes: toUint64(diskMap["available_bytes"]),
+						UsedPct:        toFloat64(diskMap["used_pct"]),
+					}
+					snapshot.DiskSpace = append(snapshot.DiskSpace, disk)
+				}
+			}
+		}
+	}
+
+	// If no disk_spaces array, create one from flat fields for backward compatibility
+	if len(snapshot.DiskSpace) == 0 {
+		snapshot.DiskSpace = []models.DiskSpace{
+			{
+				Path:           "/", // Assume root
+				Device:         "unknown",
+				FileSystem:     "unknown",
+				TotalBytes:     toUint64(entry.Body["disk_total_bytes"]),
+				UsedBytes:      toUint64(entry.Body["disk_used_bytes"]),
+				AvailableBytes: toUint64(entry.Body["disk_available_bytes"]),
+				UsedPct:        toFloat64(entry.Body["disk_used_percent"]),
+			},
+		}
+	}
+
+	// Map Heartbeat and ServerMetrics if present
+	if heartbeat, ok := entry.Body["heartbeat"]; ok && heartbeat != nil {
+		// Convert heartbeat data if needed
+		// This would require additional conversion logic
+	}
+
+	if serverMetrics, ok := entry.Body["server_metrics"]; ok && serverMetrics != nil {
+		// Convert server metrics data if needed
+		// This would require additional conversion logic
+	}
+
+	return snapshot, nil
 }
 
 func getCPUInfo() (models.CPU, error) {
