@@ -31,14 +31,14 @@
   ],
   "servers": [
     {
-      "name": "Production",
-      "address": "https://monitoring.example.com",
-      "table_name": "prod_monitoring"
+      "name": "Localhost 1000",
+      "address": "http://localhost:1000",
+      "table_name": "local_monitoring"
     },
     {
-      "name": "Staging",
-      "address": "https://staging-monitor.example.com",
-      "table_name": "staging_monitoring"
+      "name": "Localhost 2000",
+      "address": "http://localhost:2000",
+      "table_name": "local_monitoring"
     }
   ]
 }
