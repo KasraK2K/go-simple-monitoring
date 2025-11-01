@@ -598,7 +598,7 @@ func normalizeServerAddress(address string) string {
 func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, error) {
 	// Check if database is initialized and accessible
 	if !utils.IsDatabaseInitialized() {
-		return []any{}, fmt.Errorf("database is not accessible or not initialized")
+		return []any{}, nil
 	}
 
 	// Determine which table to query
