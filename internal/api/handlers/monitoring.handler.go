@@ -12,6 +12,7 @@ import (
 
 	"go-log/internal/api/logics"
 	"go-log/internal/api/models"
+	"go-log/internal/utils"
 	"go-log/web/views"
 )
 
@@ -108,8 +109,8 @@ func MonitoringRoutes() {
 
 	// Serve available tables endpoint
 	tablesHandler := func(w http.ResponseWriter, r *http.Request) {
-		tables := logics.GetAvailableTables()
-		
+		tables := utils.GetAvailableTables()
+
 		payload := map[string]any{
 			"tables": tables,
 			"count":  len(tables),

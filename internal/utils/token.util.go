@@ -9,17 +9,9 @@ import (
 
 var ErrMissingToken = errors.New("missing or invalid token")
 
-func DecryptToken(encryptedToken, aesSecret string) (string, error) {
-	jwtToken, err := DecryptCryptoJSAES(encryptedToken, aesSecret)
-	if err != nil {
-		return "", err
-	}
-	return jwtToken, nil
-}
-
 func DecryptAndExtractBusinessID(encryptedToken, aesSecret, jwtSecret string) (int, error) {
 	// 1. AES decrypt
-	jwtToken, err := DecryptToken(encryptedToken, aesSecret)
+	jwtToken, err := DecryptCryptoJSAES(encryptedToken, aesSecret)
 	if err != nil {
 		return 0, err
 	}
@@ -30,7 +22,7 @@ func DecryptAndExtractBusinessID(encryptedToken, aesSecret, jwtSecret string) (i
 
 func DecryptAndParseToken[T any](encryptedToken, aesSecret, jwtSecret string) (*T, error) {
 	// 1. AES decrypt
-	jwtToken, err := DecryptToken(encryptedToken, aesSecret)
+	jwtToken, err := DecryptCryptoJSAES(encryptedToken, aesSecret)
 	if err != nil {
 		return nil, err
 	}

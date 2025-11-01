@@ -86,12 +86,12 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 	case "file":
 		return writeLogEntry(logEntry)
 	case "db":
-		return WriteToDatabase(logEntry)
+		return writeToTableInternal(DefaultTableName, logEntry)
 	case "both":
 		if err := writeLogEntry(logEntry); err != nil {
 			return err
 		}
-		return WriteToDatabase(logEntry)
+		return writeToTableInternal(DefaultTableName, logEntry)
 	default:
 		return fmt.Errorf("invalid storage type: %s", logConfig.Storage)
 	}

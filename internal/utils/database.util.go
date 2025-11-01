@@ -91,11 +91,6 @@ func writeToTableInternal(tableName string, entry models.MonitoringLogEntry) err
 	return nil
 }
 
-// WriteToDatabase writes a log entry to the default table
-func WriteToDatabase(entry models.MonitoringLogEntry) error {
-	return writeToTableInternal(DefaultTableName, entry)
-}
-
 // WriteServerLogToDatabase writes remote server payloads into a dedicated table.
 func WriteServerLogToDatabase(tableName string, payload []byte) error {
 	if db == nil {
@@ -238,12 +233,6 @@ func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int
 	return nil
 }
 
-// CleanOldTableEntries removes entries from a specific table older than specified date
-func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
-	var totalCleaned int64
-	return cleanTableEntries(tableName, cutoffDate, &totalCleaned)
-}
-
 // IsDatabaseInitialized checks if the database is initialized and accessible
 func IsDatabaseInitialized() bool {
 	if db == nil {
@@ -253,11 +242,6 @@ func IsDatabaseInitialized() bool {
 	// Test if database is still accessible
 	err := db.Ping()
 	return err == nil
-}
-
-// QueryFilteredMonitoringData retrieves monitoring data within a date range
-func QueryFilteredMonitoringData(from, to string) ([]models.MonitoringLogEntry, error) {
-	return QueryFilteredTableData(DefaultTableName, from, to)
 }
 
 // QueryFilteredTableData retrieves data from a specific table within a date range

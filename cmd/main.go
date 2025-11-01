@@ -2,12 +2,14 @@ package main
 
 import (
 	"fmt"
-	"go-log/internal/utils"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"go-log/internal/api/handlers"
+	"go-log/internal/utils"
 )
 
 func main() {
@@ -23,7 +25,7 @@ func main() {
 		os.Exit(0)
 	}()
 
-	RegisterRouter()
+	handlers.MonitoringRoutes()
 
 	port := os.Getenv("PORT")
 	if port == "" {

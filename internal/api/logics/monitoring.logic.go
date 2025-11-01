@@ -607,7 +607,7 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 
 	if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {
 		// Query default table (handle both empty string and "default" API parameter)
-		filteredData, err = utils.QueryFilteredMonitoringData(from, to)
+		filteredData, err = utils.QueryFilteredTableData(utils.DefaultTableName, from, to)
 	} else {
 		// Query specific table
 		filteredData, err = utils.QueryFilteredTableData(tableName, from, to)
@@ -1473,9 +1473,4 @@ func getProcessStats() (models.Process, error) {
 		LoadAvg5:       math.Round(loadStats.Load5*100) / 100,
 		LoadAvg15:      math.Round(loadStats.Load15*100) / 100,
 	}, nil
-}
-
-// GetAvailableTables returns a list of available table names for querying
-func GetAvailableTables() []string {
-	return utils.GetAvailableTables()
 }
