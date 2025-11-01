@@ -25,7 +25,11 @@ func main() {
 
 	RegisterRouter()
 
-	addr := fmt.Sprintf(":%s", "3500")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3500"
+	}
+	addr := fmt.Sprintf(":%s", port)
 	log.Println("Server running on", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
