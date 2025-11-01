@@ -132,6 +132,10 @@ export async function fetchMetrics() {
 
     if (filterPayload) {
       state.historicalSeries = normalizedList;
+      // Set historical mode when we have filter data (including autoFilter) to ensure proper chart rendering
+      if (!state.historicalMode) {
+        state.historicalMode = true;
+      }
     } else if (state.historicalMode) {
       const latest = normalizedList[0];
       const latestTimestamp = latest.timestamp;
@@ -200,6 +204,12 @@ export async function fetchMetrics() {
     if (state.isInitialLoad) {
       setLoadingState("initial", false);
       state.isInitialLoad = false;
+    }
+
+    // After processing autoFilter, transition to live mode for subsequent requests
+    if (usingAutoFilter && !state.pendingFilter) {
+      state.historicalMode = false;
+      state.historicalSeries = [];
     }
   } catch (error) {
     console.error("Error fetching metrics:", error);
