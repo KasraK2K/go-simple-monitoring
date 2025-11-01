@@ -1,12 +1,14 @@
 # Run `monitoring` as a systemd service
 
 This guide sets up your Go-built binary **`monitoring`** to run as a systemd service on Linux. It will:
+
 - Write monitoring logs to `/var/log/monitoring` (configurable in `configs.json`)
 - Run as a single service instance with automatic logging
 - Auto-restart on crash
 - Monitor system resources and configured heartbeat targets
 
 > Assumptions
+>
 > - You already have a compiled binary named `monitoring` (no extension).
 > - You have root (or sudo) access.
 > - Your `configs.json` file is configured properly.
@@ -36,6 +38,7 @@ sudo chmod 0644 /opt/monitoring/configs.json
 ```
 
 Update your `configs.json` to use the system log path:
+
 ```bash
 sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
@@ -77,6 +80,7 @@ sudo chown monitoring:monitoring /opt/monitoring/configs.json
 ```
 
 If your binary needs environment variables, create `/opt/monitoring/.env`:
+
 ```bash
 sudo tee /opt/monitoring/.env >/dev/null <<'EOF'
 # Example env variables
@@ -137,6 +141,7 @@ WantedBy=multi-user.target
 ```
 
 Reload systemd units:
+
 ```bash
 sudo systemctl daemon-reload
 ```
@@ -197,6 +202,7 @@ ExecStart=/opt/monitoring/monitoring
 ```
 
 Then add network access to the hardening section:
+
 ```ini
 # Add if running API mode
 PrivateNetwork=false
@@ -255,12 +261,13 @@ ps -p $(systemctl show monitoring.service --property=MainPID --value) -o pid,ppi
 Based on your `refresh_time` setting, monitor disk usage:
 
 | Interval | Daily Size | Weekly Size | Monthly Size |
-|----------|------------|-------------|--------------|
+| -------- | ---------- | ----------- | ------------ |
 | 2s       | ~59 MB     | ~413 MB     | ~1.8 GB      |
 | 5s       | ~23.6 MB   | ~165 MB     | ~708 MB      |
 | 10s      | ~11.8 MB   | ~83 MB      | ~354 MB      |
 
 Use the built-in log cleanup or logrotate to manage storage:
+
 ```bash
 # Check current disk usage
 du -sh /var/log/monitoring/
