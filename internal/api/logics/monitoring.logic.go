@@ -647,6 +647,50 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 		return nil, fmt.Errorf("empty log entry body")
 	}
 
+	// Check if this is a remote server entry with nested payload structure
+	if payload, hasPayload := entry.Body["payload"]; hasPayload {
+		return convertServerLogEntryToSystemMonitoring(entry, payload)
+	}
+
+	// Handle local monitoring data with flat structure
+	return convertFlatLogEntryToSystemMonitoring(entry)
+}
+
+func convertServerLogEntryToSystemMonitoring(entry models.MonitoringLogEntry, payload any) (*models.SystemMonitoring, error) {
+	// Remote server data is stored as: {"time": "...", "payload": [{"timestamp": "...", "cpu": {...}, ...}]}
+	payloadArray, ok := payload.([]any)
+	if !ok || len(payloadArray) == 0 {
+		return nil, fmt.Errorf("invalid payload format")
+	}
+
+	// Take the first (and typically only) SystemMonitoring entry from the payload
+	firstEntry, ok := payloadArray[0].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("invalid payload entry format")
+	}
+
+	// Convert the nested structure to SystemMonitoring
+	data, err := json.Marshal(firstEntry)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal payload entry: %w", err)
+	}
+
+	var snapshot models.SystemMonitoring
+	if err := json.Unmarshal(data, &snapshot); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal to SystemMonitoring: %w", err)
+	}
+
+	// Use the entry time if timestamp is not set
+	if snapshot.Timestamp.IsZero() && entry.Time != "" {
+		if ts, err := time.Parse(time.RFC3339Nano, entry.Time); err == nil {
+			snapshot.Timestamp = ts
+		}
+	}
+
+	return &snapshot, nil
+}
+
+func convertFlatLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models.SystemMonitoring, error) {
 	snapshot := &models.SystemMonitoring{}
 
 	// Parse timestamp
@@ -657,7 +701,7 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 	}
 
 	// Helper function to safely convert to float64
-	toFloat64 := func(v interface{}) float64 {
+	toFloat64 := func(v any) float64 {
 		switch val := v.(type) {
 		case float64:
 			return val
@@ -675,7 +719,7 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 	}
 
 	// Helper function to safely convert to uint64
-	toUint64 := func(v interface{}) uint64 {
+	toUint64 := func(v any) uint64 {
 		switch val := v.(type) {
 		case uint64:
 			return val
@@ -700,7 +744,7 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 	}
 
 	// Helper function to safely convert to int
-	toInt := func(v interface{}) int {
+	toInt := func(v any) int {
 		switch val := v.(type) {
 		case int:
 			return val
@@ -714,7 +758,7 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 	}
 
 	// Helper function to safely convert to string
-	toString := func(v interface{}) string {
+	toString := func(v any) string {
 		if v == nil {
 			return ""
 		}
@@ -779,9 +823,9 @@ func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models
 
 	// Map DiskSpace fields - try to get from disk_spaces array first, fallback to flat fields
 	if diskSpaces, ok := entry.Body["disk_spaces"]; ok {
-		if diskArray, ok := diskSpaces.([]interface{}); ok {
+		if diskArray, ok := diskSpaces.([]any); ok {
 			for _, diskItem := range diskArray {
-				if diskMap, ok := diskItem.(map[string]interface{}); ok {
+				if diskMap, ok := diskItem.(map[string]any); ok {
 					disk := models.DiskSpace{
 						Path:           toString(diskMap["path"]),
 						Device:         toString(diskMap["device"]),

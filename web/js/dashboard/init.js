@@ -29,7 +29,7 @@ export async function initDashboard() {
 
   window.removeAlert = removeAlert;
 
-  await fetchServerConfig(state.selectedBaseUrl);
+  await fetchServerConfig("");
   updateRefreshDisplay();
   await fetchMetrics();
   scheduleNextFetch();
