@@ -159,19 +159,25 @@ export async function fetchServerConfig(baseUrl = '') {
     }
 
     const config = await response.json();
-    if (!sanitizedBase) {
-      state.serverConfig = config;
-      state.availableServers = Array.isArray(config.servers)
-        ? config.servers
-          .filter((server) => server && server.name && server.address)
-          .map((server) => ({
-            name: server.name,
-            address: sanitizeBaseUrl(server.address)
-          }))
-        : [];
-
-      renderServerButtons();
+    const activeBase = sanitizeBaseUrl(state.selectedBaseUrl);
+    if (sanitizedBase !== activeBase) {
+      return config;
     }
+
+    const normalizedServers = normalizeConfiguredServers(config.servers || []);
+
+    state.serverConfig = config;
+    state.availableServers = normalizedServers;
+
+    if (!activeBase) {
+      state.selectedServer = null;
+    } else {
+      const matchedServer = normalizedServers.find((server) => server.address === activeBase);
+      if (matchedServer) {
+        state.selectedServer = { ...matchedServer };
+      }
+    }
+    renderServerButtons();
 
     updateServerMetricsSection(state.serverMetrics || [], config.servers || []);
 
@@ -195,8 +201,20 @@ export function renderServerButtons() {
 
   container.innerHTML = '';
 
-  const servers = [LOCAL_SERVER_OPTION, ...state.availableServers];
   const activeAddress = sanitizeBaseUrl(state.selectedBaseUrl);
+  const servers = [LOCAL_SERVER_OPTION, ...state.availableServers];
+
+  if (activeAddress) {
+    const hasActive = servers.some((server) => sanitizeBaseUrl(server.address || '') === activeAddress);
+    if (!hasActive) {
+      const label = state.selectedServer?.name
+        || (state.serverConfig?.name && String(state.serverConfig.name).trim())
+        || activeAddress;
+      servers.push({ name: label, address: activeAddress });
+    }
+  }
+
+  const seenAddresses = new Set();
 
   servers.forEach((server) => {
     if (!server || !server.name) {
@@ -215,6 +233,13 @@ export function renderServerButtons() {
     }
 
     const serverAddress = sanitizeBaseUrl(server.address || '');
+    if (serverAddress) {
+      if (seenAddresses.has(serverAddress)) {
+        return;
+      }
+      seenAddresses.add(serverAddress);
+    }
+
     if (serverAddress === activeAddress) {
       button.classList.add('active');
     }
@@ -239,7 +264,7 @@ export async function handleServerSelection(server) {
 
   updateStatus(false);
   updateHeartbeat();
-  updateServerMetricsSection([], state.serverConfig?.servers || []);
+  updateServerMetricsSection([], []);
   const lastUpdated = document.getElementById('lastUpdated');
   if (lastUpdated) {
     lastUpdated.textContent = '--';
@@ -396,4 +421,31 @@ function buildEndpoint(path) {
     return `${base}/${path}`;
   }
   return `${base}${path}`;
+}
+
+function normalizeConfiguredServers(servers) {
+  if (!Array.isArray(servers)) {
+    return [];
+  }
+
+  const normalized = [];
+  const seen = new Set();
+
+  servers.forEach((server) => {
+    if (!server) return;
+
+    const address = sanitizeBaseUrl(server.address || '');
+    if (!address || seen.has(address)) {
+      return;
+    }
+
+    const name = typeof server.name === 'string' && server.name.trim().length > 0
+      ? server.name.trim()
+      : address;
+
+    normalized.push({ name, address });
+    seen.add(address);
+  });
+
+  return normalized;
 }
