@@ -598,6 +598,13 @@ func normalizeServerAddress(address string) string {
 func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, error) {
 	// Check if database is initialized and accessible
 	if !utils.IsDatabaseInitialized() {
+		currentData, err := MonitoringDataGenerator()
+		if err != nil {
+			return []any{}, err
+		}
+		if currentData != nil {
+			return []any{currentData}, nil
+		}
 		return []any{}, nil
 	}
 
@@ -618,21 +625,45 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 	}
 
 	if len(filteredData) == 0 {
-		currentData, err := MonitoringDataGenerator()
-		if err != nil {
-			return []any{}, fmt.Errorf("failed to generate current monitoring data: %w", err)
-		}
-		fallbackEntry := utils.BuildMonitoringLogEntry(currentData)
-		return []any{fallbackEntry}, nil
+		// When no historical data is found, return empty array to allow frontend to handle gracefully
+		return []any{}, nil
 	}
 
-	// Convert to []any
-	result := make([]any, len(filteredData))
-	for i, entry := range filteredData {
-		result[i] = entry
+	result := make([]any, 0, len(filteredData))
+	for _, entry := range filteredData {
+		snapshot, convErr := convertLogEntryToSystemMonitoring(entry)
+		if convErr == nil {
+			result = append(result, snapshot)
+		} else {
+			result = append(result, entry.Body)
+		}
 	}
 
 	return result, nil
+}
+
+func convertLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*models.SystemMonitoring, error) {
+	if entry.Body == nil {
+		return nil, fmt.Errorf("empty log entry body")
+	}
+
+	data, err := json.Marshal(entry.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var snapshot models.SystemMonitoring
+	if err := json.Unmarshal(data, &snapshot); err != nil {
+		return nil, err
+	}
+
+	if entry.Time != "" {
+		if ts, err := time.Parse(time.RFC3339Nano, entry.Time); err == nil {
+			snapshot.Timestamp = ts
+		}
+	}
+
+	return &snapshot, nil
 }
 
 func getCPUInfo() (models.CPU, error) {

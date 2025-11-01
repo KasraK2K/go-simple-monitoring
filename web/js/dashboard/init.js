@@ -1,6 +1,6 @@
 import { removeAlert } from './alerts.js';
 import { initializeCharts } from './charts.js';
-import { fetchMetrics, fetchServerConfig, renderServerButtons, scheduleNextFetch } from './data-service.js';
+import { applyAutoFilterUI, fetchMetrics, fetchServerConfig, renderServerButtons, scheduleNextFetch } from './data-service.js';
 import { registerEventHandlers } from './events.js';
 import { captureFilterElements } from './filters.js';
 import { registerLifecycleHandlers } from './lifecycle.js';
@@ -17,6 +17,12 @@ export async function initDashboard() {
   state.filterElements = elements;
 
   renderServerButtons();
+  const now = new Date();
+  state.autoFilter = {
+    from: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+    to: now.toISOString(),
+  };
+  applyAutoFilterUI(state.autoFilter, '24h');
   updateRemoteContext();
   registerEventHandlers();
   registerLifecycleHandlers();
