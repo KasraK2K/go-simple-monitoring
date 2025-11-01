@@ -98,7 +98,15 @@ function createServerCard(metric) {
 
   const status = document.createElement('span');
   status.className = `server-status ${statusClass(metric.status)}`;
-  status.textContent = statusLabel(metric.status);
+
+  const statusDot = document.createElement('span');
+  statusDot.className = 'status-dot';
+
+  const statusText = document.createElement('span');
+  statusText.className = 'status-text';
+  statusText.textContent = statusLabel(metric.status);
+
+  status.append(statusDot, statusText);
 
   header.append(titleWrap, status);
 

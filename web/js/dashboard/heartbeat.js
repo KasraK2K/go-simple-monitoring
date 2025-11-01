@@ -31,6 +31,8 @@ export function updateHeartbeat(servers = [], uptimeStats = null) {
     const status = (server.status || '').toLowerCase();
     if (status === 'up') onlineCount += 1;
 
+    const statusLabelText = statusLabel(status);
+
     const card = document.createElement('div');
     card.className = 'heartbeat-card';
 
@@ -52,7 +54,7 @@ export function updateHeartbeat(servers = [], uptimeStats = null) {
         <div class="name">${escapeHtml(server.name || 'Unnamed Server')}</div>
         <div class="url">${escapeHtml(server.url || '—')}</div>
       </div>
-      <span class="server-status ${statusClass(status)}">${statusLabel(status)}</span>
+      <span class="server-status ${statusClass(status)}"><span class="status-dot"></span><span class="status-text">${escapeHtml(statusLabelText)}</span></span>
       <div class="heartbeat-detail">
         <span class="label">Latency</span>
         <span class="value">${escapeHtml(responseTime)}</span>
