@@ -48,7 +48,7 @@ func InitDatabase() error {
 func ensureTable(tableName string) error {
 	// Get clean name for index naming (remove brackets, quotes etc.)
 	cleanName := SanitizeTableName(tableName)
-	
+
 	statements := []string{
 		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -96,7 +96,6 @@ func WriteToDatabase(entry models.MonitoringLogEntry) error {
 	return writeToTableInternal(DefaultTableName, entry)
 }
 
-
 // WriteServerLogToDatabase writes remote server payloads into a dedicated table.
 func WriteServerLogToDatabase(tableName string, payload []byte) error {
 	if db == nil {
@@ -136,37 +135,81 @@ func CloseDatabase() error {
 
 // CleanOldDatabaseEntries removes database entries older than specified date from all tables
 func CleanOldDatabaseEntries(cutoffDate time.Time) error {
+	if db == nil {
+		return fmt.Errorf("database not initialized")
+	}
+
+	tables, err := collectCleanupTables()
+	if err != nil {
+		return err
+	}
+
 	var totalCleaned int64
 	var errors []string
 	var checkedTables []string
 
 	fmt.Printf("Starting database cleanup for entries older than %s\n", cutoffDate.Format("2006-01-02 15:04:05"))
 
-	// Clean default table first
-	fmt.Printf("Checking default table: %s\n", DefaultTableName)
-	checkedTables = append(checkedTables, DefaultTableName)
-	if err := cleanTableEntries(DefaultTableName, cutoffDate, &totalCleaned); err != nil {
-		errors = append(errors, fmt.Sprintf("default table: %v", err))
-	}
+	for _, tableName := range tables {
+		displayName := displayTableName(tableName)
+		if tableName == DefaultTableName {
+			fmt.Printf("Checking default table: %s\n", displayName)
+		} else {
+			fmt.Printf("Checking table: %s\n", displayName)
+		}
 
-	// Clean all server tables
-	serverLogTables.Range(func(key, value any) bool {
-		tableName := key.(string)
-		fmt.Printf("Checking server table: %s\n", tableName)
-		checkedTables = append(checkedTables, tableName)
+		checkedTables = append(checkedTables, displayName)
 		if err := cleanTableEntries(tableName, cutoffDate, &totalCleaned); err != nil {
 			errors = append(errors, fmt.Sprintf("table %s: %v", tableName, err))
 		}
-		return true // continue iteration
-	})
+	}
 
 	if len(errors) > 0 {
 		return fmt.Errorf("cleanup failed for some tables: %v", errors)
 	}
 
-	fmt.Printf("Database cleanup completed: %d old entries removed from %d tables (%s)\n", 
+	fmt.Printf("Database cleanup completed: %d old entries removed from %d tables (%s)\n",
 		totalCleaned, len(checkedTables), strings.Join(checkedTables, ", "))
 	return nil
+}
+
+func collectCleanupTables() ([]string, error) {
+	query := "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list database tables: %w", err)
+	}
+	defer rows.Close()
+
+	tables := []string{DefaultTableName}
+	existing := map[string]struct{}{
+		strings.Trim(DefaultTableName, "[]"): {},
+	}
+
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, fmt.Errorf("failed to scan table name: %w", err)
+		}
+
+		if _, skip := existing[name]; skip {
+			continue
+		}
+
+		tables = append(tables, name)
+		serverLogTables.Store(name, struct{}{})
+		existing[name] = struct{}{}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate table names: %w", err)
+	}
+
+	return tables, nil
+}
+
+func displayTableName(tableName string) string {
+	return strings.Trim(tableName, "[]")
 }
 
 // cleanTableEntries is an internal helper that cleans a single table and accumulates the count
@@ -188,9 +231,9 @@ func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int
 
 	*totalCleaned += rowsAffected
 	if rowsAffected > 0 {
-		fmt.Printf("  ✓ Cleaned %d old entries from table %s\n", rowsAffected, tableName)
+		fmt.Printf("  ✓ Cleaned %d old entries from table %s\n", rowsAffected, displayTableName(tableName))
 	} else {
-		fmt.Printf("  ✓ No old entries found in table %s\n", tableName)
+		fmt.Printf("  ✓ No old entries found in table %s\n", displayTableName(tableName))
 	}
 	return nil
 }
@@ -200,7 +243,6 @@ func CleanOldTableEntries(tableName string, cutoffDate time.Time) error {
 	var totalCleaned int64
 	return cleanTableEntries(tableName, cutoffDate, &totalCleaned)
 }
-
 
 // IsDatabaseInitialized checks if the database is initialized and accessible
 func IsDatabaseInitialized() bool {
@@ -282,14 +324,14 @@ func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogE
 // GetAvailableTables returns a list of available table names for querying
 func GetAvailableTables() []string {
 	tables := []string{"default"} // Return clean name for API
-	
+
 	// Add all server tables
 	serverLogTables.Range(func(key, value any) bool {
 		tableName := key.(string)
 		tables = append(tables, tableName)
 		return true // continue iteration
 	})
-	
+
 	return tables
 }
 
