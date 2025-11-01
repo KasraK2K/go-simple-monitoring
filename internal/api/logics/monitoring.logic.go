@@ -1102,17 +1102,17 @@ func checkSingleServer(server models.ServerConfig) models.ServerCheck {
 func readConfigFromFile() (*models.MonitoringConfig, error) {
 	configPath := getConfigPath()
 	if configPath == "" {
-		return nil, fmt.Errorf("could not locate configs.json")
+		return nil, fmt.Errorf("could not locate configuration file")
 	}
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read configs.json: %w", err)
+		return nil, fmt.Errorf("failed to read configuration file %s: %w", configPath, err)
 	}
 
 	var config models.MonitoringConfig
 	if err = json.Unmarshal(data, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse configs.json: %w", err)
+		return nil, fmt.Errorf("failed to parse configuration file %s: %w", configPath, err)
 	}
 
 	return &config, nil
@@ -1120,6 +1120,10 @@ func readConfigFromFile() (*models.MonitoringConfig, error) {
 
 // getConfigPath returns the path to configs.json
 func getConfigPath() string {
+	if override := strings.TrimSpace(os.Getenv("MONITOR_CONFIG_PATH")); override != "" {
+		return filepath.Clean(override)
+	}
+
 	cwd, err := os.Getwd()
 	if err != nil {
 		return ""

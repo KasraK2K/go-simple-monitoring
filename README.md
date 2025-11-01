@@ -25,6 +25,12 @@
    go run ./cmd
    ```
 
+   To point at a custom configuration file, set `MONITOR_CONFIG_PATH` (defaults to `configs.json` in the project root):
+
+   ```bash
+   MONITOR_CONFIG_PATH=/path/to/your/config.json go run ./cmd
+   ```
+
    or use the watcher:
 
    ```bash
