@@ -253,22 +253,32 @@ func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogE
 	var query string
 	var args []any
 
+	fromNormalized, err := normalizeTimestampInput(from)
+	if err != nil {
+		return nil, fmt.Errorf("invalid from timestamp: %w", err)
+	}
+
+	toNormalized, err := normalizeTimestampInput(to)
+	if err != nil {
+		return nil, fmt.Errorf("invalid to timestamp: %w", err)
+	}
+
 	// Build query based on provided filters
-	if from != "" && to != "" {
+	if fromNormalized != "" && toNormalized != "" {
 		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at >= ? AND created_at <= ? 
 				ORDER BY created_at DESC`, tableName)
-		args = []any{from, to}
-	} else if from != "" {
+		args = []any{fromNormalized, toNormalized}
+	} else if fromNormalized != "" {
 		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at >= ? 
 				ORDER BY created_at DESC`, tableName)
-		args = []any{from}
-	} else if to != "" {
+		args = []any{fromNormalized}
+	} else if toNormalized != "" {
 		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
 				WHERE created_at <= ? 
 				ORDER BY created_at DESC`, tableName)
-		args = []any{to}
+		args = []any{toNormalized}
 	} else {
 		// No date filters, get all entries from the table
 		query = fmt.Sprintf(`SELECT timestamp, data FROM %s ORDER BY created_at DESC`, tableName)
@@ -335,4 +345,29 @@ func ensureServerLogTable(rawName string) (string, error) {
 
 	serverLogTables.Store(sanitized, struct{}{})
 	return sanitized, nil
+}
+
+func normalizeTimestampInput(value string) (string, error) {
+	if value == "" {
+		return "", nil
+	}
+
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"2006-01-02T15:04:05",
+	}
+
+	var parsed time.Time
+	var err error
+	for _, layout := range layouts {
+		parsed, err = time.Parse(layout, value)
+		if err == nil {
+			localized := parsed.In(time.Local)
+			return localized.Format("2006-01-02 15:04:05"), nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupported time format")
 }

@@ -41,6 +41,7 @@ export function formatDateInputToISO(value, endOfRange = false) {
 export async function applyDateFilter() {
   const { from, to } = getFilterInputs();
   if (!from && !to) {
+    state.autoFilter = null;
     state.pendingFilter = null;
     state.historicalMode = false;
     state.historicalSeries = [];
@@ -65,6 +66,7 @@ export async function applyDateFilter() {
     from: fromISO || null,
     to: toISO || null
   };
+  state.autoFilter = null;
   state.historicalMode = true;
   state.historicalSeries = [];
   state.previousMetrics = null;
@@ -73,6 +75,7 @@ export async function applyDateFilter() {
 }
 
 export async function clearDateFilter() {
+  state.autoFilter = null;
   state.pendingFilter = null;
   state.historicalMode = false;
   state.historicalSeries = [];

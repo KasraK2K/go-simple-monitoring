@@ -135,7 +135,49 @@ type Process struct {
 
 type MonitoringLogEntry struct {
 	Time string         `json:"time"`
-	Body map[string]any `json:"body"`
+	Body map[string]any `json:"-"`
+}
+
+func (e MonitoringLogEntry) MarshalJSON() ([]byte, error) {
+	payload := make(map[string]any, len(e.Body)+1)
+	for key, value := range e.Body {
+		payload[key] = value
+	}
+	payload["time"] = e.Time
+	return json.Marshal(payload)
+}
+
+func (e *MonitoringLogEntry) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	if timeRaw, ok := raw["time"]; ok {
+		_ = json.Unmarshal(timeRaw, &e.Time)
+		delete(raw, "time")
+	}
+
+	// Backward compatibility: handle legacy {"body": {...}}
+	if bodyRaw, ok := raw["body"]; ok {
+		var body map[string]any
+		if err := json.Unmarshal(bodyRaw, &body); err != nil {
+			return err
+		}
+		e.Body = body
+		return nil
+	}
+
+	body := make(map[string]any, len(raw))
+	for key, value := range raw {
+		var decoded any
+		if err := json.Unmarshal(value, &decoded); err != nil {
+			return err
+		}
+		body[key] = decoded
+	}
+	e.Body = body
+	return nil
 }
 
 type ServerLogEntry struct {

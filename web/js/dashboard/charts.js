@@ -243,8 +243,28 @@ export function updateCharts(data, networkDelta = { bytes_received: 0, bytes_sen
 }
 
 export function renderHistoricalCharts(series) {
-  if (!Array.isArray(series) || series.length === 0) return;
   if (!state.systemChart || !state.networkChart) return;
+  
+  // Handle empty series by clearing the charts
+  if (!Array.isArray(series) || series.length === 0) {
+    state.systemChart.data.labels = [];
+    state.systemChart.data.datasets[0].data = [];
+    state.systemChart.data.datasets[1].data = [];
+    
+    state.networkChart.data.labels = [];
+    state.networkChart.data.datasets[0].data = [];
+    state.networkChart.data.datasets[1].data = [];
+    
+    // Clear usage donut as well
+    if (state.usageDonut) {
+      state.usageDonut.data.datasets[0].data = [0, 0, 0];
+      state.usageDonut.update('none');
+    }
+    
+    state.systemChart.update();
+    state.networkChart.update();
+    return;
+  }
 
   const chronological = [...series].reverse();
 

@@ -9,6 +9,7 @@ export const state = {
   availableServers: [],
   selectedServer: null,
   selectedBaseUrl: '',
+  autoFilter: null,
   handleServerSelection: null,
   pendingFilter: null,
   historicalSeries: [],
