@@ -49,6 +49,12 @@ export async function fetchMetrics() {
     const data = entries[0] || null;
 
     if (!data) {
+      if (filterPayload) {
+        state.pendingFilter = null;
+        state.historicalMode = false;
+        state.historicalSeries = [];
+        return fetchMetrics();
+      }
       throw new Error('No monitoring data available');
     }
 
