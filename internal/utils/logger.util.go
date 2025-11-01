@@ -349,7 +349,7 @@ func removeEmptyDir(dir string) error {
 }
 
 // getRootDiskMetric extracts a specific metric from the root disk (/) for backwards compatibility
-func getRootDiskMetric(diskSpaces []models.DiskSpace, metric string) interface{} {
+func getRootDiskMetric(diskSpaces []models.DiskSpace, metric string) any {
 	// Find root disk (path="/") or use the first disk as fallback
 	var rootDisk *models.DiskSpace
 	for i := range diskSpaces {

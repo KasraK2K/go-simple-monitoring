@@ -33,12 +33,12 @@
     {
       "name": "Localhost 1000",
       "address": "http://localhost:1000",
-      "table_name": "local_monitoring"
+      "table_name": "local_monitoring_1000"
     },
     {
       "name": "Localhost 2000",
       "address": "http://localhost:2000",
-      "table_name": "local_monitoring"
+      "table_name": "local_monitoring_2000"
     }
   ]
 }

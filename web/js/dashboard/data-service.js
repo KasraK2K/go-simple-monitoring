@@ -22,15 +22,34 @@ export async function fetchMetrics() {
       setLoadingState("initial", true);
     }
 
-    const monitoringUrl = buildEndpoint("/monitoring");
     const usingAutoFilter = Boolean(state.autoFilter);
     const filterPayload = state.autoFilter || state.pendingFilter;
-    const requestBody = filterPayload
-      ? JSON.stringify({
-          from: filterPayload.from || undefined,
-          to: filterPayload.to || undefined,
-        })
-      : null;
+    
+    // For remote servers with historical data requests, we need to query local database first
+    const isRemoteServer = Boolean(state.selectedBaseUrl);
+    const isHistoricalRequest = Boolean(filterPayload);
+    
+    let monitoringUrl, requestBody;
+    
+    if (isRemoteServer && isHistoricalRequest && !state.initialHistoricalLoadComplete) {
+      // Initial historical data request: use local server with table_name parameter
+      const tableName = findTableNameForServer(state.selectedBaseUrl);
+      monitoringUrl = "/monitoring"; // Local server endpoint
+      requestBody = JSON.stringify({
+        table_name: tableName,
+        from: filterPayload.from || undefined,
+        to: filterPayload.to || undefined,
+      });
+    } else {
+      // Live data requests: use appropriate endpoint (local or remote)
+      monitoringUrl = buildEndpoint("/monitoring");
+      requestBody = filterPayload
+        ? JSON.stringify({
+            from: filterPayload.from || undefined,
+            to: filterPayload.to || undefined,
+          })
+        : null;
+    }
 
     const response = await fetch(monitoringUrl, {
       method: "POST",
@@ -210,6 +229,11 @@ export async function fetchMetrics() {
     if (usingAutoFilter && !state.pendingFilter) {
       state.historicalMode = false;
       state.historicalSeries = [];
+      
+      // For remote servers, clear the initial historical load flag to allow live data requests
+      if (isRemoteServer) {
+        state.initialHistoricalLoadComplete = true;
+      }
     }
   } catch (error) {
     console.error("Error fetching metrics:", error);
@@ -232,7 +256,8 @@ export function scheduleNextFetch() {
   clearTimeout(state.refreshTimer);
   state.refreshTimer = setTimeout(async () => {
     try {
-      await fetchServerConfig(state.selectedBaseUrl);
+      // Always fetch server config from local server to get complete server list
+      await fetchServerConfig("");
       await fetchMetrics();
     } catch (error) {
       console.error("Scheduled fetch failed:", error);
@@ -358,12 +383,17 @@ export async function handleServerSelection(server) {
 
   state.selectedServer = server.address ? { ...server, address } : null;
   state.selectedBaseUrl = address;
+  
+  // Fetch server config from local server to ensure state.serverConfig has the complete server list
+  await fetchServerConfig("");
+  
   state.autoFilter = createAutoFilterRange(24 * 60 * 60 * 1000);
   state.pendingFilter = null;
   applyAutoFilterUI(state.autoFilter, "24h");
   state.historicalMode = false;
   state.historicalSeries = [];
   state.previousMetrics = null;
+  state.initialHistoricalLoadComplete = false;
 
   updateStatus(false);
   updateHeartbeat();
@@ -378,7 +408,7 @@ export async function handleServerSelection(server) {
   updateRemoteContext();
 
   clearTimeout(state.refreshTimer);
-  await fetchServerConfig(state.selectedBaseUrl);
+  await fetchServerConfig("");
   await fetchMetrics();
   scheduleNextFetch();
 }
@@ -595,6 +625,34 @@ function formatDateForInput(date) {
     `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
     `T${pad(date.getHours())}:${pad(date.getMinutes())}`
   );
+}
+
+function findTableNameForServer(serverAddress) {
+  const sanitizedAddress = sanitizeBaseUrl(serverAddress);
+  
+  // Look for the server in the configuration to find its table_name
+  const servers = state.serverConfig?.servers || [];
+  
+  for (const server of servers) {
+    const serverSanitized = sanitizeBaseUrl(server.address);
+    if (serverSanitized === sanitizedAddress) {
+      return server.table_name || `local_monitoring_${extractPortFromAddress(sanitizedAddress)}`;
+    }
+  }
+  
+  // Fallback: generate table name from port
+  return `local_monitoring_${extractPortFromAddress(sanitizedAddress)}`;
+}
+
+function extractPortFromAddress(address) {
+  try {
+    const url = new URL(address.startsWith('http') ? address : `http://${address}`);
+    return url.port || '80';
+  } catch {
+    // Extract port from address string manually if URL parsing fails
+    const match = address.match(/:(\d+)$/);
+    return match ? match[1] : '80';
+  }
 }
 
 state.handleServerSelection = handleServerSelection;

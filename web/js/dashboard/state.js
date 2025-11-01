@@ -32,6 +32,7 @@ export const state = {
   serverMetrics: [],
   searchTerm: '',
   isInitialLoad: true,
+  initialHistoricalLoadComplete: false,
   chartUpdateQueue: [],
   isUpdatingCharts: false,
   initialized: false,
