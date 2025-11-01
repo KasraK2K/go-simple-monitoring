@@ -98,8 +98,20 @@ Configure the `logrotate` block to prune old log files and database rows automat
 | 10s      | ~14 MB     | ~97 MB      | ~0.41 GB     | ~4.9 GB     |
 
 **Notes**:
+
 - Estimates assume each log entry is ~1.65 KB (two disks + three heartbeat targets). Actual usage will vary with disk count, heartbeat list, and payload size.
 - Use the `CleanOldLogs()` function to automatically remove logs older than specified days to manage disk space.
+
+---
+
+## API Information
+
+| Endpoint                | Method | Description                                                        |
+| ----------------------- | ------ | ------------------------------------------------------------------ |
+| `/`                     | GET    | Main dashboard UI with monitoring interface                        |
+| `/api/v1/server-config` | GET    | Server configuration including refresh interval and server list    |
+| `/api/v1/tables`        | GET    | Available database table names and count                           |
+| `/monitoring`           | POST   | System monitoring data with optional filtering and table selection |
 
 ---
 
@@ -166,6 +178,7 @@ curl -X GET http://localhost:3500/api/v1/tables
 ```
 
 Response:
+
 ```json
 {
   "tables": ["default", "server_api_prod", "server_web_staging"],
@@ -207,6 +220,7 @@ curl -X POST http://localhost:3500/monitoring \
 ```
 
 **Notes:**
+
 - If `table_name` is omitted or empty, the default monitoring table is queried
 - Use `"table_name": "default"` to explicitly query the main monitoring table
 - Server tables are created automatically when servers are configured with `table_name` in `configs.json`
