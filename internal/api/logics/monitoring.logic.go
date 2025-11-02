@@ -11,7 +11,6 @@ import (
 	"math"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -20,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
 	"github.com/shirou/gopsutil/v3/load"
 	"github.com/shirou/gopsutil/v3/mem"
@@ -927,86 +927,29 @@ func getCPUUsagePercent() (float64, error) {
 }
 
 func getCPUUsageUnix() (float64, error) {
-	// Use 'top' command to get CPU usage (works on macOS and Linux)
-	cmd := exec.Command("top", "-l", "1", "-n", "0")
-	if runtime.GOOS == "linux" {
-		cmd = exec.Command("top", "-bn1")
-	}
-
-	output, err := cmd.Output()
+	// Use gopsutil for secure CPU usage monitoring instead of external commands
+	percentages, err := cpu.Percent(time.Second, false)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to get CPU usage: %w", err)
 	}
-
-	lines := strings.SplitSeq(string(output), "\n")
-	for line := range lines {
-		if runtime.GOOS == "darwin" {
-			// macOS format: "CPU usage: 12.34% user, 5.67% sys, 81.99% idle"
-			if strings.Contains(line, "CPU usage:") {
-				parts := strings.Split(line, ",")
-				if len(parts) >= 3 {
-					idlePart := strings.TrimSpace(parts[2])
-					if strings.Contains(idlePart, "% idle") {
-						idleStr := strings.Fields(idlePart)[0]
-						idleStr = strings.TrimSuffix(idleStr, "%")
-						idle, err := strconv.ParseFloat(idleStr, 64)
-						if err == nil {
-							return 100 - idle, nil
-						}
-					}
-				}
-			}
-		} else {
-			// Linux format: "%Cpu(s):  1.2 us,  0.8 sy,  0.0 ni, 98.0 id,  0.0 wa,  0.0 hi,  0.0 si,  0.0 st"
-			if strings.Contains(line, "%Cpu(s):") {
-				parts := strings.SplitSeq(line, ",")
-				for part := range parts {
-					part = strings.TrimSpace(part)
-					if strings.Contains(part, " id") {
-						fields := strings.Fields(part)
-						if len(fields) >= 1 {
-							idleStr := fields[0]
-							idle, err := strconv.ParseFloat(idleStr, 64)
-							if err == nil {
-								return 100 - idle, nil
-							}
-						}
-					}
-				}
-			}
-		}
+	
+	if len(percentages) == 0 {
+		return 0, fmt.Errorf("no CPU usage data available")
 	}
-
-	return 0, fmt.Errorf("could not parse CPU usage from top output")
+	
+	// Return overall CPU usage percentage
+	return percentages[0], nil
 }
 
 func getLoadAverage() (string, error) {
-	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
-		cmd := exec.Command("uptime")
-		output, err := cmd.Output()
-		if err != nil {
-			return "", err
-		}
-
-		outputStr := strings.TrimSpace(string(output))
-		// Look for load averages pattern: "load averages: 1.23 1.45 1.67" or "load average: 1.23, 1.45, 1.67"
-		if idx := strings.Index(outputStr, "load average"); idx != -1 {
-			loadPart := outputStr[idx:]
-			// Extract the numbers after "load average:"
-			colonIdx := strings.Index(loadPart, ":")
-			if colonIdx != -1 {
-				loadNumbers := strings.TrimSpace(loadPart[colonIdx+1:])
-				// Clean up the format
-				loadNumbers = strings.ReplaceAll(loadNumbers, ",", "")
-				parts := strings.Fields(loadNumbers)
-				if len(parts) >= 3 {
-					return fmt.Sprintf("%s, %s, %s", parts[0], parts[1], parts[2]), nil
-				}
-			}
-		}
+	// Use gopsutil for secure load average monitoring instead of external commands
+	loadAvg, err := load.Avg()
+	if err != nil {
+		return "", fmt.Errorf("failed to get load average: %w", err)
 	}
-
-	return "", fmt.Errorf("load average not available on %s", runtime.GOOS)
+	
+	// Format load averages to match expected format
+	return fmt.Sprintf("%.2f, %.2f, %.2f", loadAvg.Load1, loadAvg.Load5, loadAvg.Load15), nil
 }
 
 func getAllDiskSpaces() ([]models.DiskSpace, error) {

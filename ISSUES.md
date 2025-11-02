@@ -53,7 +53,7 @@ query := fmt.Sprintf(`INSERT INTO %s (timestamp, data) VALUES (?, ?)`, tableName
 **Risk**: SQL injection if table names are user-controlled
 **Fix**: Use parameterized queries and validate table names against whitelist
 
-### [ ] 5. Command Injection Risk (High)
+### [X] 5. Command Injection Risk (High)
 
 **Location**: `/internal/api/logics/monitoring.logic.go` lines 887-896
 **Issue**: Executes external commands without input validation
