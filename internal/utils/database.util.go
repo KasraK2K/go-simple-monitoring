@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -17,7 +18,42 @@ const DefaultTableName = "`default`"
 var (
 	db              *sql.DB
 	serverLogTables sync.Map
+	// validTableNameRegex allows alphanumeric, underscore, and backticks only
+	validTableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\x60]+$`)
 )
+
+// validateTableName ensures table name is safe against SQL injection
+func validateTableName(tableName string) error {
+	if tableName == "" {
+		return fmt.Errorf("table name cannot be empty")
+	}
+	
+	// Check length
+	if len(tableName) > 64 {
+		return fmt.Errorf("table name too long (max 64 characters)")
+	}
+	
+	// Check against regex
+	if !validTableNameRegex.MatchString(tableName) {
+		return fmt.Errorf("table name contains invalid characters (only alphanumeric, underscore, and backticks allowed)")
+	}
+	
+	// Check for SQL keywords and dangerous patterns
+	lowerName := strings.ToLower(strings.Trim(tableName, "`"))
+	sqlKeywords := []string{
+		"drop", "delete", "update", "insert", "select", "create", "alter",
+		"database", "schema", "index", "view", "trigger", "procedure", "function",
+		"union", "where", "order", "group", "having", "join", "from", "into",
+	}
+	
+	for _, keyword := range sqlKeywords {
+		if lowerName == keyword {
+			return fmt.Errorf("table name cannot be SQL keyword: %s", keyword)
+		}
+	}
+	
+	return nil
+}
 
 // InitDatabase initializes the SQLite database
 func InitDatabase() error {
@@ -46,6 +82,11 @@ func InitDatabase() error {
 
 // ensureTable creates a table with the given name if it doesn't exist
 func ensureTable(tableName string) error {
+	// Validate table name for security
+	if err := validateTableName(tableName); err != nil {
+		return fmt.Errorf("invalid table name: %w", err)
+	}
+	
 	// Get clean name for index naming (remove brackets, quotes etc.)
 	cleanName := SanitizeTableName(tableName)
 
@@ -73,6 +114,11 @@ func ensureTable(tableName string) error {
 func writeToTableInternal(tableName string, entry models.MonitoringLogEntry) error {
 	if db == nil {
 		return fmt.Errorf("database not initialized")
+	}
+
+	// Validate table name for security
+	if err := validateTableName(tableName); err != nil {
+		return fmt.Errorf("invalid table name: %w", err)
 	}
 
 	// Convert entry to JSON
@@ -213,6 +259,11 @@ func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int
 		return fmt.Errorf("database not initialized")
 	}
 
+	// Validate table name for security
+	if err := validateTableName(tableName); err != nil {
+		return fmt.Errorf("invalid table name: %w", err)
+	}
+
 	query := fmt.Sprintf(`DELETE FROM %s WHERE created_at < ?`, tableName)
 	result, err := db.Exec(query, cutoffDate)
 	if err != nil {
@@ -248,6 +299,11 @@ func IsDatabaseInitialized() bool {
 func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogEntry, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not initialized")
+	}
+
+	// Validate table name for security
+	if err := validateTableName(tableName); err != nil {
+		return nil, fmt.Errorf("invalid table name: %w", err)
 	}
 
 	var query string
