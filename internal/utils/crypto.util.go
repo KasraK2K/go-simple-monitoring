@@ -3,7 +3,7 @@ package utils
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 )
@@ -54,11 +54,11 @@ func DecryptCryptoJSAES(encryptedBase64, passphrase string) (string, error) {
 	return string(plain), nil
 }
 
-// EVP_BytesToKey (MD5) like OpenSSL/CryptoJS when given a passphrase
+// EVP_BytesToKey (SHA-256) for secure key derivation from passphrase
 func evpBytesToKey(pass, salt []byte, keyLen, ivLen int) (key, iv []byte) {
 	var d, out []byte
 	for len(out) < keyLen+ivLen {
-		h := md5.New()
+		h := sha256.New()
 		h.Write(d)
 		h.Write(pass)
 		h.Write(salt)

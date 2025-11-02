@@ -29,7 +29,7 @@ w.Header().Set("Access-Control-Allow-Origin", "*")
 **Risk**: Cross-origin attacks, potential data theft
 **Fix**: Configure specific allowed origins based on deployment environment
 
-### [ ] 3. Weak Cryptographic Practices (High)
+### [X] 3. Weak Cryptographic Practices (High)
 
 **Location**: `/internal/utils/crypto.util.go` lines 62-67
 **Issue**: Uses deprecated MD5 for key derivation
