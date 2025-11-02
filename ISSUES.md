@@ -17,7 +17,7 @@ var jwtSecret string = "QiOjObFkrNmV4FhObFk0SmxkQ0N3UDMTmlNalZ1V"
 **Risk**: Complete security bypass, credential exposure in version control
 **Fix**: Move secrets to environment variables or secure configuration files
 
-### [ ] 2. CORS Wildcard Origin (High)
+### [X] 2. CORS Wildcard Origin (High)
 
 **Location**: `/internal/api/handlers/Handler.go` line 22
 **Issue**: CORS allows all origins with `*`

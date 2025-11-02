@@ -52,6 +52,26 @@ Example with environment variables:
 AES_SECRET="your-secure-aes-key" JWT_SECRET="your-secure-jwt-key" go run ./cmd
 ```
 
+### CORS Configuration
+
+For security, CORS (Cross-Origin Resource Sharing) is configured to only allow specific origins:
+
+```bash
+export CORS_ALLOWED_ORIGINS="http://localhost:3500,https://yourdomain.com"
+```
+
+CORS configuration options:
+- **Development**: Defaults to localhost origins if not set in non-production environments
+- **Production**: `CORS_ALLOWED_ORIGINS` is required and must be explicitly set
+- **Format**: Comma-separated list of allowed origins (e.g., "http://localhost:3000,https://app.example.com")
+- **Wildcard**: Use "*" to allow all origins (NOT recommended for production)
+
+Example with CORS configuration:
+
+```bash
+AES_SECRET="your-key" JWT_SECRET="your-key" CORS_ALLOWED_ORIGINS="https://yourdomain.com" go run ./cmd
+```
+
    or use the watcher:
 
    ```bash

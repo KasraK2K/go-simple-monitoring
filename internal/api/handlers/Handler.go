@@ -31,21 +31,55 @@ func setHeader(w http.ResponseWriter, status int, responseData string) {
 	_, _ = w.Write([]byte(responseData))
 }
 
+func getCORSOrigins() string {
+	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if origins == "" {
+		// Default to localhost for development
+		if IsProduction() {
+			log.Fatal("CORS_ALLOWED_ORIGINS must be set in production environment")
+		}
+		return "http://localhost:3500,http://127.0.0.1:3500"
+	}
+	return origins
+}
+
+func isOriginAllowed(origin string, allowedOrigins string) bool {
+	if allowedOrigins == "*" {
+		return true
+	}
+
+	origins := strings.SplitSeq(allowedOrigins, ",")
+	for allowed := range origins {
+		if strings.TrimSpace(allowed) == origin {
+			return true
+		}
+	}
+	return false
+}
+
 func CORSMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		allowedOrigins := getCORSOrigins()
+
+		if origin != "" && isOriginAllowed(origin, allowedOrigins) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		} else if allowedOrigins == "*" {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		next(w, r)
 	}
 }
-
 
 func getTokenFromHeader(r *http.Request) string {
 	authHeader := r.Header.Get("Authorization")
