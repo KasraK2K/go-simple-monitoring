@@ -2,14 +2,28 @@ package handlers
 
 import (
 	"go-log/internal/utils"
+	"log"
 	"net/http"
 	"os"
 	"slices"
 	"strings"
 )
 
-var aesSecret string = "jVuTFhObFk0SmxkQzFyWlhrNmlNalZ1VEZoT2JGazBTbXhrUXpHeVdsaHJObVa3JObVY0c0luUlNqRmpNbF"
-var jwtSecret string = "QiOjObFkrNmV4FhObFk0SmxkQ0N3UDMTmlNalZ1V"
+func getRequiredEnv(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		log.Fatalf("Required environment variable %s is not set", key)
+	}
+	return value
+}
+
+func getAESSecret() string {
+	return getRequiredEnv("AES_SECRET")
+}
+
+func getJWTSecret() string {
+	return getRequiredEnv("JWT_SECRET")
+}
 
 func setHeader(w http.ResponseWriter, status int, responseData string) {
 	w.Header().Set("Content-Type", "application/json")
@@ -53,7 +67,7 @@ func ValidateTokenAndParseGeneric[T any](r *http.Request) (*T, error) {
 		return nil, utils.ErrMissingToken
 	}
 
-	claims, err := utils.DecryptAndParseToken[T](encryptedToken, aesSecret, jwtSecret)
+	claims, err := utils.DecryptAndParseToken[T](encryptedToken, getAESSecret(), getJWTSecret())
 	if err != nil {
 		return nil, err
 	}

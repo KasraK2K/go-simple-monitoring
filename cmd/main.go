@@ -1,18 +1,68 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 
 	"go-log/internal/api/handlers"
 	"go-log/internal/utils"
 )
 
+func loadEnvFile() {
+	// Try multiple possible locations for .env file
+	possiblePaths := []string{
+		".env",
+		"../.env",
+		"../../.env",
+		"../../../.env",
+	}
+	
+	// Also try based on executable location
+	if ex, err := os.Executable(); err == nil {
+		exDir := filepath.Dir(ex)
+		possiblePaths = append(possiblePaths, filepath.Join(exDir, ".env"))
+	}
+	
+	// Try current working directory
+	if wd, err := os.Getwd(); err == nil {
+		possiblePaths = append(possiblePaths, filepath.Join(wd, ".env"))
+	}
+	
+	for _, envPath := range possiblePaths {
+		if file, err := os.Open(envPath); err == nil {
+			defer file.Close()
+			log.Printf("Loading .env from: %s", envPath)
+			
+			scanner := bufio.NewScanner(file)
+			for scanner.Scan() {
+				line := strings.TrimSpace(scanner.Text())
+				if line == "" || strings.HasPrefix(line, "#") {
+					continue
+				}
+				
+				parts := strings.SplitN(line, "=", 2)
+				if len(parts) == 2 {
+					key := strings.TrimSpace(parts[0])
+					value := strings.TrimSpace(parts[1])
+					os.Setenv(key, value)
+				}
+			}
+			return // Found and loaded .env file
+		}
+	}
+}
+
 func main() {
+	// Load .env file before anything else
+	loadEnvFile()
+
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

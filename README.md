@@ -31,6 +31,27 @@
    MONITOR_CONFIG_PATH=/path/to/your/config.json go run ./cmd
    ```
 
+## Security Configuration
+
+**IMPORTANT**: For security, you must set the following environment variables before running the application:
+
+```bash
+export AES_SECRET="your-aes-secret-key-here"
+export JWT_SECRET="your-jwt-secret-key-here"
+```
+
+These secrets are required for JWT token encryption/decryption and should be:
+- At least 32 characters long for AES_SECRET
+- At least 16 characters long for JWT_SECRET  
+- Randomly generated and unique per deployment
+- Kept secure and not committed to version control
+
+Example with environment variables:
+
+```bash
+AES_SECRET="your-secure-aes-key" JWT_SECRET="your-secure-jwt-key" go run ./cmd
+```
+
    or use the watcher:
 
    ```bash

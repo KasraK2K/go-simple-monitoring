@@ -4,7 +4,7 @@ This document lists all identified security vulnerabilities, logic errors, code 
 
 ## Critical Security Issues
 
-### [ ] 1. Hardcoded Secrets in Source Code (Critical)
+### [X] 1. Hardcoded Secrets in Source Code (Critical)
 
 **Location**: `/internal/api/handlers/Handler.go` lines 11-12
 **Issue**: JWT and AES secrets are hardcoded in source code
