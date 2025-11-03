@@ -123,7 +123,7 @@ localized := parsed.In(time.Local)
 **Risk**: Resource exhaustion, connection pool depletion
 **Fix**: Configure connection pools and timeouts
 
-### [ ] 13. Inconsistent Error Types (Medium)
+### [X] 13. Inconsistent Error Types (Medium)
 
 **Location**: `/internal/utils/token.util.go` line 39
 **Issue**: Returns wrong error type (`jwt.ErrInvalidKey` for JSON marshal error)
