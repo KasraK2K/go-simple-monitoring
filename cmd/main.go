@@ -66,6 +66,9 @@ func main() {
 	
 	// Initialize timezone configuration
 	utils.InitTimeConfig()
+	
+	// Initialize HTTP client configuration
+	utils.InitHTTPConfig()
 
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)
@@ -78,6 +81,9 @@ func main() {
 		
 		// Clean up all monitoring goroutines
 		logics.CleanupAllGoroutines()
+		
+		// Close HTTP client connections
+		utils.CloseHTTPClient()
 		
 		// Close database connection if open
 		utils.CloseDatabase()

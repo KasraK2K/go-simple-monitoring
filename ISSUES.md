@@ -116,7 +116,7 @@ localized := parsed.In(time.Local)
 **Risk**: Data corruption, inconsistent timestamps
 **Fix**: Use UTC consistently or explicit timezone handling
 
-### [ ] 12. Resource Exhaustion in HTTP Clients (Medium)
+### [X] 12. Resource Exhaustion in HTTP Clients (Medium)
 
 **Location**: `/internal/api/logics/monitoring.logic.go` lines 389, 1501
 **Issue**: HTTP clients created without connection limits

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"go-log/internal/api/models"
 	"go-log/internal/utils"
-	"io"
 	"log"
 	"math"
 	"net/http"
@@ -388,7 +387,8 @@ func fetchAndCacheServerMetric(server models.ServerEndpoint) (*models.ServerMetr
 		return nil, fmt.Errorf("server address is empty")
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	// Use the shared HTTP client for resource efficiency
+	client := utils.GetHTTPClient()
 	payload, err := fetchServerMonitoring(client, normalized)
 	if err != nil {
 		return nil, err
@@ -1243,7 +1243,8 @@ func checkSingleServer(server models.ServerConfig) models.ServerCheck {
 		}
 	}
 
-	client := &http.Client{}
+	// Use shared HTTP client with timeout for server checks
+	client := utils.GetHTTPClientWithTimeout(timeout)
 	resp, err := client.Do(req)
 	responseTime := time.Since(start)
 
@@ -1555,7 +1556,8 @@ func persistServerLogs() {
 		return
 	}
 
-	client := &http.Client{Timeout: 10 * time.Second}
+	// Use shared HTTP client for efficiency
+	client := utils.GetHTTPClient()
 
 	for _, server := range cfg.Servers {
 		if utils.IsEmptyOrWhitespace(server.TableName) {
@@ -1591,38 +1593,17 @@ func persistServerLogs() {
 }
 
 func fetchServerMonitoring(client *http.Client, baseAddress string) ([]byte, error) {
-	if client == nil {
-		return nil, fmt.Errorf("http client is not configured")
-	}
-
 	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader("{}"))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+	// Use the centralized HTTP utility with resource limits
+	headers := map[string]string{
+		"Content-Type": "application/json",
 	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode >= http.StatusBadRequest {
-		return nil, fmt.Errorf("unexpected status code %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response: %w", err)
-	}
-
-	return body, nil
+	
+	body := strings.NewReader("{}")
+	return utils.MakeHTTPRequestWithLimits(ctx, http.MethodPost, endpoint, body, headers)
 }
 
 // getNetworkIO returns network I/O statistics
