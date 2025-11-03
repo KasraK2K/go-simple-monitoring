@@ -72,6 +72,34 @@ Example with CORS configuration:
 AES_SECRET="your-key" JWT_SECRET="your-key" CORS_ALLOWED_ORIGINS="https://yourdomain.com" go run ./cmd
 ```
 
+### Rate Limiting Configuration
+
+The application implements rate limiting to prevent DoS attacks and resource exhaustion:
+
+```bash
+export RATE_LIMIT_ENABLED="true"  # Enable/disable rate limiting (default: true)
+export RATE_LIMIT_RPS="10"        # Requests per second (default: 10)
+export RATE_LIMIT_BURST="20"      # Burst capacity (default: 20)
+```
+
+Rate limiting features:
+- **Enable/Disable**: Can be completely disabled by setting `RATE_LIMIT_ENABLED=false`
+- **Token Bucket Algorithm**: Allows burst traffic up to the burst limit, then enforces steady rate
+- **Per-Client Limiting**: Each client IP is tracked separately
+- **Configurable Limits**: Set requests per second and burst capacity via environment variables
+- **Standard Headers**: Returns `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers
+- **Proxy Support**: Properly handles `X-Forwarded-For` and `X-Real-IP` headers
+
+Example configurations:
+
+```bash
+# Enable rate limiting with custom limits
+RATE_LIMIT_ENABLED="true" RATE_LIMIT_RPS="5" RATE_LIMIT_BURST="10" go run ./cmd
+
+# Disable rate limiting completely
+RATE_LIMIT_ENABLED="false" go run ./cmd
+```
+
    or use the watcher:
 
    ```bash
