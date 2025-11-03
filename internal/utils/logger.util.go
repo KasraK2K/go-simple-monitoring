@@ -6,6 +6,7 @@ import (
 	"go-log/internal/api/models"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -118,13 +119,24 @@ func formatHeartbeatForLog(heartbeat []models.ServerCheck) []map[string]any {
 
 // writeLogEntry writes a single log entry to the daily log file in JSON array format
 func writeLogEntry(entry models.MonitoringLogEntry) error {
+	// Validate and sanitize log directory path
+	validatedLogDir, err := ValidateLogPath(logConfig.Path)
+	if err != nil {
+		return fmt.Errorf("invalid log directory: %w", err)
+	}
+
 	// Generate filename based on current date
 	now := time.Now()
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
-	logPath := filepath.Join(logConfig.Path, filename)
+	logPath := filepath.Join(validatedLogDir, filename)
+	
+	// Validate that the final log path is still within the secure directory
+	if !strings.HasPrefix(filepath.Clean(logPath), filepath.Clean(validatedLogDir)) {
+		return fmt.Errorf("security violation: log path outside validated directory")
+	}
 
-	// Ensure log directory exists
-	if err := os.MkdirAll(logConfig.Path, 0755); err != nil {
+	// Ensure log directory exists with secure permissions
+	if err := CreateSecureDirectory(validatedLogDir); err != nil {
 		return fmt.Errorf("failed to create log directory: %w", err)
 	}
 
@@ -157,8 +169,8 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 		return fmt.Errorf("failed to marshal log entries: %w", err)
 	}
 
-	// Write the complete JSON array to file
-	if err := os.WriteFile(logPath, jsonData, 0644); err != nil {
+	// Write the complete JSON array to file with secure permissions
+	if err := os.WriteFile(logPath, jsonData, 0640); err != nil {
 		return fmt.Errorf("failed to write log file: %w", err)
 	}
 
@@ -167,27 +179,41 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 
 // WriteServerLogToFile persists remote server payloads into per-server log files.
 func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload []byte) error {
-	if IsEmptyOrWhitespace(basePath) {
-		return fmt.Errorf("log path is not configured")
+	// Validate base path
+	validatedBasePath, err := ValidateLogPath(basePath)
+	if err != nil {
+		return fmt.Errorf("invalid base log path: %w", err)
 	}
 
 	if IsEmptyOrWhitespace(server.TableName) {
 		return nil
 	}
 
-	dirName := SanitizeFilesystemName(server.TableName)
+	// Validate and sanitize server directory name
+	dirName, err := ValidateServerDirName(server.TableName)
+	if err != nil {
+		return fmt.Errorf("invalid server name: %w", err)
+	}
+
 	if dirName == "" {
 		return nil
 	}
 
 	now := time.Now()
-	serverDir := filepath.Join(basePath, "servers", dirName)
-	if err := os.MkdirAll(serverDir, 0755); err != nil {
+	serverDir := filepath.Join(validatedBasePath, "servers", dirName)
+	
+	// Create server directory with secure permissions
+	if err := CreateSecureDirectory(serverDir); err != nil {
 		return fmt.Errorf("failed to create server log directory: %w", err)
 	}
 
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	logPath := filepath.Join(serverDir, filename)
+	
+	// Validate that the final log path is still within the secure directory
+	if !strings.HasPrefix(filepath.Clean(logPath), filepath.Clean(serverDir)) {
+		return fmt.Errorf("security violation: log path outside server directory")
+	}
 
 	var entries []models.ServerLogEntry
 
@@ -210,7 +236,7 @@ func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload
 		return fmt.Errorf("failed to marshal server log entries: %w", err)
 	}
 
-	if err := os.WriteFile(logPath, jsonData, 0644); err != nil {
+	if err := os.WriteFile(logPath, jsonData, 0640); err != nil {
 		return fmt.Errorf("failed to write server log file: %w", err)
 	}
 
