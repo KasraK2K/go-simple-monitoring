@@ -34,8 +34,10 @@ var (
 	lastConfigModTime    time.Time
 	loggingTicker        *time.Ticker
 	loggingStopChan      chan struct{}
+	loggingMu            sync.Mutex
 	logRotateTicker      *time.Ticker
 	logRotateStopChan    chan struct{}
+	logRotateMu          sync.Mutex
 	serverMetricsCache   = map[string]cachedServerMetric{}
 	serverMetricsCacheMu sync.RWMutex
 )
@@ -1361,14 +1363,26 @@ func startAutoLogging() {
 		refreshDuration = 2 * time.Second
 	}
 
-	// Start new ticker
+	// Start new ticker with proper synchronization
+	loggingMu.Lock()
 	loggingTicker = time.NewTicker(refreshDuration)
 	loggingStopChan = make(chan struct{})
+	
+	// Create local copies to avoid race conditions
+	ticker := loggingTicker
+	stopChan := loggingStopChan
+	loggingMu.Unlock()
 
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				utils.LogErrorWithContext("auto-logging", "goroutine panic recovered", fmt.Errorf("%v", r))
+			}
+		}()
+		
 		for {
 			select {
-			case <-loggingTicker.C:
+			case <-ticker.C:
 				// Generate monitoring data and log it
 				if data, err := MonitoringDataGenerator(); err == nil {
 					if logErr := utils.LogMonitoringData(data); logErr != nil {
@@ -1377,21 +1391,30 @@ func startAutoLogging() {
 				}
 
 				persistServerLogs()
-			case <-loggingStopChan:
+			case <-stopChan:
 				return
 			}
 		}
 	}()
 }
 
-// stopAutoLogging stops the automatic logging
+// stopAutoLogging stops the automatic logging with proper synchronization
 func stopAutoLogging() {
+	loggingMu.Lock()
+	defer loggingMu.Unlock()
+	
 	if loggingTicker != nil {
 		loggingTicker.Stop()
 		loggingTicker = nil
 	}
 	if loggingStopChan != nil {
-		close(loggingStopChan)
+		// Safe close - check if channel is already closed
+		select {
+		case <-loggingStopChan:
+			// Channel already closed
+		default:
+			close(loggingStopChan)
+		}
 		loggingStopChan = nil
 	}
 	stopLogRotation()
@@ -1433,15 +1456,28 @@ func configureLogRotation() {
 
 	performCleanup(maxAge)
 
+	// Start log rotation with proper synchronization
+	logRotateMu.Lock()
 	logRotateTicker = time.NewTicker(24 * time.Hour)
 	logRotateStopChan = make(chan struct{})
+	
+	// Create local copies to avoid race conditions
+	ticker := logRotateTicker
+	stopChan := logRotateStopChan
+	logRotateMu.Unlock()
 
 	go func(retention int) {
+		defer func() {
+			if r := recover(); r != nil {
+				utils.LogErrorWithContext("log-rotation", "goroutine panic recovered", fmt.Errorf("%v", r))
+			}
+		}()
+		
 		for {
 			select {
-			case <-logRotateTicker.C:
+			case <-ticker.C:
 				performCleanup(retention)
-			case <-logRotateStopChan:
+			case <-stopChan:
 				return
 			}
 		}
@@ -1449,14 +1485,48 @@ func configureLogRotation() {
 }
 
 func stopLogRotation() {
+	logRotateMu.Lock()
+	defer logRotateMu.Unlock()
+	
 	if logRotateTicker != nil {
 		logRotateTicker.Stop()
 		logRotateTicker = nil
 	}
 	if logRotateStopChan != nil {
-		close(logRotateStopChan)
+		// Safe close - check if channel is already closed
+		select {
+		case <-logRotateStopChan:
+			// Channel already closed
+		default:
+			close(logRotateStopChan)
+		}
 		logRotateStopChan = nil
 	}
+}
+
+// CleanupAllGoroutines stops all running goroutines and cleans up resources
+// This function should be called during application shutdown
+func CleanupAllGoroutines() {
+	utils.LogInfo("cleaning up all monitoring goroutines...")
+	
+	// Stop auto-logging goroutines
+	stopAutoLogging()
+	
+	utils.LogInfo("all monitoring goroutines cleaned up successfully")
+}
+
+// IsAutoLoggingActive checks if auto-logging is currently running
+func IsAutoLoggingActive() bool {
+	loggingMu.Lock()
+	defer loggingMu.Unlock()
+	return loggingTicker != nil && loggingStopChan != nil
+}
+
+// IsLogRotationActive checks if log rotation is currently running
+func IsLogRotationActive() bool {
+	logRotateMu.Lock()
+	defer logRotateMu.Unlock()
+	return logRotateTicker != nil && logRotateStopChan != nil
 }
 
 func persistServerLogs() {

@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"go-log/internal/api/handlers"
+	"go-log/internal/api/logics"
 	"go-log/internal/utils"
 )
 
@@ -71,7 +72,14 @@ func main() {
 	go func() {
 		<-c
 		log.Println("Shutting down server...")
-		utils.CloseDatabase() // Close database connection if open
+		
+		// Clean up all monitoring goroutines
+		logics.CleanupAllGoroutines()
+		
+		// Close database connection if open
+		utils.CloseDatabase()
+		
+		log.Println("Server shutdown completed")
 		os.Exit(0)
 	}()
 
