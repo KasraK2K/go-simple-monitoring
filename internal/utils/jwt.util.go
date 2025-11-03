@@ -10,16 +10,16 @@ func ParseJWT(tokenStr, jwtSecret string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		// Ensure it's HMAC
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, errors.New("unexpected signing method")
+			return nil, NewAuthError("INVALID_SIGNING_METHOD", "unexpected JWT signing method", errors.New("expected HMAC signing method"))
 		}
 		return []byte(jwtSecret), nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, NewAuthError("TOKEN_PARSE_FAILED", "failed to parse JWT token", err)
 	}
 
 	if !token.Valid {
-		return nil, errors.New("invalid token")
+		return nil, NewAuthError("INVALID_TOKEN", "JWT token is invalid", ErrInvalidToken)
 	}
 
 	return token, nil
@@ -35,8 +35,8 @@ func ParseBusinessIDFromJWT(tokenStr, jwtSecret string) (int, error) {
 		if bid, ok := claims["business_id"].(float64); ok {
 			return int(bid), nil
 		}
-		return 0, errors.New("business_id not found")
+		return 0, NewDataError("BUSINESS_ID_NOT_FOUND", "business_id claim not found in token", ErrInvalidClaims)
 	}
 
-	return 0, errors.New("invalid token claims")
+	return 0, NewDataError("INVALID_CLAIMS", "failed to extract claims from JWT token", ErrInvalidClaims)
 }

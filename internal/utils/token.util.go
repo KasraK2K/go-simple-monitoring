@@ -36,19 +36,19 @@ func DecryptAndParseToken[T any](encryptedToken, aesSecret, jwtSecret string) (*
 	// 3. Extract claims and marshal to JSON
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, jwt.ErrInvalidKey
+		return nil, NewDataError("INVALID_CLAIMS", "failed to extract claims from token", ErrInvalidClaims)
 	}
 
 	claimsJSON, err := json.Marshal(claims)
 	if err != nil {
-		return nil, err
+		return nil, NewDataError("MARSHAL_FAILED", "failed to marshal token claims", err)
 	}
 
 	// 4. Unmarshal to target struct
 	var result T
 	err = json.Unmarshal(claimsJSON, &result)
 	if err != nil {
-		return nil, err
+		return nil, NewDataError("UNMARSHAL_FAILED", "failed to unmarshal claims to target type", err)
 	}
 
 	return &result, nil
