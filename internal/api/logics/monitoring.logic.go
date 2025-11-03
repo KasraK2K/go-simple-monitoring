@@ -1357,7 +1357,7 @@ func startAutoLogging() {
 	// Parse refresh time
 	refreshDuration, err := time.ParseDuration(monitoringConfig.RefreshTime)
 	if err != nil {
-		fmt.Printf("Warning: invalid refresh_time '%s', using default 2s\n", monitoringConfig.RefreshTime)
+		utils.LogWarnWithContext("auto-logging", fmt.Sprintf("invalid refresh_time '%s', using default 2s", monitoringConfig.RefreshTime), err)
 		refreshDuration = 2 * time.Second
 	}
 
@@ -1372,7 +1372,7 @@ func startAutoLogging() {
 				// Generate monitoring data and log it
 				if data, err := MonitoringDataGenerator(); err == nil {
 					if logErr := utils.LogMonitoringData(data); logErr != nil {
-						fmt.Printf("Warning: failed to log monitoring data: %v\n", logErr)
+						utils.LogWarnWithContext("auto-logging", "failed to log monitoring data", logErr)
 					}
 				}
 
@@ -1420,13 +1420,13 @@ func configureLogRotation() {
 
 	performCleanup := func(retention int) {
 		if err := utils.CleanOldLogs(retention); err != nil {
-			fmt.Printf("Warning: log cleanup failed: %v\n", err)
+			utils.LogWarnWithContext("log-rotation", "log cleanup failed", err)
 		}
 
 		cutoff := time.Now().AddDate(0, 0, -retention)
 		if utils.IsDatabaseInitialized() {
 			if err := utils.CleanOldDatabaseEntries(cutoff); err != nil {
-				fmt.Printf("Warning: database cleanup failed: %v\n", err)
+				utils.LogWarnWithContext("log-rotation", "database cleanup failed", err)
 			}
 		}
 	}
@@ -1477,7 +1477,7 @@ func persistServerLogs() {
 	writeDB := (storage == "db" || storage == "both") && utils.IsDatabaseInitialized()
 
 	if writeFile && utils.IsEmptyOrWhitespace(cfg.Path) {
-		fmt.Printf("Warning: persist_server_logs enabled but log path is empty; skipping file persistence\n")
+		utils.LogWarn("persist_server_logs enabled but log path is empty; skipping file persistence")
 		writeFile = false
 	}
 
@@ -1498,23 +1498,23 @@ func persistServerLogs() {
 
 		payload, err := fetchServerMonitoring(client, server.Address)
 		if err != nil {
-			fmt.Printf("Warning: failed to fetch monitoring data from %s: %v\n", server.Address, err)
+			utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", server.Address), err)
 			continue
 		}
 
 		if _, err := updateServerMetricsCache(server, payload); err != nil {
-			fmt.Printf("Warning: failed to parse server metrics from %s: %v\n", server.Address, err)
+			utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to parse server metrics from %s", server.Address), err)
 		}
 
 		if writeFile {
 			if err := utils.WriteServerLogToFile(cfg.Path, server, payload); err != nil {
-				fmt.Printf("Warning: failed to write server log file for %s: %v\n", server.Address, err)
+				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log file for %s", server.Address), err)
 			}
 		}
 
 		if writeDB {
 			if err := utils.WriteServerLogToDatabase(server.TableName, payload); err != nil {
-				fmt.Printf("Warning: failed to write server log to database for %s: %v\n", server.Address, err)
+				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to database for %s", server.Address), err)
 			}
 		}
 	}
