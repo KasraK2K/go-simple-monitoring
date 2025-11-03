@@ -59,7 +59,7 @@ func MonitoringRoutes() {
 	}
 
 	// Serve dashboard UI via templ
-	http.HandleFunc("/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
 			return
@@ -68,13 +68,13 @@ func MonitoringRoutes() {
 		cfg := logics.GetMonitoringConfig()
 		dashboard := views.DashboardPage(views.DashboardProps{Config: cfg})
 		templ.Handler(dashboard).ServeHTTP(w, r)
-	})))
+	}))))
 
 	// Serve HTMX component fragments using templ
 	registerComponent := func(path string, builder func() templ.Component) {
-		http.HandleFunc(path, CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		http.HandleFunc(path, RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
 			templ.Handler(builder()).ServeHTTP(w, r)
-		})))
+		}))))
 	}
 
 	registerComponent("/components/background.html", views.BackgroundComponent)
@@ -95,17 +95,17 @@ func MonitoringRoutes() {
 	})
 
 	// Serve dashboard JavaScript bundle
-	http.HandleFunc("/js/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/js/", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
 		jsDir.ServeHTTP(w, r)
-	})))
+	}))))
 
 	// Serve compiled assets (CSS)
-	http.HandleFunc("/assets/", CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/assets/", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
 		assetsDir.ServeHTTP(w, r)
-	})))
+	}))))
 
 	// Serve monitoring configuration for UI
-	http.HandleFunc("/api/v1/server-config", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler)))
+	http.HandleFunc("/api/v1/server-config", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(configHandler))))
 
 	// Serve available tables endpoint
 	tablesHandler := func(w http.ResponseWriter, r *http.Request) {
@@ -125,7 +125,7 @@ func MonitoringRoutes() {
 		setHeader(w, http.StatusOK, string(jsonData))
 	}
 
-	http.HandleFunc("/api/v1/tables", CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(tablesHandler)))
+	http.HandleFunc("/api/v1/tables", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(tablesHandler))))
 
 	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Check token only in production
@@ -189,7 +189,7 @@ func MonitoringRoutes() {
 	}
 
 	// Apply middleware to restrict to POST method only
-	http.HandleFunc("/monitoring", CORSMiddleware(MethodMiddleware(http.MethodPost, http.MethodOptions)(monitoringHandler)))
+	http.HandleFunc("/monitoring", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodPost, http.MethodOptions)(monitoringHandler))))
 }
 
 func refreshLabelFromConfig(cfg *models.MonitoringConfig) string {
