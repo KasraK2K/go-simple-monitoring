@@ -257,13 +257,13 @@ func CleanOldLogs(daysToKeep int) error {
 	for _, file := range files {
 		if !file.IsDir() && filepath.Ext(file.Name()) == ".log" {
 			if err := cleanLogFile(logConfig.Path, file.Name(), cutoffDate); err != nil {
-				fmt.Printf("Warning: %v\n", err)
+				LogWarnWithContext("log-cleanup", "failed to clean log file", err)
 			}
 		} else if file.IsDir() && file.Name() == "servers" {
 			// Clean server log subdirectories
 			serversDir := filepath.Join(logConfig.Path, "servers")
 			if err := cleanServerLogDirectories(serversDir, cutoffDate); err != nil {
-				fmt.Printf("Warning: failed to clean server logs: %v\n", err)
+				LogWarnWithContext("log-cleanup", "failed to clean server logs", err)
 			}
 		}
 	}
@@ -286,7 +286,7 @@ func cleanLogFile(dir, filename string, cutoffDate time.Time) error {
 		if err := os.Remove(filePath); err != nil {
 			return fmt.Errorf("failed to remove old log file %s: %v", filePath, err)
 		}
-		fmt.Printf("Cleaned up old log file: %s\n", filePath)
+		LogInfo("cleaned up old log file: %s", filePath)
 	}
 	return nil
 }
@@ -310,21 +310,21 @@ func cleanServerLogDirectories(serversDir string, cutoffDate time.Time) error {
 		serverPath := filepath.Join(serversDir, serverDir.Name())
 		logFiles, err := os.ReadDir(serverPath)
 		if err != nil {
-			fmt.Printf("Warning: failed to read server directory %s: %v\n", serverPath, err)
+			LogWarnWithContext("log-cleanup", fmt.Sprintf("failed to read server directory %s", serverPath), err)
 			continue
 		}
 
 		for _, logFile := range logFiles {
 			if !logFile.IsDir() && filepath.Ext(logFile.Name()) == ".log" {
 				if err := cleanLogFile(serverPath, logFile.Name(), cutoffDate); err != nil {
-					fmt.Printf("Warning: %v\n", err)
+					LogWarnWithContext("log-cleanup", "failed to clean server log file", err)
 				}
 			}
 		}
 
 		// Remove empty server directories
 		if err := removeEmptyDir(serverPath); err != nil {
-			fmt.Printf("Warning: failed to remove empty directory %s: %v\n", serverPath, err)
+			LogWarnWithContext("log-cleanup", fmt.Sprintf("failed to remove empty directory %s", serverPath), err)
 		}
 	}
 
@@ -342,7 +342,7 @@ func removeEmptyDir(dir string) error {
 		if err := os.Remove(dir); err != nil {
 			return err
 		}
-		fmt.Printf("Removed empty server log directory: %s\n", dir)
+		LogInfo("removed empty server log directory: %s", dir)
 	}
 
 	return nil

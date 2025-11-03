@@ -189,14 +189,14 @@ func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 	var errors []string
 	var checkedTables []string
 
-	fmt.Printf("Starting database cleanup for entries older than %s\n", cutoffDate.Format("2006-01-02 15:04:05"))
+	LogInfo("starting database cleanup for entries older than %s", cutoffDate.Format("2006-01-02 15:04:05"))
 
 	for _, tableName := range tables {
 		displayName := displayTableName(tableName)
 		if tableName == DefaultTableName {
-			fmt.Printf("Checking default table: %s\n", displayName)
+			LogInfo("checking default table: %s", displayName)
 		} else {
-			fmt.Printf("Checking table: %s\n", displayName)
+			LogInfo("checking table: %s", displayName)
 		}
 
 		checkedTables = append(checkedTables, displayName)
@@ -209,7 +209,7 @@ func CleanOldDatabaseEntries(cutoffDate time.Time) error {
 		return fmt.Errorf("cleanup failed for some tables: %v", errors)
 	}
 
-	fmt.Printf("Database cleanup completed: %d old entries removed from %d tables (%s)\n",
+	LogInfo("database cleanup completed: %d old entries removed from %d tables (%s)",
 		totalCleaned, len(checkedTables), strings.Join(checkedTables, ", "))
 	return nil
 }
@@ -277,9 +277,9 @@ func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int
 
 	*totalCleaned += rowsAffected
 	if rowsAffected > 0 {
-		fmt.Printf("  ✓ Cleaned %d old entries from table %s\n", rowsAffected, displayTableName(tableName))
+		LogInfo("  ✓ cleaned %d old entries from table %s", rowsAffected, displayTableName(tableName))
 	} else {
-		fmt.Printf("  ✓ No old entries found in table %s\n", displayTableName(tableName))
+		LogInfo("  ✓ no old entries found in table %s", displayTableName(tableName))
 	}
 	return nil
 }
