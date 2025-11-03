@@ -192,7 +192,7 @@ func WriteServerLogToDatabase(tableName string, payload []byte) error {
 	}
 
 	entry := models.ServerLogEntry{
-		Time:    time.Now().Format(time.RFC3339Nano),
+		Time:    FormatTimestampUTC(NowUTC()),
 		Payload: json.RawMessage(payload),
 	}
 
@@ -447,26 +447,6 @@ func ensureServerLogTable(rawName string) (string, error) {
 }
 
 func normalizeTimestampInput(value string) (string, error) {
-	if value == "" {
-		return "", nil
-	}
-
-	layouts := []string{
-		time.RFC3339Nano,
-		time.RFC3339,
-		"2006-01-02 15:04:05",
-		"2006-01-02T15:04:05",
-	}
-
-	var parsed time.Time
-	var err error
-	for _, layout := range layouts {
-		parsed, err = time.Parse(layout, value)
-		if err == nil {
-			localized := parsed.In(time.Local)
-			return localized.Format("2006-01-02 15:04:05"), nil
-		}
-	}
-
-	return "", fmt.Errorf("unsupported time format")
+	// Use the new centralized timezone-aware function
+	return NormalizeTimestampInput(value)
 }
