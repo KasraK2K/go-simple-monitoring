@@ -78,7 +78,7 @@ func InitMonitoringConfig() {
 			}
 			startAutoLogging()
 		}
-		lastConfigModTime = time.Now()
+		lastConfigModTime = utils.NowUTC()
 	})
 }
 
@@ -99,7 +99,7 @@ func InitMonitoringConfigCLI() {
 			monitoringConfig = newConfig
 			// CLI mode: NO auto-logging, NO database initialization
 		}
-		lastConfigModTime = time.Now()
+		lastConfigModTime = utils.NowUTC()
 	})
 }
 
@@ -164,11 +164,11 @@ func ensureConfigLoaded() {
 						}
 						startAutoLogging()
 					}
-					lastConfigModTime = time.Now()
+					lastConfigModTime = utils.NowUTC()
 					monitoringConfigMu.Unlock()
 				} else {
 					monitoringConfigMu.Lock()
-					lastConfigModTime = time.Now()
+					lastConfigModTime = utils.NowUTC()
 					monitoringConfigMu.Unlock()
 				}
 			}
@@ -195,7 +195,7 @@ func getDefaultConfig() *models.MonitoringConfig {
 func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
 	cfg := GetMonitoringConfig()
 	monitoring := &models.SystemMonitoring{
-		Timestamp: time.Now(),
+		Timestamp: utils.NowUTC(),
 	}
 
 	// Collect all system metrics in parallel for better performance
@@ -317,7 +317,7 @@ func buildServerMetricSnapshot(server models.ServerEndpoint, refresh time.Durati
 	if normalized == "" {
 		metric.Status = "error"
 		metric.Message = "server address is missing"
-		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
 		return metric
 	}
 
@@ -339,7 +339,7 @@ func buildServerMetricSnapshot(server models.ServerEndpoint, refresh time.Durati
 	if err != nil {
 		metric.Status = "error"
 		metric.Message = err.Error()
-		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
 		return metric
 	}
 
@@ -414,13 +414,13 @@ func updateServerMetricsCache(server models.ServerEndpoint, payload []byte) (*mo
 		metric.Status = "ok"
 	}
 	if metric.Timestamp == "" {
-		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
 	}
 
 	serverMetricsCacheMu.Lock()
 	serverMetricsCache[normalized] = cachedServerMetric{
 		metric:    *metric,
-		fetchedAt: time.Now(),
+		fetchedAt: utils.NowUTC(),
 	}
 	serverMetricsCacheMu.Unlock()
 
@@ -484,9 +484,9 @@ func buildMetricsFromSnapshot(server models.ServerEndpoint, snapshot models.Syst
 	}
 
 	if !snapshot.Timestamp.IsZero() {
-		metric.Timestamp = snapshot.Timestamp.Format(time.RFC3339Nano)
+		metric.Timestamp = utils.FormatTimestampUTC(snapshot.Timestamp)
 	} else {
-		metric.Timestamp = time.Now().Format(time.RFC3339Nano)
+		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
 	}
 
 	return metric
@@ -509,7 +509,7 @@ func buildMetricsFromGenericMap(server models.ServerEndpoint, body map[string]an
 		Name:      server.Name,
 		Address:   normalizeServerAddress(server.Address),
 		Status:    "ok",
-		Timestamp: time.Now().Format(time.RFC3339Nano),
+		Timestamp: utils.FormatTimestampUTC(utils.NowUTC()),
 	}
 
 	if value, ok := body["cpu_usage_percent"]; ok {
@@ -684,7 +684,7 @@ func convertServerLogEntryToSystemMonitoring(entry models.MonitoringLogEntry, pa
 
 	// Use the entry time if timestamp is not set
 	if snapshot.Timestamp.IsZero() && entry.Time != "" {
-		if ts, err := time.Parse(time.RFC3339Nano, entry.Time); err == nil {
+		if ts, err := utils.ParseTimestampUTC(entry.Time); err == nil {
 			snapshot.Timestamp = ts
 		}
 	}
@@ -697,7 +697,7 @@ func convertFlatLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*mo
 
 	// Parse timestamp
 	if entry.Time != "" {
-		if ts, err := time.Parse(time.RFC3339Nano, entry.Time); err == nil {
+		if ts, err := utils.ParseTimestampUTC(entry.Time); err == nil {
 			snapshot.Timestamp = ts
 		}
 	}
@@ -1219,7 +1219,7 @@ func checkServerHeartbeats(servers []models.ServerConfig) []models.ServerCheck {
 }
 
 func checkSingleServer(server models.ServerConfig) models.ServerCheck {
-	start := time.Now()
+	start := utils.NowUTC()
 
 	timeout := time.Duration(server.Timeout) * time.Second
 	if timeout == 0 {

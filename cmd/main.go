@@ -63,6 +63,9 @@ func loadEnvFile() {
 func main() {
 	// Load .env file before anything else
 	loadEnvFile()
+	
+	// Initialize timezone configuration
+	utils.InitTimeConfig()
 
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)

@@ -26,7 +26,7 @@ func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLog
 	}
 
 	return models.MonitoringLogEntry{
-		Time: data.Timestamp.Format(time.RFC3339Nano),
+		Time: FormatTimestampUTC(data.Timestamp),
 		Body: map[string]any{
 			"cpu_usage_percent":    data.CPU.UsagePercent,
 			"cpu_cores":            data.CPU.CoreCount,
@@ -125,8 +125,8 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 		return fmt.Errorf("invalid log directory: %w", err)
 	}
 
-	// Generate filename based on current date
-	now := time.Now()
+	// Generate filename based on current date (in UTC)
+	now := NowUTC()
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	logPath := filepath.Join(validatedLogDir, filename)
 	
@@ -199,7 +199,7 @@ func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload
 		return nil
 	}
 
-	now := time.Now()
+	now := NowUTC()
 	serverDir := filepath.Join(validatedBasePath, "servers", dirName)
 	
 	// Create server directory with secure permissions
@@ -226,7 +226,7 @@ func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload
 	}
 
 	entry := models.ServerLogEntry{
-		Time:    now.Format(time.RFC3339Nano),
+		Time:    FormatTimestampUTC(now),
 		Payload: json.RawMessage(payload),
 	}
 	entries = append(entries, entry)
@@ -249,7 +249,7 @@ func GetLogFilePath() string {
 		return ""
 	}
 
-	now := time.Now()
+	now := NowUTC()
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	return filepath.Join(logConfig.Path, filename)
 }

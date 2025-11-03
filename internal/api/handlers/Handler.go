@@ -210,7 +210,7 @@ func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if !exists {
 			client = &clientEntry{
 				tokens:     float64(burst),
-				lastRefill: time.Now(),
+				lastRefill: utils.NowUTC(),
 			}
 			clientMutex.Lock()
 			rateLimitClients[clientKey] = client
@@ -220,7 +220,7 @@ func RateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		client.mutex.Lock()
 		defer client.mutex.Unlock()
 		
-		now := time.Now()
+		now := utils.NowUTC()
 		elapsed := now.Sub(client.lastRefill).Seconds()
 		
 		// Refill tokens based on elapsed time
