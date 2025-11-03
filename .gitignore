@@ -24,6 +24,7 @@ vendor/
 .env
 .env.*
 *.local
+!.env.example
 
 # IDE & editor files
 .idea/
@@ -56,3 +57,5 @@ out/
 .claude/
 configs-1000.json
 configs-2000.json
+monitoring.db-shm
+monitoring.db-wal

@@ -1,11 +1,14 @@
 package utils
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -55,28 +58,68 @@ func validateTableName(tableName string) error {
 	return nil
 }
 
-// InitDatabase initializes the SQLite database
+// getDatabaseConfig returns database configuration from environment variables
+func getDatabaseConfig() (maxConnections, connectionTimeout, idleTimeout int) {
+	maxConnections = 10 // Default
+	if val := os.Getenv("DB_MAX_CONNECTIONS"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			maxConnections = parsed
+		}
+	}
+	
+	connectionTimeout = 30 // Default 30 seconds
+	if val := os.Getenv("DB_CONNECTION_TIMEOUT"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			connectionTimeout = parsed
+		}
+	}
+	
+	idleTimeout = 300 // Default 5 minutes
+	if val := os.Getenv("DB_IDLE_TIMEOUT"); val != "" {
+		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
+			idleTimeout = parsed
+		}
+	}
+	
+	return maxConnections, connectionTimeout, idleTimeout
+}
+
+// InitDatabase initializes the SQLite database with proper connection pooling
 func InitDatabase() error {
 	if db != nil {
 		return nil // Already initialized
 	}
 
 	var err error
-	db, err = sql.Open("sqlite3", "./monitoring.db")
+	db, err = sql.Open("sqlite3", "./monitoring.db?_journal_mode=WAL&_timeout=5000&_fk=true")
 	if err != nil {
 		return fmt.Errorf("failed to open sqlite database: %w", err)
 	}
 
-	// Test connection
-	if err = db.Ping(); err != nil {
+	// Configure connection pool
+	maxConn, connTimeout, idleTimeout := getDatabaseConfig()
+	db.SetMaxOpenConns(maxConn)
+	db.SetMaxIdleConns(maxConn / 2)
+	db.SetConnMaxLifetime(time.Duration(connTimeout) * time.Second)
+	db.SetConnMaxIdleTime(time.Duration(idleTimeout) * time.Second)
+
+	// Test connection with timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	
+	if err = db.PingContext(ctx); err != nil {
+		db.Close()
 		return fmt.Errorf("failed to ping database: %w", err)
 	}
 
 	// Create default table directly
 	if err = ensureTable(DefaultTableName); err != nil {
+		db.Close()
 		return fmt.Errorf("failed to create default table: %w", err)
 	}
 
+	LogInfo("database initialized with max_connections=%d, connection_timeout=%ds, idle_timeout=%ds", 
+		maxConn, connTimeout, idleTimeout)
 	return nil
 }
 
