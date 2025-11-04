@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go-log/internal/api/models"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -24,6 +25,34 @@ var (
 	// validTableNameRegex allows alphanumeric, underscore, and backticks only
 	validTableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\x60]+$`)
 )
+
+// getDatabaseFolder returns the base database folder from environment
+func getDatabaseFolder() string {
+	baseFolder := os.Getenv("BASE_DATABASE_FOLDER")
+	if baseFolder == "" {
+		return "./" // Default: current directory
+	}
+	return baseFolder
+}
+
+// getDatabasePath returns the full path to the database file
+func getDatabasePath() string {
+	dbFolder := getDatabaseFolder()
+	return filepath.Join(dbFolder, "monitoring.db")
+}
+
+// ensureDatabaseDirectoryExists creates the database directory if it doesn't exist
+func ensureDatabaseDirectoryExists() error {
+	dbFolder := getDatabaseFolder()
+	if _, err := os.Stat(dbFolder); os.IsNotExist(err) {
+		err := os.MkdirAll(dbFolder, 0755)
+		if err != nil {
+			return err
+		}
+		LogInfo(fmt.Sprintf("Created database directory: %s", dbFolder))
+	}
+	return nil
+}
 
 // validateTableName ensures table name is safe against SQL injection
 func validateTableName(tableName string) error {
@@ -90,8 +119,16 @@ func InitDatabase() error {
 		return nil // Already initialized
 	}
 
+	// Get database path from environment
+	dbPath := getDatabasePath()
+	
+	// Ensure database directory exists
+	if err := ensureDatabaseDirectoryExists(); err != nil {
+		return fmt.Errorf("failed to create database directory: %w", err)
+	}
+
 	var err error
-	db, err = sql.Open("sqlite3", "./monitoring.db?_journal_mode=WAL&_timeout=5000&_fk=true")
+	db, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_timeout=5000&_fk=true")
 	if err != nil {
 		return fmt.Errorf("failed to open sqlite database: %w", err)
 	}

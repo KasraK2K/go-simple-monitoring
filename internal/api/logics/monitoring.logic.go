@@ -175,10 +175,19 @@ func ensureConfigLoaded() {
 	}
 }
 
+// getDefaultLogPath returns the default log path from environment
+func getDefaultLogPath() string {
+	baseFolder := os.Getenv("BASE_LOG_FOLDER")
+	if baseFolder == "" {
+		return "./logs" // Default: ./logs
+	}
+	return baseFolder
+}
+
 // getDefaultConfig returns default configuration
 func getDefaultConfig() *models.MonitoringConfig {
 	return &models.MonitoringConfig{
-		Path:              "./logs",
+		Path:              getDefaultLogPath(),
 		RefreshTime:       "2s",
 		Storage:           "file",
 		PersistServerLogs: false,
@@ -1294,6 +1303,11 @@ func readConfigFromFile() (*models.MonitoringConfig, error) {
 	var config models.MonitoringConfig
 	if err = json.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse configuration file %s: %w", configPath, err)
+	}
+
+	// Override path with environment variable if set
+	if envLogPath := os.Getenv("BASE_LOG_FOLDER"); envLogPath != "" {
+		config.Path = envLogPath
 	}
 
 	return &config, nil

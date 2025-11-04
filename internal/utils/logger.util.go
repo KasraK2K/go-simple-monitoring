@@ -17,6 +17,23 @@ var (
 // InitLogger initializes the logger with configuration
 func InitLogger(config *models.MonitoringConfig) {
 	logConfig = config
+	
+	// Ensure log directory exists if using file storage and path is configured
+	if config != nil && config.Storage == "file" && config.Path != "" {
+		ensureLogDirectoryExists(config.Path)
+	}
+}
+
+// ensureLogDirectoryExists creates the log directory if it doesn't exist
+func ensureLogDirectoryExists(logPath string) {
+	if _, err := os.Stat(logPath); os.IsNotExist(err) {
+		err := os.MkdirAll(logPath, 0755)
+		if err != nil {
+			LogError(fmt.Sprintf("Failed to create log directory: %s", err))
+		} else {
+			LogInfo(fmt.Sprintf("Created log directory: %s", logPath))
+		}
+	}
 }
 
 // BuildMonitoringLogEntry converts a SystemMonitoring snapshot into the log entry structure used for persistence.

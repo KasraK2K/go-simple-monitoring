@@ -7,6 +7,23 @@ import (
 	"strings"
 )
 
+// getLogFolderPath returns the log folder path from environment
+func getLogFolderPath() string {
+	baseFolder := os.Getenv("BASE_LOG_FOLDER")
+	if baseFolder == "" {
+		return "./logs" // Default: ./logs
+	}
+	
+	// Convert to absolute path if relative
+	if !filepath.IsAbs(baseFolder) {
+		wd, err := os.Getwd()
+		if err == nil {
+			return filepath.Join(wd, baseFolder)
+		}
+	}
+	return baseFolder
+}
+
 // IsEmptyOrWhitespace checks if a string is empty or contains only whitespace
 func IsEmptyOrWhitespace(s string) bool {
 	return strings.TrimSpace(s) == ""
@@ -110,9 +127,12 @@ func ValidateLogPath(logPath string) (string, error) {
 		return "", fmt.Errorf("failed to get working directory: %w", err)
 	}
 
+	// Get log folder from environment
+	logFolder := getLogFolderPath()
+	
 	// Define allowed base directories (relative to working directory)
 	allowedBases := []string{
-		filepath.Join(wd, "logs"),
+		logFolder,
 		filepath.Join(wd, "data"),
 		filepath.Join(wd, "storage"),
 		"/tmp/go-monitoring",
@@ -129,7 +149,7 @@ func ValidateLogPath(logPath string) (string, error) {
 		
 		// Check if absPath is within or equal to the allowed base
 		rel, err := filepath.Rel(baseAbs, absPath)
-		if err == nil && !strings.HasPrefix(rel, "..") {
+		if err == nil && (rel == "." || !strings.HasPrefix(rel, "..")) {
 			pathAllowed = true
 			break
 		}
