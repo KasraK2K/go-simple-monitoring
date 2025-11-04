@@ -35,17 +35,20 @@ sudo chown -R monitoring:monitoring /opt/monitoring
 sudo chown -R monitoring:monitoring /var/log/monitoring
 sudo chmod 0755 /opt/monitoring/monitoring
 sudo chmod 0644 /opt/monitoring/configs.json
+
+# Note: The SQLite database file (monitoring.db) will be automatically created 
+# in /opt/monitoring/ when the service starts for the first time
 ```
 
-Update your `configs.json` to use the system log path:
+Create your `configs.json` configuration file:
 
 ```bash
 sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
-  "path": "/var/log/monitoring",
+  "path": "./logs",
   "refresh_time": "5s",
-  "storage": "file",
-  "persist_server_logs": false,
+  "storage": "both",
+  "persist_server_logs": true,
   "logrotate": {
     "enabled": true,
     "max_age_days": 30
@@ -79,14 +82,65 @@ EOF
 sudo chown monitoring:monitoring /opt/monitoring/configs.json
 ```
 
-If your binary needs environment variables, create `/opt/monitoring/.env`:
+> **Note**: The `path` field in `configs.json` will be automatically overridden by the `BASE_LOG_FOLDER` environment variable, so the actual log path will be `/var/log/monitoring` as configured in the `.env` file.
+
+Create the environment configuration file `/opt/monitoring/.env`:
 
 ```bash
 sudo tee /opt/monitoring/.env >/dev/null <<'EOF'
-# Example env variables
-JWT_SECRET=your-jwt-secret-here
+# Required Secrets
 AES_SECRET=your-aes-secret-here
-ENV=production
+JWT_SECRET=your-jwt-secret-here
+
+# Server Configuration  
+PORT=3500
+
+# Environment
+GO_ENV=production
+
+# CORS Configuration
+CORS_ALLOWED_ORIGINS=*
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_RPS=10
+RATE_LIMIT_BURST=20
+
+# Logging
+LOG_LEVEL=INFO
+
+# Token Validation
+CHECK_TOKEN=false
+
+# Dashboard
+HAS_DASHBOARD=true
+
+# Path Configuration (use environment-based paths)
+BASE_LOG_FOLDER=/var/log/monitoring
+BASE_DATABASE_FOLDER=/opt/monitoring
+
+# Database Configuration
+DB_MAX_CONNECTIONS=30
+DB_CONNECTION_TIMEOUT=30
+DB_IDLE_TIMEOUT=300
+
+# Server Monitoring
+SERVER_MONITORING_TIMEOUT=15s
+
+# HTTP Client Configuration (optional, uses defaults if not set)
+# HTTP_MAX_CONNS_PER_HOST=10
+# HTTP_MAX_IDLE_CONNS=100
+# HTTP_MAX_IDLE_CONNS_PER_HOST=5
+# HTTP_IDLE_CONN_TIMEOUT=90s
+# HTTP_CONNECT_TIMEOUT=10s
+# HTTP_REQUEST_TIMEOUT=30s
+# HTTP_RESPONSE_HEADER_TIMEOUT=10s
+# HTTP_MAX_RESPONSE_SIZE=10485760
+# HTTP_TLS_HANDSHAKE_TIMEOUT=10s
+
+# Time Configuration (optional)
+# DISABLE_UTC_ENFORCEMENT=false
+# DEFAULT_TIMEZONE=UTC
 EOF
 sudo chown monitoring:monitoring /opt/monitoring/.env
 sudo chmod 0640 /opt/monitoring/.env
@@ -122,8 +176,8 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
-# Allow writes to logs path
-ReadWritePaths=/var/log/monitoring
+# Allow writes to logs and database paths  
+ReadWritePaths=/var/log/monitoring /opt/monitoring
 
 # Restart policy
 Restart=always
@@ -314,5 +368,45 @@ sudo -u monitoring /opt/monitoring/monitoring --help
 ls -la /opt/monitoring/
 ls -la /var/log/monitoring/
 ```
+
+---
+
+## 12) Files to upload and deploy
+
+For deployment, you need to upload these files to your server:
+
+### Required files:
+1. **Compiled binary**: `monitoring` (built with `go build`)
+2. **Configuration file**: `configs.json` 
+3. **Environment file**: `.env` (create based on `.env.example`)
+
+### File locations on server:
+- `/opt/monitoring/monitoring` - The compiled Go binary
+- `/opt/monitoring/configs.json` - JSON configuration file  
+- `/opt/monitoring/.env` - Environment variables file
+- `/etc/systemd/system/monitoring.service` - Systemd service unit
+
+### Build and upload steps:
+```bash
+# 1. On your development machine, build the binary
+templ generate ./web/views  # Generate templ files
+go build -o monitoring ./cmd
+
+# 2. Upload files to server (adjust paths as needed)
+scp monitoring user@server:/tmp/
+scp configs.json user@server:/tmp/
+scp .env user@server:/tmp/
+
+# 3. On the server, move files to correct locations (as shown in step 1)
+sudo cp /tmp/monitoring /opt/monitoring/monitoring
+sudo cp /tmp/configs.json /opt/monitoring/configs.json  
+sudo cp /tmp/.env /opt/monitoring/.env
+```
+
+### Database file:
+- The SQLite database file `monitoring.db` will be automatically created in `/opt/monitoring/` when the service starts
+- No manual upload required for the database
+
+---
 
 That's it! You now have a systemd-managed monitoring service that automatically logs system metrics and server heartbeats to daily log files.
