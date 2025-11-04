@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -138,6 +139,46 @@ func IsDashboardEnabled() bool {
 		return true // Default: true (enabled)
 	}
 	return hasDashboard == "true" || hasDashboard == "1"
+}
+
+func GetLogFolder() string {
+	baseFolder := os.Getenv("BASE_LOG_FOLDER")
+	if baseFolder == "" {
+		return "./logs" // Default: ./logs
+	}
+	return baseFolder
+}
+
+func GetDatabaseFolder() string {
+	baseFolder := os.Getenv("BASE_DATABASE_FOLDER")
+	if baseFolder == "" {
+		return "./" // Default: current directory
+	}
+	return baseFolder
+}
+
+func GetDatabasePath() string {
+	dbFolder := GetDatabaseFolder()
+	return filepath.Join(dbFolder, "monitoring.db")
+}
+
+func ensureDirectoryExists(dirPath string) error {
+	if _, err := os.Stat(dirPath); os.IsNotExist(err) {
+		err := os.MkdirAll(dirPath, 0755)
+		if err != nil {
+			return err
+		}
+		log.Printf("Created directory: %s", dirPath)
+	}
+	return nil
+}
+
+func EnsureLogDirectoryExists() error {
+	return ensureDirectoryExists(GetLogFolder())
+}
+
+func EnsureDatabaseDirectoryExists() error {
+	return ensureDirectoryExists(GetDatabaseFolder())
 }
 
 // Rate limiting structures
