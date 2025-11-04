@@ -132,6 +132,14 @@ func ShouldCheckTokenInProduction() bool {
 	return checkToken == "true" || checkToken == "1"
 }
 
+func IsDashboardEnabled() bool {
+	hasDashboard := os.Getenv("HAS_DASHBOARD")
+	if hasDashboard == "" {
+		return true // Default: true (enabled)
+	}
+	return hasDashboard == "true" || hasDashboard == "1"
+}
+
 // Rate limiting structures
 type clientEntry struct {
 	tokens     float64
