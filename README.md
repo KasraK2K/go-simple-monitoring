@@ -1,9 +1,23 @@
-# Log
+# Go System Monitoring Service
+
+A comprehensive Go-based monitoring service that tracks system resources, monitors remote servers, and provides heartbeat checks with a web dashboard interface.
+
+## Features
+
+- **System Monitoring**: CPU, memory, disk space, network I/O, disk I/O, and process statistics
+- **Remote Server Monitoring**: Monitor multiple remote monitoring endpoints
+- **Heartbeat Checks**: Monitor external services and APIs for availability
+- **Web Dashboard**: Real-time monitoring dashboard with configurable access
+- **Dual Storage**: Support for file-based logging and SQLite database storage
+- **Rate Limiting**: Built-in request rate limiting with configurable thresholds
+- **CORS Support**: Configurable cross-origin resource sharing
+- **Log Rotation**: Automatic cleanup of old logs and database records
+- **Security**: JWT-based authentication with AES encryption
 
 ## Prerequisites
 
-- Go 1.21 or newer (module target: Go 1.24.6).
-- [Templ CLI](https://templ.guide) for generating the dashboard components:
+- Go 1.21 or newer (module target: Go 1.24.6)
+- [Templ CLI](https://templ.guide) for generating dashboard components:
 
   ```bash
   go install github.com/a-h/templ/cmd/templ@latest
@@ -11,110 +25,241 @@
 
   Ensure the `templ` binary is on your `PATH` so generated Go files stay in sync with `.templ` sources.
 
+## Project Structure
+
+```
+├── cmd/                    # Main application entry point
+├── internal/
+│   ├── api/
+│   │   ├── handlers/       # HTTP request handlers
+│   │   ├── logics/         # Business logic
+│   │   └── models/         # Data models
+│   ├── config/             # Configuration management
+│   └── utils/              # Utility functions
+├── web/
+│   └── views/              # Templ template files
+├── configs.json            # Monitoring configuration
+├── .env.example            # Environment variables template
+└── DEPLOYMENT.md           # Production deployment guide
+```
+
 ## Local Development
 
-1. Generate templ bindings (rerun whenever `web/views/*.templ` changes):
+### 1. Environment Setup
 
-   ```bash
-   templ generate ./web/views
-   ```
-
-2. Start the API/UI server:
-
-   ```bash
-   go run ./cmd
-   ```
-
-   To point at a custom configuration file, set `MONITOR_CONFIG_PATH` (defaults to `configs.json` in the project root):
-
-   ```bash
-   MONITOR_CONFIG_PATH=/path/to/your/config.json go run ./cmd
-   ```
-
-## Security Configuration
-
-**IMPORTANT**: For security, you must set the following environment variables before running the application:
+Copy the environment template and configure your settings:
 
 ```bash
-export AES_SECRET="your-aes-secret-key-here"
-export JWT_SECRET="your-jwt-secret-key-here"
+cp .env.example .env
 ```
 
-These secrets are required for JWT token encryption/decryption and should be:
-- At least 32 characters long for AES_SECRET
-- At least 16 characters long for JWT_SECRET  
-- Randomly generated and unique per deployment
-- Kept secure and not committed to version control
-
-Example with environment variables:
+**IMPORTANT**: Set required security variables in your `.env` file:
 
 ```bash
-AES_SECRET="your-secure-aes-key" JWT_SECRET="your-secure-jwt-key" go run ./cmd
+# Required Secrets (generate secure random strings)
+AES_SECRET=your-32-character-aes-secret-key
+JWT_SECRET=your-16-character-jwt-secret
+
+# Server Configuration
+PORT=3500
+
+# Dashboard
+HAS_DASHBOARD=true
+
+# Path Configuration
+BASE_LOG_FOLDER=./logs
+BASE_DATABASE_FOLDER=.
+
+# CORS Configuration (for development)
+CORS_ALLOWED_ORIGINS=http://localhost:3500,http://127.0.0.1:3500
+
+# Rate Limiting
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_RPS=10
+RATE_LIMIT_BURST=20
 ```
 
-### CORS Configuration
+### 2. Configuration File
 
-For security, CORS (Cross-Origin Resource Sharing) is configured to only allow specific origins:
+Create or modify `configs.json` for monitoring settings:
 
-```bash
-export CORS_ALLOWED_ORIGINS="http://localhost:3500,https://yourdomain.com"
+```json
+{
+  "path": "./logs",
+  "refresh_time": "5s",
+  "storage": "both",
+  "persist_server_logs": true,
+  "logrotate": {
+    "enabled": true,
+    "max_age_days": 30
+  },
+  "heartbeat": [
+    {
+      "name": "Google",
+      "url": "https://www.google.com",
+      "timeout": 5
+    },
+    {
+      "name": "GitHub API",
+      "url": "https://api.github.com",
+      "timeout": 5
+    }
+  ],
+  "servers": [
+    {
+      "name": "Production API",
+      "address": "https://api.example.com/monitoring",
+      "table_name": "production_monitoring"
+    }
+  ]
+}
 ```
 
-CORS configuration options:
-- **Development**: Defaults to localhost origins if not set in non-production environments
-- **Production**: `CORS_ALLOWED_ORIGINS` is required and must be explicitly set
-- **Format**: Comma-separated list of allowed origins (e.g., "http://localhost:3000,https://app.example.com")
-- **Wildcard**: Use "*" to allow all origins (NOT recommended for production)
-
-Example with CORS configuration:
+### 3. Generate Templates and Run
 
 ```bash
-AES_SECRET="your-key" JWT_SECRET="your-key" CORS_ALLOWED_ORIGINS="https://yourdomain.com" go run ./cmd
-```
-
-### Rate Limiting Configuration
-
-The application implements rate limiting to prevent DoS attacks and resource exhaustion:
-
-```bash
-export RATE_LIMIT_ENABLED="true"  # Enable/disable rate limiting (default: true)
-export RATE_LIMIT_RPS="10"        # Requests per second (default: 10)
-export RATE_LIMIT_BURST="20"      # Burst capacity (default: 20)
-```
-
-Rate limiting features:
-- **Enable/Disable**: Can be completely disabled by setting `RATE_LIMIT_ENABLED=false`
-- **Token Bucket Algorithm**: Allows burst traffic up to the burst limit, then enforces steady rate
-- **Per-Client Limiting**: Each client IP is tracked separately
-- **Configurable Limits**: Set requests per second and burst capacity via environment variables
-- **Standard Headers**: Returns `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `X-RateLimit-Reset` headers
-- **Proxy Support**: Properly handles `X-Forwarded-For` and `X-Real-IP` headers
-
-Example configurations:
-
-```bash
-# Enable rate limiting with custom limits
-RATE_LIMIT_ENABLED="true" RATE_LIMIT_RPS="5" RATE_LIMIT_BURST="10" go run ./cmd
-
-# Disable rate limiting completely
-RATE_LIMIT_ENABLED="false" go run ./cmd
-```
-
-   or use the watcher:
-
-   ```bash
-   ./scripts/dev.sh
-   ```
-
-   The dashboard is available at http://localhost:3500.
-
-## Build for Linux
-
-Always regenerate templ output before creating release binaries:
-
-```bash
+# Generate templ bindings (required before first run and after template changes)
 templ generate ./web/views
 
+# Start the development server
+go run ./cmd
+```
+
+Or use the development watcher:
+
+```bash
+./scripts/dev.sh
+```
+
+The dashboard will be available at http://localhost:3500.
+
+### 4. Custom Configuration Path
+
+To use a different configuration file:
+
+```bash
+MONITOR_CONFIG_PATH=/path/to/your/config.json go run ./cmd
+```
+
+## Environment Configuration
+
+The application uses centralized environment configuration. All available variables:
+
+### Required Variables
+- `AES_SECRET` - AES encryption key (minimum 32 characters)
+- `JWT_SECRET` - JWT signing key (minimum 16 characters)
+
+### Server Configuration
+- `PORT` - Server port (default: 3500)
+- `GO_ENV` - Environment mode (development/production)
+
+### Security & Access
+- `CORS_ALLOWED_ORIGINS` - Comma-separated allowed origins
+- `CHECK_TOKEN` - Enable token validation (default: false)
+- `HAS_DASHBOARD` - Enable/disable dashboard access (default: true)
+
+### Rate Limiting
+- `RATE_LIMIT_ENABLED` - Enable rate limiting (default: true)
+- `RATE_LIMIT_RPS` - Requests per second (default: 10)
+- `RATE_LIMIT_BURST` - Burst capacity (default: 20)
+
+### Storage Paths
+- `BASE_LOG_FOLDER` - Log files directory (default: ./logs)
+- `BASE_DATABASE_FOLDER` - Database directory (default: .)
+
+### Database Configuration
+- `DB_MAX_CONNECTIONS` - Maximum database connections (default: 30)
+- `DB_CONNECTION_TIMEOUT` - Connection timeout in seconds (default: 30)
+- `DB_IDLE_TIMEOUT` - Idle connection timeout in seconds (default: 300)
+
+### Monitoring Configuration
+- `SERVER_MONITORING_TIMEOUT` - Remote server timeout (default: 15s)
+- `LOG_LEVEL` - Logging level (default: INFO)
+
+## Storage Configuration
+
+Configure storage behavior in `configs.json`:
+
+- `"file"` - Write logs only to log files
+- `"db"` - Write logs only to SQLite database
+- `"both"` - Write logs to both files and database (recommended)
+- `"none"` - Disable persistence entirely
+
+### Storage Requirements (Development)
+
+| Interval | Daily Size | Weekly Size | Monthly Size |
+| -------- | ---------- | ----------- | ------------ |
+| 2s       | ~69 MB     | ~485 MB     | ~2.1 GB      |
+| 5s       | ~28 MB     | ~194 MB     | ~0.83 GB     |
+| 10s      | ~14 MB     | ~97 MB      | ~0.41 GB     |
+
+**Note**: Estimates assume standard system monitoring with heartbeat checks. Actual usage varies with configuration.
+
+## API Endpoints
+
+| Endpoint                | Method | Description                                                        |
+| ----------------------- | ------ | ------------------------------------------------------------------ |
+| `/`                     | GET    | Main dashboard UI (if `HAS_DASHBOARD=true`)                       |
+| `/api/v1/server-config` | GET    | Server configuration including refresh interval and server list    |
+| `/api/v1/tables`        | GET    | Available database table names and count                           |
+| `/monitoring`           | POST   | System monitoring data with optional filtering and table selection |
+
+## API Testing
+
+### Basic Monitoring Data
+
+```bash
+# Get current system metrics
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+### Date Range Filtering
+
+```bash
+# Get metrics for date range
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "from": "2024-01-01",
+    "to": "2024-01-31"
+  }'
+```
+
+### Table-Specific Queries
+
+```bash
+# List available tables
+curl -X GET http://localhost:3500/api/v1/tables
+
+# Query specific server table
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -d '{
+    "table_name": "production_monitoring",
+    "from": "2024-01-01"
+  }'
+```
+
+### With Authentication (Production)
+
+```bash
+curl -X POST http://localhost:3500/monitoring \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -d '{}'
+```
+
+## Build for Production
+
+Always generate templates before building:
+
+```bash
+# Generate templates
+templ generate ./web/views
+
+# Build for Linux
 GOOS=linux GOARCH=amd64 \
 CGO_ENABLED=0 \
 go build \
@@ -124,174 +269,70 @@ go build \
   ./cmd
 ```
 
----
+## Server Configuration
 
-## Log File Storage
-
-The system automatically logs monitoring data to daily files in `YYYY-MM-DD.log` format based on the `configs.json` configuration.
-
-### Storage Configuration
-
-In `configs.json`, you can control where logs are stored using the `storage` field:
-
-- `"file"` - Write logs only to log files (recommended for production)
-- `"db"` - Write logs only to database
-- `"both"` - Write logs to both files and database
-- `"none"` - Disable persistence entirely (no files or database writes and log rotation is skipped)
-
-### Server Log Persistence
-
-- `"persist_server_logs"` - When `true`, fetch `/monitoring` from each configured server and persist the response.
-- Each server entry accepts `"table_name"`; when populated, a subdirectory is created under `path/servers/<table_name>` for file storage and the same identifier is used for the SQLite table. If `table_name` is empty the server is skipped.
-
-### Automatic Log Rotation
-
-Configure the `logrotate` block to prune old log files and database rows automatically:
-
-```json
-"logrotate": {
-  "enabled": true,
-  "max_age_days": 30
-}
-```
-
-- `enabled`: set to `false` to disable builtin cleanup.
-- `max_age_days`: number of days to retain logs (default 30). The scheduler runs once per day and cleans up immediately on startup (files and SQLite rows).
-
-### Storage Requirements
-
-| Interval | Daily Size | Weekly Size | Monthly Size | Yearly Size |
-| -------- | ---------- | ----------- | ------------ | ----------- |
-| 2s       | ~69 MB     | ~485 MB     | ~2.1 GB      | ~24.7 GB    |
-| 5s       | ~28 MB     | ~194 MB     | ~0.83 GB     | ~9.9 GB     |
-| 10s      | ~14 MB     | ~97 MB      | ~0.41 GB     | ~4.9 GB     |
-
-**Notes**:
-
-- Estimates assume each log entry is ~1.65 KB (two disks + three heartbeat targets). Actual usage will vary with disk count, heartbeat list, and payload size.
-- Use the `CleanOldLogs()` function to automatically remove logs older than specified days to manage disk space.
-
----
-
-## API Information
-
-| Endpoint                | Method | Description                                                        |
-| ----------------------- | ------ | ------------------------------------------------------------------ |
-| `/`                     | GET    | Main dashboard UI with monitoring interface                        |
-| `/api/v1/server-config` | GET    | Server configuration including refresh interval and server list    |
-| `/api/v1/tables`        | GET    | Available database table names and count                           |
-| `/monitoring`           | POST   | System monitoring data with optional filtering and table selection |
-
----
-
-## API Testing
-
-### Test Monitoring Endpoint
-
-**Test without filters (current metrics):**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
-**Test with date range filter:**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": "2024-01-01",
-    "to": "2024-01-31"
-  }'
-```
-
-**Test with from date only:**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "from": "2024-01-01"
-  }'
-```
-
-**Test with to date only:**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "2024-01-31"
-  }'
-```
-
-**Test with Authorization (Production Mode):**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
-  -d '{}'
-```
-
-### Table-Specific Queries
-
-The monitoring endpoint supports querying specific tables using the `table_name` parameter. This allows you to get data from specific server tables or the default monitoring table.
-
-**List available tables:**
-
-```bash
-curl -X GET http://localhost:3500/api/v1/tables
-```
-
-Response:
+The application can monitor remote servers that expose a `/monitoring` endpoint. Configure in `configs.json`:
 
 ```json
 {
-  "tables": ["default", "server_api_prod", "server_web_staging"],
-  "count": 3
+  "servers": [
+    {
+      "name": "Production API",
+      "address": "https://api.example.com",
+      "table_name": "production_monitoring"
+    },
+    {
+      "name": "Staging Environment", 
+      "address": "https://staging.example.com",
+      "table_name": "staging_monitoring"
+    }
+  ]
 }
 ```
 
-**Query specific table (all data):**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "table_name": "server_api_prod"
-  }'
-```
-
-**Query specific table with date range:**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "table_name": "server_api_prod",
-    "from": "2024-01-01",
-    "to": "2024-01-31"
-  }'
-```
-
-**Query default table explicitly:**
-
-```bash
-curl -X POST http://localhost:3500/monitoring \
-  -H "Content-Type: application/json" \
-  -d '{
-    "table_name": "default",
-    "from": "2024-01-01"
-  }'
-```
-
 **Notes:**
+- Each server must expose a `/monitoring` endpoint returning system metrics
+- `table_name` creates separate storage for each server's data
+- Unavailable servers won't break overall functionality
+- Server monitoring includes automatic error handling and timeouts
 
-- If `table_name` is omitted or empty, the default monitoring table is queried
-- Use `"table_name": "default"` to explicitly query the main monitoring table
-- Server tables are created automatically when servers are configured with `table_name` in `configs.json`
-- Use `/api/v1/tables` endpoint to discover available table names
-- Table-specific queries support all the same date filtering options as default queries
+## Development Commands
+
+```bash
+# Generate templates (run after .templ file changes)
+templ generate ./web/views
+
+# Run development server
+go run ./cmd
+
+# Run with custom config
+MONITOR_CONFIG_PATH=custom-config.json go run ./cmd
+
+# Build for current platform
+go build -o monitoring ./cmd
+
+# Run tests
+go test ./...
+
+# Check for issues
+go vet ./...
+```
+
+## Deployment
+
+For production deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+## Security Considerations
+
+- Always set strong, unique values for `AES_SECRET` and `JWT_SECRET`
+- Configure `CORS_ALLOWED_ORIGINS` appropriately for your environment
+- Use `HAS_DASHBOARD=false` to disable dashboard in API-only deployments
+- Enable `CHECK_TOKEN=true` for production token validation
+- Monitor rate limiting settings based on your traffic patterns
+
+## Contributing
+
+1. Ensure all templates are generated: `templ generate ./web/views`
+2. Run tests: `go test ./...`
+3. Check code quality: `go vet ./...`
+4. Follow existing code patterns and centralized configuration approach

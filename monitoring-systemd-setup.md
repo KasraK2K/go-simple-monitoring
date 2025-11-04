@@ -1,22 +1,29 @@
-# Run `monitoring` as a systemd service
+# Deployment Guide
 
-This guide sets up your Go-built binary **`monitoring`** to run as a systemd service on Linux. It will:
+This guide shows how to deploy the Go monitoring service to production using systemd on Linux.
 
-- Write monitoring logs to `/var/log/monitoring` (configurable in `configs.json`)
-- Run as a single service instance with automatic logging
-- Auto-restart on crash
+## Overview
+
+Deploy your compiled `monitoring` binary as a systemd service that will:
+
+- Run as a dedicated system user with minimal privileges
+- Write monitoring logs and database to configurable locations
+- Auto-restart on crash with proper resource limits
 - Monitor system resources and configured heartbeat targets
+- Serve the dashboard web interface (if enabled)
 
-> Assumptions
->
-> - You already have a compiled binary named `monitoring` (no extension).
-> - You have root (or sudo) access.
-> - Your `configs.json` file is configured properly.
-> - When rebuilding, run `templ generate ./web/views` before `go build` so the dashboard templ files are compiled into the binary.
+## Prerequisites
+
+- Compiled binary named `monitoring` (no extension)
+- Root or sudo access on the target server
+- Properly configured `configs.json` file
+- Environment variables configured in `.env` file
+
+> **Build Requirements**: Run `templ generate ./web/views` before `go build` so the dashboard templ files are compiled into the binary.
 
 ---
 
-## 1) Create a dedicated user and directories
+## 1) Create system user and directories
 
 ```bash
 # Create service user (no login)
@@ -36,9 +43,15 @@ sudo chown -R monitoring:monitoring /var/log/monitoring
 sudo chmod 0755 /opt/monitoring/monitoring
 sudo chmod 0644 /opt/monitoring/configs.json
 
-# Note: The SQLite database file (monitoring.db) will be automatically created 
+# Note: The SQLite database file (monitoring.db) will be automatically created
 # in /opt/monitoring/ when the service starts for the first time
 ```
+
+---
+
+## 2) Configuration files
+
+### configs.json
 
 Create your `configs.json` configuration file:
 
@@ -84,6 +97,8 @@ sudo chown monitoring:monitoring /opt/monitoring/configs.json
 
 > **Note**: The `path` field in `configs.json` will be automatically overridden by the `BASE_LOG_FOLDER` environment variable, so the actual log path will be `/var/log/monitoring` as configured in the `.env` file.
 
+### Environment Configuration
+
 Create the environment configuration file `/opt/monitoring/.env`:
 
 ```bash
@@ -92,7 +107,7 @@ sudo tee /opt/monitoring/.env >/dev/null <<'EOF'
 AES_SECRET=your-aes-secret-here
 JWT_SECRET=your-jwt-secret-here
 
-# Server Configuration  
+# Server Configuration
 PORT=3500
 
 # Environment
@@ -148,7 +163,7 @@ sudo chmod 0640 /opt/monitoring/.env
 
 ---
 
-## 2) systemd service unit
+## 3) systemd service unit
 
 Create the service unit at `/etc/systemd/system/monitoring.service`:
 
@@ -176,7 +191,7 @@ NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
-# Allow writes to logs and database paths  
+# Allow writes to logs and database paths
 ReadWritePaths=/var/log/monitoring /opt/monitoring
 
 # Restart policy
@@ -202,7 +217,7 @@ sudo systemctl daemon-reload
 
 ---
 
-## 3) Enable and start the service
+## 4) Enable and start the service
 
 ```bash
 # Enable service to start on boot
@@ -217,7 +232,7 @@ sudo systemctl status monitoring.service
 
 ---
 
-## 4) Manage the service
+## 5) Service management
 
 ```bash
 # View service status
@@ -241,7 +256,7 @@ sudo systemctl disable monitoring.service
 
 ---
 
-## 5) API mode (optional)
+## 6) API mode configuration
 
 If you want to run the monitoring service in API mode (HTTP server), modify the `ExecStart` in the service unit:
 
@@ -264,7 +279,7 @@ PrivateNetwork=false
 
 ---
 
-## 6) Log rotation
+## 7) Log rotation
 
 Set up log rotation to manage disk space for monitoring logs:
 
@@ -285,7 +300,7 @@ EOF
 
 ---
 
-## 7) Verify monitoring output
+## 8) Verify deployment
 
 ```bash
 # Check if monitoring logs are being created
@@ -301,15 +316,6 @@ ps -p $(systemctl show monitoring.service --property=MainPID --value) -o pid,ppi
 
 ---
 
-## 8) Security notes
-
-- `ProtectSystem=full` makes root FS read-only for the service; only paths in `ReadWritePaths` are writable.
-- Service runs as dedicated `monitoring` user with minimal privileges.
-- Environment file permissions are restricted (0640) to prevent unauthorized access to secrets.
-- If running API mode, consider adding firewall rules to restrict access.
-
----
-
 ## 9) Storage management
 
 Storage usage depends on your configuration settings and the amount of data collected.
@@ -317,11 +323,12 @@ Storage usage depends on your configuration settings and the amount of data coll
 ### 9.1) File Storage (Log Files)
 
 **Base system monitoring data** (CPU, memory, disk, network, processes):
+
 - Each entry: ~1.2 KB (JSON format)
 - Storage by refresh interval:
 
 | Refresh Interval | Entries/Day | Daily Size | Weekly Size | Monthly Size |
-|------------------|-------------|------------|-------------|--------------|
+| ---------------- | ----------- | ---------- | ----------- | ------------ |
 | 2s               | 43,200      | ~52 MB     | ~364 MB     | ~1.6 GB      |
 | 5s               | 17,280      | ~21 MB     | ~147 MB     | ~630 MB      |
 | 10s              | 8,640       | ~10 MB     | ~73 MB      | ~315 MB      |
@@ -331,11 +338,12 @@ Storage usage depends on your configuration settings and the amount of data coll
 ### 9.2) Database Storage (SQLite)
 
 **Database size estimates** (includes indexes and overhead):
+
 - Each system monitoring record: ~2 KB (normalized tables)
 - Database growth by refresh interval:
 
 | Refresh Interval | Records/Day | Daily Growth | Weekly Growth | Monthly Growth |
-|------------------|-------------|--------------|---------------|----------------|
+| ---------------- | ----------- | ------------ | ------------- | -------------- |
 | 2s               | 43,200      | ~86 MB       | ~602 MB       | ~2.6 GB        |
 | 5s               | 17,280      | ~35 MB       | ~245 MB       | ~1.0 GB        |
 | 10s              | 8,640       | ~17 MB       | ~120 MB       | ~515 MB        |
@@ -345,37 +353,41 @@ Storage usage depends on your configuration settings and the amount of data coll
 ### 9.3) Heartbeat Services Impact
 
 **Each heartbeat service adds** (per check):
+
 - File storage: ~200 bytes per heartbeat result
 - Database storage: ~350 bytes per heartbeat result
 
 **Additional storage per heartbeat service**:
 
 | Check Interval | Checks/Day | Daily Size (File) | Daily Size (DB) | Monthly Size (File) | Monthly Size (DB) |
-|----------------|------------|-------------------|-----------------|---------------------|-------------------|
+| -------------- | ---------- | ----------------- | --------------- | ------------------- | ----------------- |
 | 30s            | 2,880      | ~580 KB           | ~1 MB           | ~18 MB              | ~31 MB            |
 | 60s            | 1,440      | ~290 KB           | ~500 KB         | ~9 MB               | ~15 MB            |
 | 300s (5min)    | 288        | ~58 KB            | ~100 KB         | ~1.8 MB             | ~3 MB             |
 
 **Example**: With 5 heartbeat services checking every 60s:
+
 - Additional file storage: ~1.5 MB/day, ~45 MB/month
 - Additional database storage: ~2.5 MB/day, ~75 MB/month
 
 ### 9.4) Remote Server Monitoring Impact
 
 **Each remote server adds** (per monitoring call):
+
 - File storage: ~1.5 KB per server response
 - Database storage: ~2.5 KB per server response
 
 **Additional storage per remote server**:
 
 | Monitoring Interval | Calls/Day | Daily Size (File) | Daily Size (DB) | Monthly Size (File) | Monthly Size (DB) |
-|---------------------|-----------|-------------------|-----------------|---------------------|-------------------|
+| ------------------- | --------- | ----------------- | --------------- | ------------------- | ----------------- |
 | 30s                 | 2,880     | ~4.3 MB           | ~7.2 MB         | ~130 MB             | ~216 MB           |
 | 60s                 | 1,440     | ~2.2 MB           | ~3.6 MB         | ~66 MB              | ~108 MB           |
 | 300s (5min)         | 288       | ~430 KB           | ~720 KB         | ~13 MB              | ~22 MB            |
 
 **Example**: With 3 remote servers monitored every 60s:
-- Additional file storage: ~6.6 MB/day, ~198 MB/month  
+
+- Additional file storage: ~6.6 MB/day, ~198 MB/month
 - Additional database storage: ~10.8 MB/day, ~324 MB/month
 
 ### 9.5) Storage Management Commands
@@ -387,7 +399,7 @@ du -sh /opt/monitoring/monitoring.db
 
 # Check database size and record counts
 sqlite3 /opt/monitoring/monitoring.db "
-SELECT 
+SELECT
     name as table_name,
     (SELECT COUNT(*) FROM \`default\`) as system_records,
     (SELECT COUNT(*) FROM heartbeat_results) as heartbeat_records
@@ -408,19 +420,30 @@ VACUUM;
 ### 9.6) Recommended Storage Planning
 
 **For production environments**:
+
 - Monitor storage usage weekly
 - Set up automated cleanup (via cron or systemd timers)
 - Consider disk space requirements based on your specific configuration
 - Plan for 2-3x the calculated storage as safety margin
 
 **Example total storage estimate** (5s refresh, 5 heartbeats/60s, 3 servers/60s):
+
 - Files: ~21 MB + 1.5 MB + 6.6 MB = ~29 MB/day (~870 MB/month)
 - Database: ~35 MB + 2.5 MB + 10.8 MB = ~48 MB/day (~1.4 GB/month)
 - **Total: ~77 MB/day (~2.3 GB/month)**
 
 ---
 
-## 10) Updating the binary
+## 10) Security considerations
+
+- `ProtectSystem=full` makes root FS read-only for the service; only paths in `ReadWritePaths` are writable.
+- Service runs as dedicated `monitoring` user with minimal privileges.
+- Environment file permissions are restricted (0640) to prevent unauthorized access to secrets.
+- If running API mode, consider adding firewall rules to restrict access.
+
+---
+
+## 11) Updating the binary
 
 ```bash
 # Regenerate templ output (if any UI changes were made)
@@ -440,7 +463,49 @@ sudo systemctl status monitoring.service
 
 ---
 
-## 11) Troubleshooting
+## 12) Files to upload and deploy
+
+For deployment, you need to upload these files to your server:
+
+### Required files:
+
+1. **Compiled binary**: `monitoring` (built with `go build`)
+2. **Configuration file**: `configs.json`
+3. **Environment file**: `.env` (create based on `.env.example`)
+
+### File locations on server:
+
+- `/opt/monitoring/monitoring` - The compiled Go binary
+- `/opt/monitoring/configs.json` - JSON configuration file
+- `/opt/monitoring/.env` - Environment variables file
+- `/etc/systemd/system/monitoring.service` - Systemd service unit
+
+### Build and upload steps:
+
+```bash
+# 1. On your development machine, build the binary
+templ generate ./web/views  # Generate templ files
+go build -o monitoring ./cmd
+
+# 2. Upload files to server (adjust paths as needed)
+scp monitoring user@server:/tmp/
+scp configs.json user@server:/tmp/
+scp .env user@server:/tmp/
+
+# 3. On the server, move files to correct locations (as shown in step 1)
+sudo cp /tmp/monitoring /opt/monitoring/monitoring
+sudo cp /tmp/configs.json /opt/monitoring/configs.json
+sudo cp /tmp/.env /opt/monitoring/.env
+```
+
+### Database file:
+
+- The SQLite database file `monitoring.db` will be automatically created in `/opt/monitoring/` when the service starts
+- No manual upload required for the database
+
+---
+
+## 13) Troubleshooting
 
 ```bash
 # Check service logs for errors
@@ -459,42 +524,4 @@ ls -la /var/log/monitoring/
 
 ---
 
-## 12) Files to upload and deploy
-
-For deployment, you need to upload these files to your server:
-
-### Required files:
-1. **Compiled binary**: `monitoring` (built with `go build`)
-2. **Configuration file**: `configs.json` 
-3. **Environment file**: `.env` (create based on `.env.example`)
-
-### File locations on server:
-- `/opt/monitoring/monitoring` - The compiled Go binary
-- `/opt/monitoring/configs.json` - JSON configuration file  
-- `/opt/monitoring/.env` - Environment variables file
-- `/etc/systemd/system/monitoring.service` - Systemd service unit
-
-### Build and upload steps:
-```bash
-# 1. On your development machine, build the binary
-templ generate ./web/views  # Generate templ files
-go build -o monitoring ./cmd
-
-# 2. Upload files to server (adjust paths as needed)
-scp monitoring user@server:/tmp/
-scp configs.json user@server:/tmp/
-scp .env user@server:/tmp/
-
-# 3. On the server, move files to correct locations (as shown in step 1)
-sudo cp /tmp/monitoring /opt/monitoring/monitoring
-sudo cp /tmp/configs.json /opt/monitoring/configs.json  
-sudo cp /tmp/.env /opt/monitoring/.env
-```
-
-### Database file:
-- The SQLite database file `monitoring.db` will be automatically created in `/opt/monitoring/` when the service starts
-- No manual upload required for the database
-
----
-
-That's it! You now have a systemd-managed monitoring service that automatically logs system metrics and server heartbeats to daily log files.
+That's it! You now have a systemd-managed monitoring service that automatically logs system metrics and server heartbeats to daily log files and database.
