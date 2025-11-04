@@ -298,6 +298,24 @@ func collectServerMetrics(cfg *models.MonitoringConfig) []models.ServerMetrics {
 		wg.Add(1)
 		go func(i int, srv models.ServerEndpoint) {
 			defer wg.Done()
+			defer func() {
+				// Recover from any panics in server monitoring to prevent system crash
+				if r := recover(); r != nil {
+					utils.LogErrorWithContext("server-monitoring", 
+						fmt.Sprintf("Server monitoring panic for '%s' (%s)", srv.Name, srv.Address),
+						fmt.Errorf("panic: %v", r))
+					
+					// Create an error metric for the failed server
+					results[i] = models.ServerMetrics{
+						Name:      srv.Name,
+						Address:   srv.Address,
+						Status:    "error",
+						Message:   fmt.Sprintf("monitoring panic: %v", r),
+						Timestamp: utils.FormatTimestampUTC(utils.NowUTC()),
+					}
+				}
+			}()
+			
 			results[i] = buildServerMetricSnapshot(srv, refreshDuration)
 		}(idx, server)
 	}
@@ -348,6 +366,11 @@ func buildServerMetricSnapshot(server models.ServerEndpoint, refresh time.Durati
 		metric.Status = "error"
 		metric.Message = err.Error()
 		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
+		
+		// Log the server connection failure for monitoring purposes
+		utils.LogWarnWithContext("server-monitoring", 
+			fmt.Sprintf("Server '%s' (%s) is unavailable", server.Name, server.Address), err)
+		
 		return metric
 	}
 
@@ -397,8 +420,7 @@ func fetchAndCacheServerMetric(server models.ServerEndpoint) (*models.ServerMetr
 	}
 
 	// Use the shared HTTP client for resource efficiency
-	client := utils.GetHTTPClient()
-	payload, err := fetchServerMonitoring(client, normalized)
+	payload, err := fetchServerMonitoring(normalized)
 	if err != nil {
 		return nil, err
 	}
@@ -1570,9 +1592,6 @@ func persistServerLogs() {
 		return
 	}
 
-	// Use shared HTTP client for efficiency
-	client := utils.GetHTTPClient()
-
 	for _, server := range cfg.Servers {
 		if utils.IsEmptyOrWhitespace(server.TableName) {
 			continue
@@ -1582,7 +1601,7 @@ func persistServerLogs() {
 			continue
 		}
 
-		payload, err := fetchServerMonitoring(client, server.Address)
+		payload, err := fetchServerMonitoring(server.Address)
 		if err != nil {
 			utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", server.Address), err)
 			continue
@@ -1606,9 +1625,18 @@ func persistServerLogs() {
 	}
 }
 
-func fetchServerMonitoring(client *http.Client, baseAddress string) ([]byte, error) {
+func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	
+	// Get timeout from environment variable, default to 15 seconds
+	timeout := 15 * time.Second
+	if envTimeout := os.Getenv("SERVER_MONITORING_TIMEOUT"); envTimeout != "" {
+		if parsedTimeout, err := time.ParseDuration(envTimeout); err == nil && parsedTimeout > 0 {
+			timeout = parsedTimeout
+		}
+	}
+	
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	// Use the centralized HTTP utility with resource limits
@@ -1617,7 +1645,26 @@ func fetchServerMonitoring(client *http.Client, baseAddress string) ([]byte, err
 	}
 	
 	body := strings.NewReader("{}")
-	return utils.MakeHTTPRequestWithLimits(ctx, http.MethodPost, endpoint, body, headers)
+	payload, err := utils.MakeHTTPRequestWithLimits(ctx, http.MethodPost, endpoint, body, headers)
+	
+	if err != nil {
+		// Provide more specific error messages for different failure types
+		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
+			return nil, fmt.Errorf("server timeout after %v: %w", timeout, err)
+		}
+		if strings.Contains(err.Error(), "connection refused") {
+			return nil, fmt.Errorf("server unavailable (connection refused): %w", err)
+		}
+		if strings.Contains(err.Error(), "no such host") {
+			return nil, fmt.Errorf("server host not found: %w", err)
+		}
+		if strings.Contains(err.Error(), "network is unreachable") {
+			return nil, fmt.Errorf("server network unreachable: %w", err)
+		}
+		return nil, fmt.Errorf("server communication failed: %w", err)
+	}
+	
+	return payload, nil
 }
 
 // getNetworkIO returns network I/O statistics
