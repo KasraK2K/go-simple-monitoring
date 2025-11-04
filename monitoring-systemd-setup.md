@@ -312,23 +312,111 @@ ps -p $(systemctl show monitoring.service --property=MainPID --value) -o pid,ppi
 
 ## 9) Storage management
 
-Based on your `refresh_time` setting, monitor disk usage:
+Storage usage depends on your configuration settings and the amount of data collected.
 
-| Interval | Daily Size | Weekly Size | Monthly Size |
-| -------- | ---------- | ----------- | ------------ |
-| 2s       | ~59 MB     | ~413 MB     | ~1.8 GB      |
-| 5s       | ~23.6 MB   | ~165 MB     | ~708 MB      |
-| 10s      | ~11.8 MB   | ~83 MB      | ~354 MB      |
+### 9.1) File Storage (Log Files)
 
-Use the built-in log cleanup or logrotate to manage storage:
+**Base system monitoring data** (CPU, memory, disk, network, processes):
+- Each entry: ~1.2 KB (JSON format)
+- Storage by refresh interval:
+
+| Refresh Interval | Entries/Day | Daily Size | Weekly Size | Monthly Size |
+|------------------|-------------|------------|-------------|--------------|
+| 2s               | 43,200      | ~52 MB     | ~364 MB     | ~1.6 GB      |
+| 5s               | 17,280      | ~21 MB     | ~147 MB     | ~630 MB      |
+| 10s              | 8,640       | ~10 MB     | ~73 MB      | ~315 MB      |
+| 30s              | 2,880       | ~3.5 MB    | ~25 MB      | ~105 MB      |
+| 60s              | 1,440       | ~1.7 MB    | ~12 MB      | ~52 MB       |
+
+### 9.2) Database Storage (SQLite)
+
+**Database size estimates** (includes indexes and overhead):
+- Each system monitoring record: ~2 KB (normalized tables)
+- Database growth by refresh interval:
+
+| Refresh Interval | Records/Day | Daily Growth | Weekly Growth | Monthly Growth |
+|------------------|-------------|--------------|---------------|----------------|
+| 2s               | 43,200      | ~86 MB       | ~602 MB       | ~2.6 GB        |
+| 5s               | 17,280      | ~35 MB       | ~245 MB       | ~1.0 GB        |
+| 10s              | 8,640       | ~17 MB       | ~120 MB       | ~515 MB        |
+| 30s              | 2,880       | ~6 MB        | ~42 MB        | ~180 MB        |
+| 60s              | 1,440       | ~3 MB        | ~21 MB        | ~90 MB         |
+
+### 9.3) Heartbeat Services Impact
+
+**Each heartbeat service adds** (per check):
+- File storage: ~200 bytes per heartbeat result
+- Database storage: ~350 bytes per heartbeat result
+
+**Additional storage per heartbeat service**:
+
+| Check Interval | Checks/Day | Daily Size (File) | Daily Size (DB) | Monthly Size (File) | Monthly Size (DB) |
+|----------------|------------|-------------------|-----------------|---------------------|-------------------|
+| 30s            | 2,880      | ~580 KB           | ~1 MB           | ~18 MB              | ~31 MB            |
+| 60s            | 1,440      | ~290 KB           | ~500 KB         | ~9 MB               | ~15 MB            |
+| 300s (5min)    | 288        | ~58 KB            | ~100 KB         | ~1.8 MB             | ~3 MB             |
+
+**Example**: With 5 heartbeat services checking every 60s:
+- Additional file storage: ~1.5 MB/day, ~45 MB/month
+- Additional database storage: ~2.5 MB/day, ~75 MB/month
+
+### 9.4) Remote Server Monitoring Impact
+
+**Each remote server adds** (per monitoring call):
+- File storage: ~1.5 KB per server response
+- Database storage: ~2.5 KB per server response
+
+**Additional storage per remote server**:
+
+| Monitoring Interval | Calls/Day | Daily Size (File) | Daily Size (DB) | Monthly Size (File) | Monthly Size (DB) |
+|---------------------|-----------|-------------------|-----------------|---------------------|-------------------|
+| 30s                 | 2,880     | ~4.3 MB           | ~7.2 MB         | ~130 MB             | ~216 MB           |
+| 60s                 | 1,440     | ~2.2 MB           | ~3.6 MB         | ~66 MB              | ~108 MB           |
+| 300s (5min)         | 288       | ~430 KB           | ~720 KB         | ~13 MB              | ~22 MB            |
+
+**Example**: With 3 remote servers monitored every 60s:
+- Additional file storage: ~6.6 MB/day, ~198 MB/month  
+- Additional database storage: ~10.8 MB/day, ~324 MB/month
+
+### 9.5) Storage Management Commands
 
 ```bash
 # Check current disk usage
 du -sh /var/log/monitoring/
+du -sh /opt/monitoring/monitoring.db
 
-# Manual cleanup (keeps last 7 days)
+# Check database size and record counts
+sqlite3 /opt/monitoring/monitoring.db "
+SELECT 
+    name as table_name,
+    (SELECT COUNT(*) FROM \`default\`) as system_records,
+    (SELECT COUNT(*) FROM heartbeat_results) as heartbeat_records
+FROM sqlite_master WHERE type='table';
+"
+
+# File cleanup (keeps last 7 days)
 find /var/log/monitoring/ -name "*.log" -mtime +7 -delete
+
+# Database cleanup (keeps last 30 days of data)
+sqlite3 /opt/monitoring/monitoring.db "
+DELETE FROM \`default\` WHERE datetime(timestamp) < datetime('now', '-30 days');
+DELETE FROM heartbeat_results WHERE datetime(timestamp) < datetime('now', '-30 days');
+VACUUM;
+"
 ```
+
+### 9.6) Recommended Storage Planning
+
+**For production environments**:
+- Monitor storage usage weekly
+- Set up automated cleanup (via cron or systemd timers)
+- Consider disk space requirements based on your specific configuration
+- Plan for 2-3x the calculated storage as safety margin
+
+**Example total storage estimate** (5s refresh, 5 heartbeats/60s, 3 servers/60s):
+- Files: ~21 MB + 1.5 MB + 6.6 MB = ~29 MB/day (~870 MB/month)
+- Database: ~35 MB + 2.5 MB + 10.8 MB = ~48 MB/day (~1.4 GB/month)
+- **Total: ~77 MB/day (~2.3 GB/month)**
 
 ---
 
