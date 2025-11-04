@@ -6,10 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"go-log/internal/config"
 	"os"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -28,22 +27,20 @@ var (
 
 // getDatabaseFolder returns the base database folder from environment
 func getDatabaseFolder() string {
-	baseFolder := os.Getenv("BASE_DATABASE_FOLDER")
-	if baseFolder == "" {
-		return "./" // Default: current directory
-	}
-	return baseFolder
+	envConfig := config.GetEnvConfig()
+	return envConfig.BaseDatabaseFolder
 }
 
 // getDatabasePath returns the full path to the database file
 func getDatabasePath() string {
-	dbFolder := getDatabaseFolder()
-	return filepath.Join(dbFolder, "monitoring.db")
+	envConfig := config.GetEnvConfig()
+	return envConfig.GetDatabasePath()
 }
 
 // ensureDatabaseDirectoryExists creates the database directory if it doesn't exist
 func ensureDatabaseDirectoryExists() error {
-	dbFolder := getDatabaseFolder()
+	envConfig := config.GetEnvConfig()
+	dbFolder := envConfig.BaseDatabaseFolder
 	if _, err := os.Stat(dbFolder); os.IsNotExist(err) {
 		err := os.MkdirAll(dbFolder, 0755)
 		if err != nil {
@@ -89,28 +86,8 @@ func validateTableName(tableName string) error {
 
 // getDatabaseConfig returns database configuration from environment variables
 func getDatabaseConfig() (maxConnections, connectionTimeout, idleTimeout int) {
-	maxConnections = 10 // Default
-	if val := os.Getenv("DB_MAX_CONNECTIONS"); val != "" {
-		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
-			maxConnections = parsed
-		}
-	}
-	
-	connectionTimeout = 30 // Default 30 seconds
-	if val := os.Getenv("DB_CONNECTION_TIMEOUT"); val != "" {
-		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
-			connectionTimeout = parsed
-		}
-	}
-	
-	idleTimeout = 300 // Default 5 minutes
-	if val := os.Getenv("DB_IDLE_TIMEOUT"); val != "" {
-		if parsed, err := strconv.Atoi(val); err == nil && parsed > 0 {
-			idleTimeout = parsed
-		}
-	}
-	
-	return maxConnections, connectionTimeout, idleTimeout
+	envConfig := config.GetEnvConfig()
+	return envConfig.DBMaxConnections, envConfig.DBConnectionTimeout, envConfig.DBIdleTimeout
 }
 
 // InitDatabase initializes the SQLite database with proper connection pooling

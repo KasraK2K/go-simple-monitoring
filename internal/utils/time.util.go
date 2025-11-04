@@ -2,8 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"os"
-	"strings"
+	"go-log/internal/config"
 	"time"
 )
 
@@ -22,8 +21,10 @@ var (
 
 // InitTimeConfig initializes timezone configuration from environment
 func InitTimeConfig() {
+	envConfig := config.GetEnvConfig()
+	
 	// Check if UTC enforcement is disabled
-	if disableUTC := os.Getenv("DISABLE_UTC_ENFORCEMENT"); strings.ToLower(disableUTC) == "true" {
+	if envConfig.DisableUTCEnforcement {
 		timeConfig.UseUTC = false
 		timeConfig.DefaultZone = time.Local
 		LogInfo("UTC enforcement disabled, using local timezone")
@@ -34,12 +35,12 @@ func InitTimeConfig() {
 	}
 
 	// Allow custom timezone configuration
-	if customTZ := os.Getenv("DEFAULT_TIMEZONE"); customTZ != "" {
-		if loc, err := time.LoadLocation(customTZ); err == nil {
+	if envConfig.DefaultTimezone != "" && envConfig.DefaultTimezone != "UTC" {
+		if loc, err := time.LoadLocation(envConfig.DefaultTimezone); err == nil {
 			timeConfig.DefaultZone = loc
-			LogInfo("using custom timezone: %s", customTZ)
+			LogInfo("using custom timezone: %s", envConfig.DefaultTimezone)
 		} else {
-			LogWarnWithContext("time-config", fmt.Sprintf("invalid timezone '%s', falling back to UTC", customTZ), err)
+			LogWarnWithContext("time-config", fmt.Sprintf("invalid timezone '%s', falling back to UTC", envConfig.DefaultTimezone), err)
 		}
 	}
 }
