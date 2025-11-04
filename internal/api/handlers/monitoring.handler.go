@@ -34,6 +34,11 @@ func MonitoringRoutes() {
 	assetsDir := http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join("web", "assets"))))
 
 	configHandler := func(w http.ResponseWriter, r *http.Request) {
+		if !IsDashboardEnabled() {
+			http.NotFound(w, r)
+			return
+		}
+
 		cfg := logics.GetMonitoringConfig()
 		refresh := 2.0
 		if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
@@ -65,6 +70,11 @@ func MonitoringRoutes() {
 			return
 		}
 
+		if !IsDashboardEnabled() {
+			http.NotFound(w, r)
+			return
+		}
+
 		cfg := logics.GetMonitoringConfig()
 		dashboard := views.DashboardPage(views.DashboardProps{Config: cfg})
 		templ.Handler(dashboard).ServeHTTP(w, r)
@@ -73,6 +83,10 @@ func MonitoringRoutes() {
 	// Serve HTMX component fragments using templ
 	registerComponent := func(path string, builder func() templ.Component) {
 		http.HandleFunc(path, RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+			if !IsDashboardEnabled() {
+				http.NotFound(w, r)
+				return
+			}
 			templ.Handler(builder()).ServeHTTP(w, r)
 		}))))
 	}
@@ -96,11 +110,19 @@ func MonitoringRoutes() {
 
 	// Serve dashboard JavaScript bundle
 	http.HandleFunc("/js/", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		if !IsDashboardEnabled() {
+			http.NotFound(w, r)
+			return
+		}
 		jsDir.ServeHTTP(w, r)
 	}))))
 
 	// Serve compiled assets (CSS)
 	http.HandleFunc("/assets/", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet)(func(w http.ResponseWriter, r *http.Request) {
+		if !IsDashboardEnabled() {
+			http.NotFound(w, r)
+			return
+		}
 		assetsDir.ServeHTTP(w, r)
 	}))))
 
