@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"go-log/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,10 +10,8 @@ import (
 
 // getLogFolderPath returns the log folder path from environment
 func getLogFolderPath() string {
-	baseFolder := os.Getenv("BASE_LOG_FOLDER")
-	if baseFolder == "" {
-		return "./logs" // Default: ./logs
-	}
+	envConfig := config.GetEnvConfig()
+	baseFolder := envConfig.BaseLogFolder
 	
 	// Convert to absolute path if relative
 	if !filepath.IsAbs(baseFolder) {

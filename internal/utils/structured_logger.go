@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"go-log/internal/config"
 	"log"
 	"os"
 	"strings"
@@ -50,19 +51,20 @@ func init() {
 // NewStructuredLogger creates a new structured logger instance
 func NewStructuredLogger() *StructuredLogger {
 	minLevel := INFO // Default level
-	if levelStr := os.Getenv("LOG_LEVEL"); levelStr != "" {
-		switch strings.ToUpper(levelStr) {
-		case "DEBUG":
-			minLevel = DEBUG
-		case "INFO":
-			minLevel = INFO
-		case "WARN", "WARNING":
-			minLevel = WARN
-		case "ERROR":
-			minLevel = ERROR
-		case "FATAL":
-			minLevel = FATAL
-		}
+	envConfig := config.GetEnvConfig()
+	levelStr := envConfig.LogLevel
+	
+	switch strings.ToUpper(levelStr) {
+	case "DEBUG":
+		minLevel = DEBUG
+	case "INFO":
+		minLevel = INFO
+	case "WARN", "WARNING":
+		minLevel = WARN
+	case "ERROR":
+		minLevel = ERROR
+	case "FATAL":
+		minLevel = FATAL
 	}
 
 	return &StructuredLogger{

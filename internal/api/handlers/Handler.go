@@ -1,11 +1,11 @@
 package handlers
 
 import (
+	"go-log/internal/config"
 	"go-log/internal/utils"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -13,20 +13,20 @@ import (
 	"time"
 )
 
-func getRequiredEnv(key string) string {
-	value := os.Getenv(key)
-	if value == "" {
-		log.Fatalf("Required environment variable %s is not set", key)
-	}
-	return value
-}
-
 func getAESSecret() string {
-	return getRequiredEnv("AES_SECRET")
+	envConfig := config.GetEnvConfig()
+	if envConfig.AESSecret == "" {
+		log.Fatal("Required environment variable AES_SECRET is not set")
+	}
+	return envConfig.AESSecret
 }
 
 func getJWTSecret() string {
-	return getRequiredEnv("JWT_SECRET")
+	envConfig := config.GetEnvConfig()
+	if envConfig.JWTSecret == "" {
+		log.Fatal("Required environment variable JWT_SECRET is not set")
+	}
+	return envConfig.JWTSecret
 }
 
 func setHeader(w http.ResponseWriter, status int, responseData string) {
@@ -36,10 +36,11 @@ func setHeader(w http.ResponseWriter, status int, responseData string) {
 }
 
 func getCORSOrigins() string {
-	origins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	envConfig := config.GetEnvConfig()
+	origins := envConfig.CORSAllowedOrigins
 	if origins == "" {
 		// Default to localhost for development
-		if IsProduction() {
+		if envConfig.IsProduction() {
 			log.Fatal("CORS_ALLOWED_ORIGINS must be set in production environment")
 		}
 		return "http://localhost:3500,http://127.0.0.1:3500"
@@ -114,52 +115,33 @@ func ValidateTokenAndParseGeneric[T any](r *http.Request) (*T, error) {
 }
 
 func IsProduction() bool {
-	env := os.Getenv("GO_ENV")
-	if env == "" {
-		env = os.Getenv("ENVIRONMENT")
-	}
-	if env == "" {
-		env = os.Getenv("APP_ENV")
-	}
-
-	return env == "production" || env == "prod"
+	envConfig := config.GetEnvConfig()
+	return envConfig.IsProduction()
 }
 
 func ShouldCheckTokenInProduction() bool {
-	checkToken := os.Getenv("CHECK_TOKEN")
-	if checkToken == "" {
-		return false // Default: false
-	}
-	return checkToken == "true" || checkToken == "1"
+	envConfig := config.GetEnvConfig()
+	return envConfig.ShouldCheckTokenInProduction()
 }
 
 func IsDashboardEnabled() bool {
-	hasDashboard := os.Getenv("HAS_DASHBOARD")
-	if hasDashboard == "" {
-		return true // Default: true (enabled)
-	}
-	return hasDashboard == "true" || hasDashboard == "1"
+	envConfig := config.GetEnvConfig()
+	return envConfig.IsDashboardEnabled()
 }
 
 func GetLogFolder() string {
-	baseFolder := os.Getenv("BASE_LOG_FOLDER")
-	if baseFolder == "" {
-		return "./logs" // Default: ./logs
-	}
-	return baseFolder
+	envConfig := config.GetEnvConfig()
+	return envConfig.BaseLogFolder
 }
 
 func GetDatabaseFolder() string {
-	baseFolder := os.Getenv("BASE_DATABASE_FOLDER")
-	if baseFolder == "" {
-		return "./" // Default: current directory
-	}
-	return baseFolder
+	envConfig := config.GetEnvConfig()
+	return envConfig.BaseDatabaseFolder
 }
 
 func GetDatabasePath() string {
-	dbFolder := GetDatabaseFolder()
-	return filepath.Join(dbFolder, "monitoring.db")
+	envConfig := config.GetEnvConfig()
+	return envConfig.GetDatabasePath()
 }
 
 func ensureDirectoryExists(dirPath string) error {
@@ -195,27 +177,8 @@ var (
 
 // getRateLimitConfig returns rate limiting configuration from environment
 func getRateLimitConfig() (requestsPerSecond float64, burstSize int) {
-	rpsStr := os.Getenv("RATE_LIMIT_RPS")
-	if rpsStr == "" {
-		rpsStr = "10" // Default: 10 requests per second
-	}
-	
-	burstStr := os.Getenv("RATE_LIMIT_BURST")
-	if burstStr == "" {
-		burstStr = "20" // Default: 20 request burst
-	}
-	
-	rps, err := strconv.ParseFloat(rpsStr, 64)
-	if err != nil || rps <= 0 {
-		rps = 10
-	}
-	
-	burst, err := strconv.Atoi(burstStr)
-	if err != nil || burst <= 0 {
-		burst = 20
-	}
-	
-	return rps, burst
+	envConfig := config.GetEnvConfig()
+	return envConfig.RateLimitRPS, envConfig.RateLimitBurst
 }
 
 // getClientKey extracts client identifier for rate limiting
@@ -241,11 +204,8 @@ func getClientKey(r *http.Request) string {
 
 // isRateLimitEnabled checks if rate limiting is enabled
 func isRateLimitEnabled() bool {
-	enabled := os.Getenv("RATE_LIMIT_ENABLED")
-	if enabled == "" {
-		return true // Default: enabled
-	}
-	return enabled != "false" && enabled != "0"
+	envConfig := config.GetEnvConfig()
+	return envConfig.IsRateLimitEnabled()
 }
 
 // TokenBucket implements rate limiting using token bucket algorithm

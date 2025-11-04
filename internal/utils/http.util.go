@@ -3,11 +3,10 @@ package utils
 import (
 	"context"
 	"fmt"
+	"go-log/internal/config"
 	"io"
 	"net"
 	"net/http"
-	"os"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -34,16 +33,17 @@ var (
 
 // InitHTTPConfig initializes HTTP client configuration from environment
 func InitHTTPConfig() {
+	envConfig := config.GetEnvConfig()
 	httpConfig = &HTTPConfig{
-		MaxConnsPerHost:       getEnvInt("HTTP_MAX_CONNS_PER_HOST", 10),
-		MaxIdleConns:          getEnvInt("HTTP_MAX_IDLE_CONNS", 100),
-		MaxIdleConnsPerHost:   getEnvInt("HTTP_MAX_IDLE_CONNS_PER_HOST", 5),
-		IdleConnTimeout:       getEnvDuration("HTTP_IDLE_CONN_TIMEOUT", 90*time.Second),
-		ConnectTimeout:        getEnvDuration("HTTP_CONNECT_TIMEOUT", 10*time.Second),
-		RequestTimeout:        getEnvDuration("HTTP_REQUEST_TIMEOUT", 30*time.Second),
-		ResponseHeaderTimeout: getEnvDuration("HTTP_RESPONSE_HEADER_TIMEOUT", 10*time.Second),
-		MaxResponseSize:       getEnvInt64("HTTP_MAX_RESPONSE_SIZE", 10*1024*1024), // 10MB default
-		TLSHandshakeTimeout:   getEnvDuration("HTTP_TLS_HANDSHAKE_TIMEOUT", 10*time.Second),
+		MaxConnsPerHost:       envConfig.HTTPMaxConnsPerHost,
+		MaxIdleConns:          envConfig.HTTPMaxIdleConns,
+		MaxIdleConnsPerHost:   envConfig.HTTPMaxIdleConnsPerHost,
+		IdleConnTimeout:       envConfig.HTTPIdleConnTimeout,
+		ConnectTimeout:        envConfig.HTTPConnectTimeout,
+		RequestTimeout:        envConfig.HTTPRequestTimeout,
+		ResponseHeaderTimeout: envConfig.HTTPResponseHeaderTimeout,
+		MaxResponseSize:       envConfig.HTTPMaxResponseSize,
+		TLSHandshakeTimeout:   envConfig.HTTPTLSHandshakeTimeout,
 	}
 
 	// Create the shared HTTP client
@@ -181,33 +181,6 @@ func CloseHTTPClient() {
 }
 
 // Helper functions for environment variable parsing
-func getEnvInt(key string, defaultValue int) int {
-	if value := os.Getenv(key); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil {
-			return parsed
-		}
-	}
-	return defaultValue
-}
-
-func getEnvInt64(key string, defaultValue int64) int64 {
-	if value := os.Getenv(key); value != "" {
-		if parsed, err := strconv.ParseInt(value, 10, 64); err == nil {
-			return parsed
-		}
-	}
-	return defaultValue
-}
-
-func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
-	if value := os.Getenv(key); value != "" {
-		if parsed, err := time.ParseDuration(value); err == nil {
-			return parsed
-		}
-	}
-	return defaultValue
-}
-
 // ValidateHTTPConfig validates HTTP configuration values
 func ValidateHTTPConfig() error {
 	if httpConfig == nil {

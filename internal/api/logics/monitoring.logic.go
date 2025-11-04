@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-log/internal/api/models"
+	"go-log/internal/config"
 	"go-log/internal/utils"
 	"log"
 	"math"
@@ -177,11 +178,8 @@ func ensureConfigLoaded() {
 
 // getDefaultLogPath returns the default log path from environment
 func getDefaultLogPath() string {
-	baseFolder := os.Getenv("BASE_LOG_FOLDER")
-	if baseFolder == "" {
-		return "./logs" // Default: ./logs
-	}
-	return baseFolder
+	envConfig := config.GetEnvConfig()
+	return envConfig.BaseLogFolder
 }
 
 // getDefaultConfig returns default configuration
@@ -1322,22 +1320,24 @@ func readConfigFromFile() (*models.MonitoringConfig, error) {
 		return nil, fmt.Errorf("failed to read configuration file %s: %w", configPath, err)
 	}
 
-	var config models.MonitoringConfig
-	if err = json.Unmarshal(data, &config); err != nil {
+	var monitoringConfig models.MonitoringConfig
+	if err = json.Unmarshal(data, &monitoringConfig); err != nil {
 		return nil, fmt.Errorf("failed to parse configuration file %s: %w", configPath, err)
 	}
 
 	// Override path with environment variable if set
-	if envLogPath := os.Getenv("BASE_LOG_FOLDER"); envLogPath != "" {
-		config.Path = envLogPath
+	envConfig := config.GetEnvConfig()
+	if envConfig.BaseLogFolder != "./logs" {
+		monitoringConfig.Path = envConfig.BaseLogFolder
 	}
 
-	return &config, nil
+	return &monitoringConfig, nil
 }
 
 // getConfigPath returns the path to configs.json
 func getConfigPath() string {
-	if override := strings.TrimSpace(os.Getenv("MONITOR_CONFIG_PATH")); override != "" {
+	envConfig := config.GetEnvConfig()
+	if override := strings.TrimSpace(envConfig.MonitorConfigPath); override != "" {
 		return filepath.Clean(override)
 	}
 
@@ -1628,13 +1628,9 @@ func persistServerLogs() {
 func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
 	
-	// Get timeout from environment variable, default to 15 seconds
-	timeout := 15 * time.Second
-	if envTimeout := os.Getenv("SERVER_MONITORING_TIMEOUT"); envTimeout != "" {
-		if parsedTimeout, err := time.ParseDuration(envTimeout); err == nil && parsedTimeout > 0 {
-			timeout = parsedTimeout
-		}
-	}
+	// Get timeout from environment configuration
+	envConfig := config.GetEnvConfig()
+	timeout := envConfig.ServerMonitoringTimeout
 	
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

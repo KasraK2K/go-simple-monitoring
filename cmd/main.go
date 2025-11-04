@@ -13,6 +13,7 @@ import (
 
 	"go-log/internal/api/handlers"
 	"go-log/internal/api/logics"
+	"go-log/internal/config"
 	"go-log/internal/utils"
 )
 
@@ -64,6 +65,10 @@ func main() {
 	// Load .env file before anything else
 	loadEnvFile()
 	
+	// Initialize environment configuration
+	config.InitEnvConfig()
+	envConfig := config.GetEnvConfig()
+	
 	// Initialize timezone configuration
 	utils.InitTimeConfig()
 	
@@ -94,11 +99,7 @@ func main() {
 
 	handlers.MonitoringRoutes()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "3500"
-	}
-	addr := fmt.Sprintf(":%s", port)
+	addr := fmt.Sprintf(":%s", envConfig.Port)
 	log.Println("Server running on", addr)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
