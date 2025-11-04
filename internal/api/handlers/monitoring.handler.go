@@ -128,8 +128,8 @@ func MonitoringRoutes() {
 	http.HandleFunc("/api/v1/tables", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(tablesHandler))))
 
 	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
-		// Check token only in production
-		if IsProduction() {
+		// Check token only in production if CHECK_TOKEN_IN_PRODUCTION is enabled
+		if IsProduction() && ShouldCheckTokenInProduction() {
 			_, err := ValidateTokenAndParseGeneric[TokenClaims](r)
 			if err != nil {
 				setHeader(w, http.StatusUnauthorized, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))

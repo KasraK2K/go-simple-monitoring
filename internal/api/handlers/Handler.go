@@ -124,6 +124,14 @@ func IsProduction() bool {
 	return env == "production" || env == "prod"
 }
 
+func ShouldCheckTokenInProduction() bool {
+	checkToken := os.Getenv("CHECK_TOKEN")
+	if checkToken == "" {
+		return false // Default: false
+	}
+	return checkToken == "true" || checkToken == "1"
+}
+
 // Rate limiting structures
 type clientEntry struct {
 	tokens     float64
