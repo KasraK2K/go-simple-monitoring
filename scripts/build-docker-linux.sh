@@ -53,6 +53,10 @@ docker exec $CONTAINER_NAME sh -c "
     echo 'Downloading dependencies...'
     go mod download || (go clean -modcache && go mod download)
     
+    echo 'Generating templ files...'
+    go install github.com/a-h/templ/cmd/templ@latest
+    templ generate ./web/views
+    
     echo 'Building binary...'
     CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o bin/monitoring-linux ./cmd/
 "
@@ -66,6 +70,12 @@ if [ $? -eq 0 ]; then
     echo ""
     echo "🚀 Deploy to your server:"
     echo "   scp bin/monitoring-linux user@server:/opt/monitoring/monitoring"
+    echo "   scp -r web/assets user@server:/tmp/"
+    echo "   scp -r web/js user@server:/tmp/"
+    echo "   ssh user@server 'sudo mkdir -p /opt/monitoring/web'"
+    echo "   ssh user@server 'sudo cp -r /tmp/assets /opt/monitoring/web/'"
+    echo "   ssh user@server 'sudo cp -r /tmp/js /opt/monitoring/web/'"
+    echo "   ssh user@server 'sudo chown -R monitoring:monitoring /opt/monitoring'"
     echo "   ssh user@server 'sudo systemctl restart monitoring'"
     echo ""
     echo "💡 To remove build container: docker rm -f $CONTAINER_NAME"

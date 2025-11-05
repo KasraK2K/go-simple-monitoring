@@ -34,9 +34,12 @@ sudo mkdir -p /opt/monitoring
 sudo mkdir -p /var/syslogs/log
 sudo mkdir -p /var/syslogs/database
 
-# Place your compiled binary and config files here (adjust source path)
+# Place your compiled binary, config files, and web assets here (adjust source paths)
 sudo cp /path/to/monitoring /opt/monitoring/monitoring
 sudo cp /path/to/configs.json /opt/monitoring/configs.json
+sudo mkdir -p /opt/monitoring/web
+sudo cp -r /path/to/web/assets /opt/monitoring/web/
+sudo cp -r /path/to/web/js /opt/monitoring/web/
 
 # CRITICAL: Set proper ownership for all directories
 sudo chown -R monitoring:monitoring /opt/monitoring
@@ -483,12 +486,15 @@ For deployment, you need to upload these files to your server:
 1. **Compiled binary**: `monitoring` (built with `go build`)
 2. **Configuration file**: `configs.json`
 3. **Environment file**: `.env` (create based on `.env.example`)
+4. **Web assets**: `web/assets/` and `web/js/` directories (CSS and JavaScript files)
 
 ### File locations on server:
 
 - `/opt/monitoring/monitoring` - The compiled Go binary
 - `/opt/monitoring/configs.json` - JSON configuration file
 - `/opt/monitoring/.env` - Environment variables file
+- `/opt/monitoring/web/assets/` - CSS files
+- `/opt/monitoring/web/js/` - JavaScript files
 - `/etc/systemd/system/monitoring.service` - Systemd service unit
 
 ### Build and upload steps:
@@ -502,11 +508,17 @@ go build -o monitoring ./cmd
 scp monitoring user@server:/tmp/
 scp configs.json user@server:/tmp/
 scp .env user@server:/tmp/
+scp -r web/assets user@server:/tmp/
+scp -r web/js user@server:/tmp/
 
 # 3. On the server, move files to correct locations (as shown in step 1)
 sudo cp /tmp/monitoring /opt/monitoring/monitoring
 sudo cp /tmp/configs.json /opt/monitoring/configs.json
 sudo cp /tmp/.env /opt/monitoring/.env
+sudo mkdir -p /opt/monitoring/web
+sudo cp -r /tmp/assets /opt/monitoring/web/
+sudo cp -r /tmp/js /opt/monitoring/web/
+sudo chown -R monitoring:monitoring /opt/monitoring
 ```
 
 ### Database file:
