@@ -29,22 +29,27 @@ Deploy your compiled `monitoring` binary as a systemd service that will:
 # Create service user (no login)
 sudo useradd --system --no-create-home --shell /usr/sbin/nologin monitoring || true
 
-# App and logs directories
+# App, logs, and database directories
 sudo mkdir -p /opt/monitoring
 sudo mkdir -p /var/log/monitoring
+sudo mkdir -p /var/syslogs/log
+sudo mkdir -p /var/syslogs/database
 
 # Place your compiled binary and config files here (adjust source path)
 sudo cp /path/to/monitoring /opt/monitoring/monitoring
 sudo cp /path/to/configs.json /opt/monitoring/configs.json
 
-# Permissions
+# CRITICAL: Set proper ownership for all directories
 sudo chown -R monitoring:monitoring /opt/monitoring
 sudo chown -R monitoring:monitoring /var/log/monitoring
+sudo chown -R monitoring:monitoring /var/syslogs
+
+# File permissions
 sudo chmod 0755 /opt/monitoring/monitoring
 sudo chmod 0644 /opt/monitoring/configs.json
 
-# Note: The SQLite database file (monitoring.db) will be automatically created
-# in /opt/monitoring/ when the service starts for the first time
+# Note: SQLite database and log files will be automatically created
+# when the service starts for the first time
 ```
 
 ---
@@ -129,9 +134,9 @@ CHECK_TOKEN=false
 # Dashboard
 HAS_DASHBOARD=true
 
-# Path Configuration (use environment-based paths)
+# Path Configuration
 BASE_LOG_FOLDER=/var/log/monitoring
-BASE_DATABASE_FOLDER=/opt/monitoring
+BASE_DATABASE_FOLDER=/var/syslogs/database
 
 # Database Configuration
 DB_MAX_CONNECTIONS=30
@@ -191,7 +196,7 @@ ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
 # Allow writes to logs and database paths
-ReadWritePaths=/var/log/monitoring /opt/monitoring
+ReadWritePaths=/var/log/monitoring /opt/monitoring /var/syslogs
 
 # Restart policy
 Restart=always
@@ -499,8 +504,18 @@ sudo cp /tmp/.env /opt/monitoring/.env
 
 ### Database file:
 
-- The SQLite database file `monitoring.db` will be automatically created in `/opt/monitoring/` when the service starts
+- The SQLite database file will be automatically created in `/var/syslogs/database/` when the service starts
 - No manual upload required for the database
+
+### Important Permission Note:
+
+**CRITICAL**: After deployment, if you see "database is closed" errors in logs, ensure proper ownership:
+
+```bash
+# Fix database directory permissions
+sudo chown -R monitoring:monitoring /var/syslogs
+sudo systemctl restart monitoring
+```
 
 ---
 
