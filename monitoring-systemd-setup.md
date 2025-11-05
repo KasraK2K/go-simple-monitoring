@@ -58,7 +58,6 @@ Create your `configs.json` configuration file:
 ```bash
 sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
-  "path": "./logs",
   "refresh_time": "5s",
   "storage": "both",
   "persist_server_logs": true,
