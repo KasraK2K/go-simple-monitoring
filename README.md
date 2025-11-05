@@ -253,7 +253,41 @@ curl -X POST http://localhost:3500/monitoring \
 
 ## Build for Production
 
-Always generate templates before building:
+### CLI Monitor Tool
+
+Build the monitoring CLI tool for different platforms using the build script:
+
+```bash
+# Build for specific platforms
+./scripts/build-monitor.sh windows      # Builds monitor-windows.exe
+./scripts/build-monitor.sh linux       # Builds monitor-linux
+./scripts/build-monitor.sh mac         # Builds monitor-mac
+
+# Build for multiple platforms at once
+./scripts/build-monitor.sh windows linux mac
+```
+
+The CLI monitor tool allows you to monitor remote monitoring services from the command line:
+
+```bash
+# Local monitoring (current system)
+./bin/monitor-linux
+
+# Remote monitoring
+./bin/monitor-linux -url http://localhost:3500/monitoring
+
+# With authentication
+./bin/monitor-linux -url http://localhost:3500/monitoring -token YOUR_TOKEN
+
+# Additional options
+./bin/monitor-linux -compact           # Compact display mode
+./bin/monitor-linux -details          # Show detailed information
+./bin/monitor-linux -refresh 1s       # Custom refresh rate
+```
+
+### Main Service
+
+Always generate templates before building the main service:
 
 ```bash
 # Generate templates
