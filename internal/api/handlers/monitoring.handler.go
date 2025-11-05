@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"github.com/a-h/templ"
@@ -13,6 +12,7 @@ import (
 	"go-log/internal/api/logics"
 	"go-log/internal/api/models"
 	"go-log/internal/utils"
+	webstatic "go-log/web"
 	"go-log/web/views"
 )
 
@@ -30,8 +30,9 @@ func MonitoringRoutes() {
 	// Initialize monitoring configuration at startup
 	logics.InitMonitoringConfig()
 
-	jsDir := http.StripPrefix("/js/", http.FileServer(http.Dir(filepath.Join("web", "js"))))
-	assetsDir := http.StripPrefix("/assets/", http.FileServer(http.Dir(filepath.Join("web", "assets"))))
+	// Serve embedded assets
+	jsDir := http.StripPrefix("/js/", webstatic.GetJSHandler())
+	assetsDir := http.StripPrefix("/assets/", webstatic.GetAssetsHandler())
 
 	configHandler := func(w http.ResponseWriter, r *http.Request) {
 		if !IsDashboardEnabled() {
