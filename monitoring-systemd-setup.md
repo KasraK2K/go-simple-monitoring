@@ -31,7 +31,6 @@ sudo useradd --system --no-create-home --shell /usr/sbin/nologin monitoring || t
 
 # App, logs, and database directories
 sudo mkdir -p /opt/monitoring
-sudo mkdir -p /var/log/monitoring
 sudo mkdir -p /var/syslogs/log
 sudo mkdir -p /var/syslogs/database
 
@@ -41,7 +40,6 @@ sudo cp /path/to/configs.json /opt/monitoring/configs.json
 
 # CRITICAL: Set proper ownership for all directories
 sudo chown -R monitoring:monitoring /opt/monitoring
-sudo chown -R monitoring:monitoring /var/log/monitoring
 sudo chown -R monitoring:monitoring /var/syslogs
 
 # File permissions
@@ -135,7 +133,7 @@ CHECK_TOKEN=false
 HAS_DASHBOARD=true
 
 # Path Configuration
-BASE_LOG_FOLDER=/var/log/monitoring
+BASE_LOG_FOLDER=/var/syslogs/log
 BASE_DATABASE_FOLDER=/var/syslogs/database
 
 # Database Configuration
@@ -262,24 +260,33 @@ sudo systemctl disable monitoring.service
 
 ## 6) API mode configuration
 
-If you want to run the monitoring service in API mode (HTTP server), modify the `ExecStart` in the service unit:
+The monitoring service runs both API and dashboard on the same port (3500 by default). The current configuration already includes:
 
 ```ini
-# For API mode on port 8080
-ExecStart=/opt/monitoring/monitoring --mode api --port 8080
-
-# Or use environment variables
-Environment=MODE=api
-Environment=PORT=8080
+# Current service configuration (API + Dashboard on port 3500)
 ExecStart=/opt/monitoring/monitoring
+
+# Port is configured via .env file:
+# PORT=3500
 ```
 
-Then add network access to the hardening section:
+To change the port, update your `.env` file:
 
-```ini
-# Add if running API mode
-PrivateNetwork=false
+```bash
+# Edit the port in .env
+sudo nano /opt/monitoring/.env
+
+# Change PORT=3500 to your desired port
+PORT=3500
 ```
+
+Then restart the service:
+
+```bash
+sudo systemctl restart monitoring
+```
+
+**Note**: The service already has network access enabled - no additional hardening changes needed.
 
 ---
 
