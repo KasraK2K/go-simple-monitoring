@@ -118,6 +118,20 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  height: 100%;
+}
+
+html.no-js {
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+    -webkit-text-size-adjust: none;
+  }
 }
 
 ::selection {
