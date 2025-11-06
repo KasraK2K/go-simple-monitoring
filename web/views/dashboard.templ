@@ -91,10 +91,7 @@ templ HeroSection(props HeroProps) {
                 <span class="status-dot"></span>
                 <span class="status-text">System Online</span>
             </span>
-            <div class="tooltip">
-                <span class="pill">Refresh <span id="refreshDisplay">{ props.RefreshLabel }</span></span>
-                <div class="tooltip-content">Auto-refresh interval</div>
-            </div>
+            <span class="pill">Refresh <span id="refreshDisplay">{ props.RefreshLabel }</span></span>
             <span class="pill">Last updated <span id="lastUpdated">--</span></span>
             <button class="filter-action" id="exportTrigger" type="button" aria-label="Export data">
                 <i class="fas fa-download"></i>
@@ -156,10 +153,7 @@ templ MetricsSection() {
         <div class="metrics-grid">
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">CPU Usage</span>
-                        <div class="tooltip-content">Current CPU utilization percentage</div>
-                    </div>
+                    <span class="metric-label">CPU Usage</span>
                     <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
@@ -173,10 +167,7 @@ templ MetricsSection() {
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Memory</span>
-                        <div class="tooltip-content">RAM usage percentage</div>
-                    </div>
+                    <span class="metric-label">Memory</span>
                     <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
@@ -190,10 +181,7 @@ templ MetricsSection() {
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Network In</span>
-                        <div class="tooltip-content">Incoming network traffic rate</div>
-                    </div>
+                    <span class="metric-label">Network In</span>
                     <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
@@ -204,10 +192,7 @@ templ MetricsSection() {
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Network Out</span>
-                        <div class="tooltip-content">Outgoing network traffic rate</div>
-                    </div>
+                    <span class="metric-label">Network Out</span>
                     <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
@@ -218,10 +203,7 @@ templ MetricsSection() {
 
             <article class="glass-panel metric-card">
                 <div class="metric-header">
-                    <div class="tooltip">
-                        <span class="metric-label">Load Average (1m)</span>
-                        <div class="tooltip-content">System load over the last minute</div>
-                    </div>
+                    <span class="metric-label">Load Average (1m)</span>
                     <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
                 </div>
                 <div class="metric-value-wrap">
