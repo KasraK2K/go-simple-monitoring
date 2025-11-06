@@ -2,18 +2,41 @@ import { state } from './state.js';
 import { escapeHtml } from './utils.js';
 
 export function showAlert(type, message, duration = 5000) {
-  const alertsPanel = document.getElementById('alertsPanel');
-  if (!alertsPanel) {
+  const alertsContainer = document.getElementById('alertsPanel');
+  if (!alertsContainer) {
     return null;
   }
 
   const alertId = `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const alertEl = document.createElement('div');
-  alertEl.className = `alert-item ${type}`;
+  alertEl.className = `alert ${type}`;
+  alertEl.setAttribute('data-alert-id', alertId);
+  
+  // Get appropriate icon for alert type
+  const icons = {
+    success: '✓',
+    error: '✕',
+    warning: '⚠',
+    info: 'i'
+  };
+  
+  // Get appropriate title for alert type
+  const titles = {
+    success: 'Success',
+    error: 'Error',
+    warning: 'Warning', 
+    info: 'Information'
+  };
+  
   alertEl.innerHTML = `
-    <i class="fas fa-exclamation-triangle"></i>
-    <span>${escapeHtml(message)}</span>
-    <span class="alert-close" data-alert-id="${alertId}"><i class="fas fa-times"></i></span>
+    <div class="alert-content">
+      <div class="alert-icon">${icons[type] || 'i'}</div>
+      <div class="alert-body">
+        <div class="alert-title">${titles[type] || 'Alert'}</div>
+        <div class="alert-message">${escapeHtml(message)}</div>
+      </div>
+      <button class="alert-close" aria-label="Close alert">×</button>
+    </div>
   `;
 
   const closeButton = alertEl.querySelector('.alert-close');
@@ -21,7 +44,7 @@ export function showAlert(type, message, duration = 5000) {
     closeButton.addEventListener('click', () => removeAlert(alertId));
   }
 
-  alertsPanel.appendChild(alertEl);
+  alertsContainer.appendChild(alertEl);
   state.activeAlerts.set(alertId, alertEl);
 
   if (duration > 0) {
@@ -41,14 +64,26 @@ export function removeAlert(alertId) {
     return;
   }
 
+  let alertEl;
   if (typeof storedValue === 'string') {
-    const alertEl = state.activeAlerts.get(storedValue);
-    if (alertEl && typeof alertEl.remove === 'function') {
-      alertEl.remove();
+    alertEl = state.activeAlerts.get(storedValue);
+    if (alertEl) {
       state.activeAlerts.delete(storedValue);
     }
   } else if (storedValue && typeof storedValue.remove === 'function') {
-    storedValue.remove();
+    alertEl = storedValue;
+  }
+
+  if (alertEl && typeof alertEl.remove === 'function') {
+    // Add removing class for animation
+    alertEl.classList.add('removing');
+    
+    // Wait for animation to complete before removing
+    setTimeout(() => {
+      if (alertEl.parentNode) {
+        alertEl.remove();
+      }
+    }, 300);
   }
 
   state.activeAlerts.delete(alertId);
