@@ -1888,48 +1888,6 @@ body[data-theme="light"] .theme-toggle {
   box-shadow: var(--focus-ring);
 }
 
-/* Tooltips */
-.tooltip {
-  position: relative;
-  display: inline-block;
-}
-
-.tooltip-content {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(15, 23, 42, 0.85);
-  color: var(--text-primary);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity var(--transition-base), transform var(--transition-base);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  z-index: 1000;
-  margin-bottom: 10px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.32);
-}
-
-.tooltip-content::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 5px solid transparent;
-  border-top-color: rgba(148, 163, 184, 0.2);
-}
-
-.tooltip:hover .tooltip-content {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, -6px);
-}
 
 /* Export Panel */
 .export-panel {
