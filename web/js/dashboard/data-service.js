@@ -15,6 +15,7 @@ import {
 } from "./ui.js";
 import { sanitizeBaseUrl } from "./utils.js";
 import { updateMetrics, updateTrends } from "./metrics.js";
+import { buildFilterFromRange } from "./ranges.js";
 
 export async function fetchMetrics() {
   try {
@@ -387,9 +388,9 @@ export async function handleServerSelection(server) {
   // Fetch server config from local server to ensure state.serverConfig has the complete server list
   await fetchServerConfig("");
   
-  state.autoFilter = createAutoFilterRange(24 * 60 * 60 * 1000);
+  state.autoFilter = state.defaultRangePreset ? buildFilterFromRange(state.defaultRangePreset) : null;
   state.pendingFilter = null;
-  applyAutoFilterUI(state.autoFilter, "24h");
+  applyAutoFilterUI(state.autoFilter, state.defaultRangePreset || null);
   state.historicalMode = false;
   state.historicalSeries = [];
   state.previousMetrics = null;
@@ -585,18 +586,20 @@ function normalizeConfiguredServers(servers) {
   return normalized;
 }
 
-function createAutoFilterRange(durationMs) {
-  const to = new Date();
-  const from = new Date(to.getTime() - durationMs);
-  return { from: from.toISOString(), to: to.toISOString() };
-}
-
 export function applyAutoFilterUI(filter, activeRange) {
+  const inputs = state.filterElements;
+
   if (!filter) {
+    if (inputs?.fromInput) {
+      inputs.fromInput.value = "";
+    }
+    if (inputs?.toInput) {
+      inputs.toInput.value = "";
+    }
+    setActiveRangeButton(null);
     return;
   }
 
-  const inputs = state.filterElements;
   if (inputs?.fromInput) {
     const fromDate = new Date(filter.from);
     if (!Number.isNaN(fromDate.getTime())) {
@@ -610,7 +613,7 @@ export function applyAutoFilterUI(filter, activeRange) {
     }
   }
 
-  setActiveRangeButton(activeRange);
+  setActiveRangeButton(activeRange || null);
 }
 
 function setActiveRangeButton(range) {

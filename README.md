@@ -65,6 +65,7 @@ PORT=3500
 
 # Dashboard
 HAS_DASHBOARD=true
+DASHBOARD_DEFAULT_RANGE=24h # 1h, 6h, 24h, 7d, 30d. Leave empty for live data only.
 
 # Path Configuration
 BASE_LOG_FOLDER=./logs

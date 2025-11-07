@@ -11,10 +11,12 @@ import (
 
 type DashboardProps struct {
     Config *models.MonitoringConfig
+    DefaultRangePreset string
 }
 
 type HeroProps struct {
-    RefreshLabel string
+    RefreshLabel       string
+    DefaultRangePreset string
 }
 
 templ DashboardPage(props DashboardProps) {
@@ -34,7 +36,10 @@ templ DashboardShell(props DashboardProps) {
     @BackgroundComponent()
     @ChromeComponent()
     <main class="container">
-        @HeroSection(HeroProps{RefreshLabel: computeRefreshLabel(props.Config)})
+        @HeroSection(HeroProps{
+            RefreshLabel:       computeRefreshLabel(props.Config),
+            DefaultRangePreset: props.DefaultRangePreset,
+        })
         @InitialLoadingOverlay()
         @MetricsSection()
         @ChartsSection()
@@ -124,7 +129,7 @@ templ HeroSection(props HeroProps) {
             <button type="button" class="filter-action" id="applyFilter">Apply</button>
             <button type="button" class="filter-action ghost" id="clearFilter">Clear</button>
         </div>
-        <div class="range-presets">
+        <div class="range-presets" data-default-range={ props.DefaultRangePreset }>
             <button class="range-btn" data-range="1h" type="button">1h</button>
             <button class="range-btn" data-range="6h" type="button">6h</button>
             <button class="range-btn" data-range="24h" type="button">24h</button>

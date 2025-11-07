@@ -1,6 +1,7 @@
 import { resetCharts } from './charts.js';
 import { fetchMetrics, scheduleNextFetch } from './data-service.js';
 import { state } from './state.js';
+import { buildFilterFromRange, isValidRangePreset } from './ranges.js';
 
 export function captureFilterElements() {
   const elements = {
@@ -92,36 +93,25 @@ export async function clearDateFilter() {
 }
 
 export async function applyRangePreset(range) {
-  const now = new Date();
-  let fromDate;
+  if (!isValidRangePreset(range)) {
+    console.warn('Invalid range preset:', range);
+    return;
+  }
 
-  switch (range) {
-    case '1h':
-      fromDate = new Date(now.getTime() - 60 * 60 * 1000);
-      break;
-    case '6h':
-      fromDate = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-      break;
-    case '24h':
-      fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      break;
-    case '7d':
-      fromDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      break;
-    case '30d':
-      fromDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      break;
-    default:
-      return;
+  const filter = buildFilterFromRange(range);
+  if (!filter) {
+    return;
   }
 
   const formatDate = (date) => date.toISOString().slice(0, 16);
+  const fromDate = new Date(filter.from);
+  const toDate = new Date(filter.to);
 
   if (state.filterElements?.fromInput) {
     state.filterElements.fromInput.value = formatDate(fromDate);
   }
   if (state.filterElements?.toInput) {
-    state.filterElements.toInput.value = formatDate(now);
+    state.filterElements.toInput.value = formatDate(toDate);
   }
 
   document.querySelectorAll('.range-btn').forEach((btn) => {

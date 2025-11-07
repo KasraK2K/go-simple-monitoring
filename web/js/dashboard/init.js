@@ -7,6 +7,7 @@ import { registerLifecycleHandlers } from './lifecycle.js';
 import { state } from './state.js';
 import { initializeTheme, requestNotificationPermission } from './theme.js';
 import { updateRefreshDisplay, updateRemoteContext } from './ui.js';
+import { buildFilterFromRange, isValidRangePreset } from './ranges.js';
 
 export async function initDashboard() {
   initializeTheme();
@@ -17,12 +18,10 @@ export async function initDashboard() {
   state.filterElements = elements;
 
   renderServerButtons();
-  const now = new Date();
-  state.autoFilter = {
-    from: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-    to: now.toISOString(),
-  };
-  applyAutoFilterUI(state.autoFilter, '24h');
+  const defaultRangePreset = detectDefaultRangePreset();
+  state.defaultRangePreset = defaultRangePreset;
+  state.autoFilter = defaultRangePreset ? buildFilterFromRange(defaultRangePreset) : null;
+  applyAutoFilterUI(state.autoFilter, defaultRangePreset || null);
   updateRemoteContext();
   registerEventHandlers();
   registerLifecycleHandlers();
@@ -33,4 +32,16 @@ export async function initDashboard() {
   updateRefreshDisplay();
   await fetchMetrics();
   scheduleNextFetch();
+}
+
+function detectDefaultRangePreset() {
+  const container = document.querySelector('.range-presets');
+  if (!container || !container.dataset) {
+    return '';
+  }
+  const value = (container.dataset.defaultRange || '').trim().toLowerCase();
+  if (!value) {
+    return '';
+  }
+  return isValidRangePreset(value) ? value : '';
 }
