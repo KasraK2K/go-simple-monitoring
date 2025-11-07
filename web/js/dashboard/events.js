@@ -6,6 +6,8 @@ import { LOCAL_SERVER_OPTION } from './constants.js';
 import { state } from './state.js';
 import { toggleTheme } from './theme.js';
 
+const HERO_COLLAPSE_STORAGE_KEY = 'dashboardHeroCollapsed';
+
 export function registerEventHandlers() {
   if (state.eventsRegistered) {
     return;
@@ -48,6 +50,83 @@ export function registerEventHandlers() {
   document.getElementById('remoteContextReset')?.addEventListener('click', () => {
     handleServerSelection(LOCAL_SERVER_OPTION);
   });
+
+  const heroToggle = document.getElementById('heroToggle');
+  const heroSection = document.getElementById('heroSection');
+  const heroCopy = heroSection?.querySelector('.hero-copy');
+  const prefersReducedMotion = window.matchMedia
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+
+  const animateHeroCopy = (firstRect) => {
+    if (!heroCopy || prefersReducedMotion || !firstRect) {
+      return;
+    }
+
+    const lastRect = heroCopy.getBoundingClientRect();
+    const deltaX = firstRect.left - lastRect.left;
+    const deltaY = firstRect.top - lastRect.top;
+
+    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
+      return;
+    }
+
+    heroCopy.animate(
+      [
+        {
+          transform: `translate(${deltaX}px, ${deltaY}px)`
+        },
+        {
+          transform: 'translate(0, 0)'
+        }
+      ],
+      {
+        duration: 500,
+        easing: 'cubic-bezier(0.4, 0, 0.2, 1)'
+      }
+    );
+  };
+
+  if (heroToggle && heroSection) {
+    const applyHeroCollapseState = (collapsed, animate = false) => {
+      let firstRect = null;
+      if (animate && heroCopy && !prefersReducedMotion) {
+        firstRect = heroCopy.getBoundingClientRect();
+      }
+
+      heroSection.classList.toggle('hero-collapsed', collapsed);
+      heroToggle.setAttribute('aria-expanded', String(!collapsed));
+      heroToggle.setAttribute(
+        'aria-label',
+        collapsed ? 'Expand hero panel' : 'Collapse hero panel'
+      );
+
+      if (animate) {
+        animateHeroCopy(firstRect);
+      }
+    };
+
+    let initialCollapsed = true;
+    try {
+      const storedValue = localStorage.getItem(HERO_COLLAPSE_STORAGE_KEY);
+      if (storedValue !== null) {
+        initialCollapsed = storedValue === 'true';
+      }
+    } catch (error) {
+      console.debug('Unable to read hero collapse preference:', error);
+    }
+    applyHeroCollapseState(initialCollapsed);
+
+    heroToggle.addEventListener('click', () => {
+      const collapsed = !heroSection.classList.contains('hero-collapsed');
+      applyHeroCollapseState(collapsed, true);
+      try {
+        localStorage.setItem(HERO_COLLAPSE_STORAGE_KEY, String(collapsed));
+      } catch (error) {
+        console.debug('Unable to persist hero collapse preference:', error);
+      }
+    });
+  }
 
   const keydownHandler = (event) => {
     if (event.ctrlKey || event.metaKey) {

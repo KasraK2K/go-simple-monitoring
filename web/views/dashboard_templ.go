@@ -212,14 +212,14 @@ func HeroSection(props HeroProps) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<header class=\"glass-panel hero\" data-component=\"hero\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1><p class=\"hero-subtitle\">Beautiful, real-time observability for every API, server, and heartbeat your team cares about.</p></div><div class=\"hero-actions\"><span class=\"section-badge\">Live Overview</span></div></div><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1><p class=\"hero-subtitle\">Beautiful, real-time observability for every API, server, and heartbeat your team cares about.</p></div><div class=\"hero-actions\"><span class=\"section-badge\">Live Overview</span></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 99, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 100, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -232,13 +232,13 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 132, Col: 80}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 133, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"><button class=\"range-btn\" data-range=\"1h\" type=\"button\">1h</button> <button class=\"range-btn\" data-range=\"6h\" type=\"button\">6h</button> <button class=\"range-btn\" data-range=\"24h\" type=\"button\">24h</button> <button class=\"range-btn\" data-range=\"7d\" type=\"button\">7d</button> <button class=\"range-btn\" data-range=\"30d\" type=\"button\">30d</button></div></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "\"><button class=\"range-btn\" data-range=\"1h\" type=\"button\">1h</button> <button class=\"range-btn\" data-range=\"6h\" type=\"button\">6h</button> <button class=\"range-btn\" data-range=\"24h\" type=\"button\">24h</button> <button class=\"range-btn\" data-range=\"7d\" type=\"button\">7d</button> <button class=\"range-btn\" data-range=\"30d\" type=\"button\">30d</button></div></div><button class=\"hero-toggle\" id=\"heroToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"heroDetails\" aria-label=\"Expand hero panel\"><span class=\"hero-toggle__icon\" aria-hidden=\"true\"><i class=\"fas fa-chevron-down\"></i></span></button></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
