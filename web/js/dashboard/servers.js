@@ -1,6 +1,9 @@
 import { state } from './state.js';
 import { formatLastChecked, sanitizeBaseUrl } from './utils.js';
 
+const ROOT_DISK_PATHS = ['/', '\\', '/System/Volumes/Data'];
+const NEAR_DANGER_FRACTION = 0.35;
+
 function normalizeAddress(address) {
   return sanitizeBaseUrl(address || '');
 }
@@ -8,6 +11,25 @@ function normalizeAddress(address) {
 function formatPercent(value) {
   const numeric = Number(value);
   return Number.isFinite(numeric) ? `${numeric.toFixed(1)}%` : '—';
+}
+
+function getMetricSeverity(value, type) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || !state.thresholds[type]) {
+    return '';
+  }
+  const { warning, critical } = state.thresholds[type];
+  if (numeric >= critical) {
+    return 'danger';
+  }
+  const buffer = Math.max(2, (critical - warning) * NEAR_DANGER_FRACTION);
+  if (numeric >= critical - buffer) {
+    return 'caution';
+  }
+  if (numeric >= warning) {
+    return 'warning';
+  }
+  return 'safe';
 }
 
 function formatLoadAverage(value) {
@@ -61,7 +83,7 @@ function statusClass(status) {
   }
 }
 
-function createMetric(label, value) {
+function createMetric(label, rawValue, { formatter = formatPercent, severityType = null } = {}) {
   const wrapper = document.createElement('div');
   wrapper.className = 'server-card__metric';
 
@@ -71,10 +93,96 @@ function createMetric(label, value) {
 
   const valueEl = document.createElement('span');
   valueEl.className = 'server-card__metric-value';
-  valueEl.textContent = value;
+  valueEl.textContent = formatter(rawValue);
+  if (severityType) {
+    const severity = getMetricSeverity(rawValue, severityType);
+    if (severity) {
+      valueEl.classList.add(`server-card__metric-value--${severity}`);
+    }
+  }
 
   wrapper.append(labelEl, valueEl);
   return wrapper;
+}
+
+function calculateDiskPercentage(disk = {}) {
+  if (Number.isFinite(Number(disk.used_pct))) {
+    return Number(disk.used_pct);
+  }
+  if (Number.isFinite(Number(disk.used_bytes)) && Number.isFinite(Number(disk.total_bytes)) && Number(disk.total_bytes) > 0) {
+    return (Number(disk.used_bytes) / Number(disk.total_bytes)) * 100;
+  }
+  return null;
+}
+
+function resolveDiskEntries(metric) {
+  const disks = metric?.disk_space ?? metric?.diskSpace ?? [];
+  if (!Array.isArray(disks) || disks.length === 0) {
+    return [];
+  }
+
+  const normalized = disks
+    .map((disk) => ({
+      ...disk,
+      used_pct: calculateDiskPercentage(disk)
+    }))
+    .filter((disk) => Number.isFinite(disk.used_pct));
+
+  if (normalized.length === 0) {
+    return [];
+  }
+
+  let primary = normalized.find((disk) => ROOT_DISK_PATHS.includes(disk.path));
+  let remaining = normalized.filter((disk) => disk !== primary);
+  if (!primary) {
+    primary = normalized[0];
+    remaining = normalized.slice(1);
+  }
+
+  const entries = [];
+  entries.push({ label: 'Primary', value: primary.used_pct, path: primary.path });
+
+  if (remaining.length > 0) {
+    const external = remaining[0];
+    entries.push({ label: external.path || 'External', value: external.used_pct, path: external.path });
+  }
+
+  return entries;
+}
+
+function createDiskBreakdown(metric) {
+  const entries = resolveDiskEntries(metric);
+  if (entries.length === 0) {
+    return null;
+  }
+
+  const container = document.createElement('div');
+  container.className = 'server-card__disk-breakdown';
+
+  entries.forEach((entry) => {
+    const diskEl = document.createElement('div');
+    diskEl.className = 'server-card__disk';
+
+    const labelEl = document.createElement('span');
+    labelEl.className = 'server-card__disk-label';
+    labelEl.textContent = entry.label;
+    if (entry.path) {
+      labelEl.title = entry.path;
+    }
+
+    const valueEl = document.createElement('span');
+    valueEl.className = 'server-card__disk-value';
+    valueEl.textContent = formatPercent(entry.value);
+    const severity = getMetricSeverity(entry.value, 'disk');
+    if (severity) {
+      valueEl.classList.add(`server-card__metric-value--${severity}`);
+    }
+
+    diskEl.append(labelEl, valueEl);
+    container.appendChild(diskEl);
+  });
+
+  return container;
 }
 
 function createServerCard(metric) {
@@ -141,10 +249,10 @@ function createServerCard(metric) {
   const metricsWrap = document.createElement('div');
   metricsWrap.className = 'server-card__metrics';
   metricsWrap.append(
-    createMetric('CPU', formatPercent(metric.cpu_usage)),
-    createMetric('Memory', formatPercent(metric.memory_used_percent)),
-    createMetric('Disk', formatPercent(metric.disk_used_percent)),
-    createMetric('Load', formatLoadAverage(metric.load_average))
+    createMetric('CPU', metric.cpu_usage, { severityType: 'cpu' }),
+    createMetric('Memory', metric.memory_used_percent, { severityType: 'memory' }),
+    createMetric('Disk', metric.disk_used_percent, { severityType: 'disk' }),
+    createMetric('Load', metric.load_average, { formatter: formatLoadAverage })
   );
 
   const footer = document.createElement('footer');
@@ -171,7 +279,13 @@ function createServerCard(metric) {
     footer.append(message);
   }
 
-  card.append(header, metricsWrap, footer);
+  const diskBreakdown = createDiskBreakdown(metric);
+
+  if (diskBreakdown) {
+    card.append(header, metricsWrap, diskBreakdown, footer);
+  } else {
+    card.append(header, metricsWrap, footer);
+  }
   return card;
 }
 

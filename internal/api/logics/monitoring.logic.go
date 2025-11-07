@@ -299,10 +299,10 @@ func collectServerMetrics(cfg *models.MonitoringConfig) []models.ServerMetrics {
 			defer func() {
 				// Recover from any panics in server monitoring to prevent system crash
 				if r := recover(); r != nil {
-					utils.LogErrorWithContext("server-monitoring", 
+					utils.LogErrorWithContext("server-monitoring",
 						fmt.Sprintf("Server monitoring panic for '%s' (%s)", srv.Name, srv.Address),
 						fmt.Errorf("panic: %v", r))
-					
+
 					// Create an error metric for the failed server
 					results[i] = models.ServerMetrics{
 						Name:      srv.Name,
@@ -313,7 +313,7 @@ func collectServerMetrics(cfg *models.MonitoringConfig) []models.ServerMetrics {
 					}
 				}
 			}()
-			
+
 			results[i] = buildServerMetricSnapshot(srv, refreshDuration)
 		}(idx, server)
 	}
@@ -364,11 +364,11 @@ func buildServerMetricSnapshot(server models.ServerEndpoint, refresh time.Durati
 		metric.Status = "error"
 		metric.Message = err.Error()
 		metric.Timestamp = utils.FormatTimestampUTC(utils.NowUTC())
-		
+
 		// Log the server connection failure for monitoring purposes
-		utils.LogWarnWithContext("server-monitoring", 
+		utils.LogWarnWithContext("server-monitoring",
 			fmt.Sprintf("Server '%s' (%s) is unavailable", server.Name, server.Address), err)
-		
+
 		return metric
 	}
 
@@ -506,6 +506,7 @@ func buildMetricsFromSnapshot(server models.ServerEndpoint, snapshot models.Syst
 		CPUUsage:          snapshot.CPU.UsagePercent,
 		MemoryUsedPercent: snapshot.RAM.UsedPct,
 		DiskUsedPercent:   computeDiskUsedPercent(snapshot.DiskSpace),
+		DiskSpace:         snapshot.DiskSpace,
 		NetworkInBytes:    snapshot.NetworkIO.BytesRecv,
 		NetworkOutBytes:   snapshot.NetworkIO.BytesSent,
 		LoadAverage:       snapshot.CPU.LoadAverage,
@@ -557,6 +558,8 @@ func buildMetricsFromGenericMap(server models.ServerEndpoint, body map[string]an
 		metric.DiskUsedPercent = toFloat64(value)
 	}
 
+	metric.DiskSpace = extractDiskSpaces(body)
+
 	if value, ok := body["network_bytes_recv"]; ok {
 		metric.NetworkInBytes = toUint64(value)
 	}
@@ -584,6 +587,53 @@ func computeDiskUsedPercent(disks []models.DiskSpace) float64 {
 	}
 
 	return disks[0].UsedPct
+}
+
+func extractDiskSpaces(body map[string]any) []models.DiskSpace {
+	value, ok := body["disk_space"]
+	if !ok {
+		return nil
+	}
+
+	switch typed := value.(type) {
+	case []models.DiskSpace:
+		return typed
+	case []map[string]any:
+		return convertDiskMaps(typed)
+	case []any:
+		converted := make([]map[string]any, 0, len(typed))
+		for _, item := range typed {
+			if entry, ok := item.(map[string]any); ok {
+				converted = append(converted, entry)
+			}
+		}
+		return convertDiskMaps(converted)
+	default:
+		data, err := json.Marshal(value)
+		if err != nil {
+			return nil
+		}
+		var disks []models.DiskSpace
+		if err := json.Unmarshal(data, &disks); err != nil {
+			return nil
+		}
+		return disks
+	}
+}
+
+func convertDiskMaps(items []map[string]any) []models.DiskSpace {
+	if len(items) == 0 {
+		return nil
+	}
+	data, err := json.Marshal(items)
+	if err != nil {
+		return nil
+	}
+	var disks []models.DiskSpace
+	if err := json.Unmarshal(data, &disks); err != nil {
+		return nil
+	}
+	return disks
 }
 
 func toFloat64(value any) float64 {
@@ -963,11 +1013,11 @@ func getCPUUsageUnix() (float64, error) {
 	if err != nil {
 		return 0, fmt.Errorf("failed to get CPU usage: %w", err)
 	}
-	
+
 	if len(percentages) == 0 {
 		return 0, fmt.Errorf("no CPU usage data available")
 	}
-	
+
 	// Return overall CPU usage percentage
 	return percentages[0], nil
 }
@@ -978,7 +1028,7 @@ func getLoadAverage() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get load average: %w", err)
 	}
-	
+
 	// Format load averages to match expected format
 	return fmt.Sprintf("%.2f, %.2f, %.2f", loadAvg.Load1, loadAvg.Load5, loadAvg.Load15), nil
 }
@@ -1404,7 +1454,7 @@ func startAutoLogging() {
 	loggingMu.Lock()
 	loggingTicker = time.NewTicker(refreshDuration)
 	loggingStopChan = make(chan struct{})
-	
+
 	// Create local copies to avoid race conditions
 	ticker := loggingTicker
 	stopChan := loggingStopChan
@@ -1416,7 +1466,7 @@ func startAutoLogging() {
 				utils.LogErrorWithContext("auto-logging", "goroutine panic recovered", fmt.Errorf("%v", r))
 			}
 		}()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -1439,7 +1489,7 @@ func startAutoLogging() {
 func stopAutoLogging() {
 	loggingMu.Lock()
 	defer loggingMu.Unlock()
-	
+
 	if loggingTicker != nil {
 		loggingTicker.Stop()
 		loggingTicker = nil
@@ -1497,7 +1547,7 @@ func configureLogRotation() {
 	logRotateMu.Lock()
 	logRotateTicker = time.NewTicker(24 * time.Hour)
 	logRotateStopChan = make(chan struct{})
-	
+
 	// Create local copies to avoid race conditions
 	ticker := logRotateTicker
 	stopChan := logRotateStopChan
@@ -1509,7 +1559,7 @@ func configureLogRotation() {
 				utils.LogErrorWithContext("log-rotation", "goroutine panic recovered", fmt.Errorf("%v", r))
 			}
 		}()
-		
+
 		for {
 			select {
 			case <-ticker.C:
@@ -1524,7 +1574,7 @@ func configureLogRotation() {
 func stopLogRotation() {
 	logRotateMu.Lock()
 	defer logRotateMu.Unlock()
-	
+
 	if logRotateTicker != nil {
 		logRotateTicker.Stop()
 		logRotateTicker = nil
@@ -1545,10 +1595,10 @@ func stopLogRotation() {
 // This function should be called during application shutdown
 func CleanupAllGoroutines() {
 	utils.LogInfo("cleaning up all monitoring goroutines...")
-	
+
 	// Stop auto-logging goroutines
 	stopAutoLogging()
-	
+
 	utils.LogInfo("all monitoring goroutines cleaned up successfully")
 }
 
@@ -1627,11 +1677,11 @@ func persistServerLogs() {
 
 func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
-	
+
 	// Get timeout from environment configuration
 	envConfig := config.GetEnvConfig()
 	timeout := envConfig.ServerMonitoringTimeout
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -1639,10 +1689,10 @@ func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 	headers := map[string]string{
 		"Content-Type": "application/json",
 	}
-	
+
 	body := strings.NewReader("{}")
 	payload, err := utils.MakeHTTPRequestWithLimits(ctx, http.MethodPost, endpoint, body, headers)
-	
+
 	if err != nil {
 		// Provide more specific error messages for different failure types
 		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
@@ -1659,7 +1709,7 @@ func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("server communication failed: %w", err)
 	}
-	
+
 	return payload, nil
 }
 

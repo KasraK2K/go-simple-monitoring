@@ -1159,6 +1159,57 @@ body[data-theme="light"] .glass-panel::after {
   font-weight: 600;
 }
 
+.server-card__metric-value--safe {
+  color: #34d399;
+}
+
+.server-card__metric-value--warning {
+  color: #facc15;
+}
+
+.server-card__metric-value--caution {
+  color: #fb923c;
+}
+
+.server-card__metric-value--danger {
+  color: #f87171;
+}
+
+.server-card__disk-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 14px 0 0;
+  padding: 14px 18px;
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(14, 23, 42, 0.35);
+}
+
+body[data-theme="light"] .server-card__disk-breakdown {
+  background: rgba(226, 232, 240, 0.35);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+.server-card__disk {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.server-card__disk-label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.server-card__disk-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
 .server-card__footer {
   display: flex;
   flex-wrap: wrap;
