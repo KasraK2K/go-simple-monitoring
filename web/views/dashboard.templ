@@ -81,7 +81,7 @@ templ ChromeComponent() {
 }
 
 templ HeroSection(props HeroProps) {
-    <header class="glass-panel hero" data-component="hero">
+    <header class="glass-panel hero hero-collapsed" data-component="hero" id="heroSection">
         <div class="hero-top">
             <div class="hero-copy">
                 <h1>System Monitoring</h1>
@@ -91,51 +91,56 @@ templ HeroSection(props HeroProps) {
                 <span class="section-badge">Live Overview</span>
             </div>
         </div>
-        <div class="hero-meta">
-            <span class="status-pill online" id="systemStatus" role="status">
-                <span class="status-dot"></span>
-                <span class="status-text">System Online</span>
-            </span>
-            <span class="pill">Refresh <span id="refreshDisplay">{ props.RefreshLabel }</span></span>
-            <span class="pill">Last updated <span id="lastUpdated">--</span></span>
-            <button class="filter-action" id="exportTrigger" type="button" aria-label="Export data">
-                <i class="fas fa-download"></i>
-                <span>Export</span>
-            </button>
-        </div>
-        <div class="remote-context hidden" id="remoteContext" role="status" aria-live="polite">
-            <div class="remote-context__indicator">
-                <span class="status-dot"></span>
-                <span class="remote-context__label">Remote Source</span>
+        <div class="hero-details" id="heroDetails">
+            <div class="hero-meta">
+                <span class="status-pill online" id="systemStatus" role="status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">System Online</span>
+                </span>
+                <span class="pill">Refresh <span id="refreshDisplay">{ props.RefreshLabel }</span></span>
+                <span class="pill">Last updated <span id="lastUpdated">--</span></span>
+                <button class="filter-action" id="exportTrigger" type="button" aria-label="Export data">
+                    <i class="fas fa-download"></i>
+                    <span>Export</span>
+                </button>
             </div>
-            <div class="remote-context__details">
-                <span class="remote-context__value" id="remoteContextName">Remote server</span>
-                <span class="remote-context__hint">Live metrics via remote node</span>
+            <div class="remote-context hidden" id="remoteContext" role="status" aria-live="polite">
+                <div class="remote-context__indicator">
+                    <span class="status-dot"></span>
+                    <span class="remote-context__label">Remote Source</span>
+                </div>
+                <div class="remote-context__details">
+                    <span class="remote-context__value" id="remoteContextName">Remote server</span>
+                    <span class="remote-context__hint">Live metrics via remote node</span>
+                </div>
+                <button class="remote-context__action" id="remoteContextReset" type="button" aria-label="Return to default server">
+                    <i class="fas fa-times"></i>
+                    <span>Disconnect</span>
+                </button>
             </div>
-            <button class="remote-context__action" id="remoteContextReset" type="button" aria-label="Return to default server">
-                <i class="fas fa-times"></i>
-                <span>Disconnect</span>
-            </button>
+            <div class="date-filter">
+                <label>
+                    <span>From</span>
+                    <input type="datetime-local" id="filterFrom" aria-label="Start date and time" />
+                </label>
+                <label>
+                    <span>To</span>
+                    <input type="datetime-local" id="filterTo" aria-label="End date and time" />
+                </label>
+                <button type="button" class="filter-action" id="applyFilter">Apply</button>
+                <button type="button" class="filter-action ghost" id="clearFilter">Clear</button>
+            </div>
+            <div class="range-presets" data-default-range={ props.DefaultRangePreset }>
+                <button class="range-btn" data-range="1h" type="button">1h</button>
+                <button class="range-btn" data-range="6h" type="button">6h</button>
+                <button class="range-btn" data-range="24h" type="button">24h</button>
+                <button class="range-btn" data-range="7d" type="button">7d</button>
+                <button class="range-btn" data-range="30d" type="button">30d</button>
+            </div>
         </div>
-        <div class="date-filter">
-            <label>
-                <span>From</span>
-                <input type="datetime-local" id="filterFrom" aria-label="Start date and time" />
-            </label>
-            <label>
-                <span>To</span>
-                <input type="datetime-local" id="filterTo" aria-label="End date and time" />
-            </label>
-            <button type="button" class="filter-action" id="applyFilter">Apply</button>
-            <button type="button" class="filter-action ghost" id="clearFilter">Clear</button>
-        </div>
-        <div class="range-presets" data-default-range={ props.DefaultRangePreset }>
-            <button class="range-btn" data-range="1h" type="button">1h</button>
-            <button class="range-btn" data-range="6h" type="button">6h</button>
-            <button class="range-btn" data-range="24h" type="button">24h</button>
-            <button class="range-btn" data-range="7d" type="button">7d</button>
-            <button class="range-btn" data-range="30d" type="button">30d</button>
-        </div>
+        <button class="hero-toggle" id="heroToggle" type="button" aria-expanded="false" aria-controls="heroDetails" aria-label="Expand hero panel">
+            <span class="hero-toggle__icon" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+        </button>
     </header>
 }
 
