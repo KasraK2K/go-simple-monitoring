@@ -28,22 +28,21 @@ export async function fetchMetrics() {
     
     // For remote servers with historical data requests, we need to query local database first
     const isRemoteServer = Boolean(state.selectedBaseUrl);
-    const isHistoricalRequest = Boolean(filterPayload);
     
     let monitoringUrl, requestBody;
     
-    if (isRemoteServer && isHistoricalRequest && !state.initialHistoricalLoadComplete) {
-      // Initial historical data request: use local server with table_name parameter
+    if (isRemoteServer) {
+      // For remote servers, ALWAYS use local server with table_name parameter
       const tableName = findTableNameForServer(state.selectedBaseUrl);
       monitoringUrl = "/monitoring"; // Local server endpoint
       requestBody = JSON.stringify({
         table_name: tableName,
-        from: filterPayload.from || undefined,
-        to: filterPayload.to || undefined,
+        from: filterPayload?.from || undefined,
+        to: filterPayload?.to || undefined,
       });
     } else {
-      // Live data requests: use appropriate endpoint (local or remote)
-      monitoringUrl = buildEndpoint("/monitoring");
+      // Local server requests: use local endpoint
+      monitoringUrl = "/monitoring";
       requestBody = filterPayload
         ? JSON.stringify({
             from: filterPayload.from || undefined,
@@ -231,10 +230,6 @@ export async function fetchMetrics() {
       state.historicalMode = false;
       state.historicalSeries = [];
       
-      // For remote servers, clear the initial historical load flag to allow live data requests
-      if (isRemoteServer) {
-        state.initialHistoricalLoadComplete = true;
-      }
     }
   } catch (error) {
     console.error("Error fetching metrics:", error);
@@ -394,7 +389,6 @@ export async function handleServerSelection(server) {
   state.historicalMode = false;
   state.historicalSeries = [];
   state.previousMetrics = null;
-  state.initialHistoricalLoadComplete = false;
 
   updateStatus(false);
   updateHeartbeat();
