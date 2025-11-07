@@ -529,6 +529,58 @@ sudo systemctl restart monitoring
 
 ## 13) Troubleshooting
 
+### Common Issues
+
+#### NAMESPACE Error (status=226)
+
+If you get `status=226/NAMESPACE` error when starting the service, it's usually caused by systemd security restrictions. For servers that only need network access (no local database/logs), use this simplified service configuration:
+
+```ini
+# Simplified /etc/systemd/system/monitoring.service for API-only servers
+[Unit]
+Description=System Monitoring Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=monitoring
+Group=monitoring
+WorkingDirectory=/opt/monitoring
+
+# Load optional env file if present
+EnvironmentFile=-/opt/monitoring/.env
+
+# Start the monitoring service
+ExecStart=/opt/monitoring/monitoring
+
+# Minimal hardening - remove problematic restrictions
+NoNewPrivileges=true
+# Remove: ProtectSystem, ProtectHome, PrivateTmp, ReadWritePaths
+
+# Restart policy
+Restart=always
+RestartSec=5s
+
+# Resource limits
+LimitNOFILE=1048576
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+After updating the service file:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart monitoring.service
+```
+
+#### Other Troubleshooting Commands
+
 ```bash
 # Check service logs for errors
 sudo journalctl -u monitoring.service --since "10 minutes ago"
