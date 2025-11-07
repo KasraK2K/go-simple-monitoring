@@ -1176,14 +1176,20 @@ body[data-theme="light"] .glass-panel::after {
 }
 
 .server-card__disk-breakdown {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(140px, 1fr));
   gap: 16px;
   margin: 14px 0 0;
   padding: 14px 18px;
   border: 1px dashed rgba(148, 163, 184, 0.3);
   border-radius: var(--radius-md);
   background: rgba(14, 23, 42, 0.35);
+}
+
+@media (max-width: 540px) {
+  .server-card__disk-breakdown {
+    grid-template-columns: 1fr;
+  }
 }
 
 body[data-theme="light"] .server-card__disk-breakdown {
