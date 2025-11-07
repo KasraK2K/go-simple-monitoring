@@ -350,6 +350,78 @@ body[data-theme="light"] .container::before {
   gap: 28px;
 }
 
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+[data-dashboard-section] {
+  position: relative;
+}
+
+[data-dashboard-section].is-dragging {
+  opacity: 0.9;
+  transform: scale(0.995);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  border-color: var(--border-strong);
+}
+
+.section-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  border-top-right-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-top-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: rgba(15, 23, 42, 0.72);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, border-color var(--transition-base),
+    background var(--transition-base), box-shadow var(--transition-base),
+    color var(--transition-base), transform 0.2s ease;
+}
+
+body[data-theme="light"] .section-handle {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text-primary);
+  border-color: rgba(148, 163, 184, 0.3);
+}
+
+[data-dashboard-section]:hover .section-handle,
+.section-handle:focus-visible,
+[data-dashboard-section].is-dragging .section-handle {
+  opacity: 1;
+  pointer-events: auto;
+  border-color: var(--border-strong);
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--text-primary);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.35);
+}
+
+.section-handle:focus-visible {
+  outline: none;
+}
+
+.section-handle:active {
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+.section-handle i {
+  pointer-events: none;
+}
+
 .section-heading {
   display: flex;
   flex-wrap: wrap;
