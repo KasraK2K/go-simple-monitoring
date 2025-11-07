@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -33,7 +34,8 @@ type EnvConfig struct {
 	CheckToken bool
 
 	// Dashboard
-	HasDashboard bool
+	HasDashboard          bool
+	DashboardDefaultRange string
 
 	// Paths
 	BaseLogFolder      string
@@ -45,23 +47,31 @@ type EnvConfig struct {
 	DBIdleTimeout       int
 
 	// Monitoring
-	MonitorConfigPath      string
+	MonitorConfigPath       string
 	ServerMonitoringTimeout time.Duration
 
 	// HTTP Client
-	HTTPMaxConnsPerHost     int
-	HTTPMaxIdleConns        int
-	HTTPMaxIdleConnsPerHost int
-	HTTPIdleConnTimeout     time.Duration
-	HTTPConnectTimeout      time.Duration
-	HTTPRequestTimeout      time.Duration
+	HTTPMaxConnsPerHost       int
+	HTTPMaxIdleConns          int
+	HTTPMaxIdleConnsPerHost   int
+	HTTPIdleConnTimeout       time.Duration
+	HTTPConnectTimeout        time.Duration
+	HTTPRequestTimeout        time.Duration
 	HTTPResponseHeaderTimeout time.Duration
-	HTTPMaxResponseSize     int64
-	HTTPTLSHandshakeTimeout time.Duration
+	HTTPMaxResponseSize       int64
+	HTTPTLSHandshakeTimeout   time.Duration
 
 	// Time Configuration
 	DisableUTCEnforcement bool
 	DefaultTimezone       string
+}
+
+var allowedDashboardRanges = map[string]struct{}{
+	"1h":  {},
+	"6h":  {},
+	"24h": {},
+	"7d":  {},
+	"30d": {},
 }
 
 var envConfig *EnvConfig
@@ -94,7 +104,8 @@ func InitEnvConfig() {
 		CheckToken: getEnvBool("CHECK_TOKEN", false),
 
 		// Dashboard
-		HasDashboard: getEnvBool("HAS_DASHBOARD", true),
+		HasDashboard:          getEnvBool("HAS_DASHBOARD", true),
+		DashboardDefaultRange: sanitizeDashboardRange(getEnvString("DASHBOARD_DEFAULT_RANGE", "")),
 
 		// Paths
 		BaseLogFolder:      getEnvString("BASE_LOG_FOLDER", "./logs"),
@@ -201,6 +212,17 @@ func getEnvironment() string {
 	return env
 }
 
+func sanitizeDashboardRange(value string) string {
+	trimmed := strings.ToLower(strings.TrimSpace(value))
+	if trimmed == "" {
+		return ""
+	}
+	if _, ok := allowedDashboardRanges[trimmed]; ok {
+		return trimmed
+	}
+	return ""
+}
+
 // Convenience methods for common checks
 
 // IsProduction returns true if the environment is production
@@ -216,6 +238,11 @@ func (c *EnvConfig) ShouldCheckTokenInProduction() bool {
 // IsDashboardEnabled returns true if dashboard is enabled
 func (c *EnvConfig) IsDashboardEnabled() bool {
 	return c.HasDashboard
+}
+
+// GetDashboardDefaultRange returns the sanitized default range preset for the dashboard
+func (c *EnvConfig) GetDashboardDefaultRange() string {
+	return c.DashboardDefaultRange
 }
 
 // GetDatabasePath returns the full path to the database file

@@ -11,6 +11,7 @@ import (
 
 	"go-log/internal/api/logics"
 	"go-log/internal/api/models"
+	"go-log/internal/config"
 	"go-log/internal/utils"
 	webstatic "go-log/web"
 	"go-log/web/views"
@@ -77,7 +78,8 @@ func MonitoringRoutes() {
 		}
 
 		cfg := logics.GetMonitoringConfig()
-		dashboard := views.DashboardPage(views.DashboardProps{Config: cfg})
+		defaultRange := config.GetEnvConfig().GetDashboardDefaultRange()
+		dashboard := views.DashboardPage(views.DashboardProps{Config: cfg, DefaultRangePreset: defaultRange})
 		templ.Handler(dashboard).ServeHTTP(w, r)
 	}))))
 
@@ -106,7 +108,8 @@ func MonitoringRoutes() {
 	})
 	registerComponent("/components/hero.html", func() templ.Component {
 		cfg := logics.GetMonitoringConfig()
-		return views.HeroSection(views.HeroProps{RefreshLabel: refreshLabelFromConfig(cfg)})
+		defaultRange := config.GetEnvConfig().GetDashboardDefaultRange()
+		return views.HeroSection(views.HeroProps{RefreshLabel: refreshLabelFromConfig(cfg), DefaultRangePreset: defaultRange})
 	})
 
 	// Serve dashboard JavaScript bundle
