@@ -4,6 +4,7 @@ import { applyAutoFilterUI, fetchMetrics, fetchServerConfig, renderServerButtons
 import { registerEventHandlers } from './events.js';
 import { captureFilterElements } from './filters.js';
 import { registerLifecycleHandlers } from './lifecycle.js';
+import { initLayoutDragAndDrop } from './layout.js';
 import { state } from './state.js';
 import { initializeTheme, requestNotificationPermission } from './theme.js';
 import { updateRefreshDisplay, updateRemoteContext } from './ui.js';
@@ -24,6 +25,7 @@ export async function initDashboard() {
   applyAutoFilterUI(state.autoFilter, defaultRangePreset || null);
   updateRemoteContext();
   registerEventHandlers();
+  initLayoutDragAndDrop();
   registerLifecycleHandlers();
 
   window.removeAlert = removeAlert;

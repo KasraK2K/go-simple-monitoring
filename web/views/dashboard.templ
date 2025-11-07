@@ -41,10 +41,12 @@ templ DashboardShell(props DashboardProps) {
             DefaultRangePreset: props.DefaultRangePreset,
         })
         @InitialLoadingOverlay()
-        @MetricsSection()
-        @ChartsSection()
-        @ServersSection()
-        @HeartbeatSection()
+        <div class="dashboard-grid" data-dashboard-layout>
+            @MetricsSection()
+            @ChartsSection()
+            @ServersSection()
+            @HeartbeatSection()
+        </div>
     </main>
 }
 
@@ -152,7 +154,10 @@ templ InitialLoadingOverlay() {
 }
 
 templ MetricsSection() {
-    <section class="section-block" data-component="metrics" role="region" aria-label="System metrics">
+    <section class="section-block" data-component="metrics" role="region" aria-label="System metrics" data-dashboard-section data-section-id="metrics">
+        <button class="section-handle" type="button" data-section-handle aria-label="Drag metrics section" draggable="true">
+            <i class="fas fa-grip-vertical"></i>
+        </button>
         <div class="section-heading">
             <div class="section-title">
                 <span class="section-badge">Live Signals</span>
@@ -229,7 +234,10 @@ templ MetricsSection() {
 }
 
 templ ChartsSection() {
-    <section class="section-block" data-component="charts" role="region" aria-label="Performance charts">
+    <section class="section-block" data-component="charts" role="region" aria-label="Performance charts" data-dashboard-section data-section-id="charts">
+        <button class="section-handle" type="button" data-section-handle aria-label="Drag charts section" draggable="true">
+            <i class="fas fa-grip-vertical"></i>
+        </button>
         <div class="section-heading">
             <div class="section-title">
                 <span class="section-badge">Trends</span>
@@ -272,7 +280,10 @@ templ ChartsSection() {
 }
 
 templ ServersSection() {
-    <section class="glass-panel servers-section" data-component="servers" role="region" aria-label="Remote server metrics">
+    <section class="glass-panel servers-section" data-component="servers" role="region" aria-label="Remote server metrics" data-dashboard-section data-section-id="servers">
+        <button class="section-handle" type="button" data-section-handle aria-label="Drag servers section" draggable="true">
+            <i class="fas fa-grip-vertical"></i>
+        </button>
         <div class="servers-header">
             <div>
                 <div class="servers-title">Remote Servers</div>
@@ -287,7 +298,10 @@ templ ServersSection() {
 }
 
 templ HeartbeatSection() {
-    <section class="glass-panel heartbeat-section" data-component="heartbeats" role="region" aria-label="Server heartbeat status">
+    <section class="glass-panel heartbeat-section" data-component="heartbeats" role="region" aria-label="Server heartbeat status" data-dashboard-section data-section-id="heartbeats">
+        <button class="section-handle" type="button" data-section-handle aria-label="Drag heartbeats section" draggable="true">
+            <i class="fas fa-grip-vertical"></i>
+        </button>
         <div class="heartbeat-header">
             <div>
                 <div class="heartbeat-title">Domain Heartbeat</div>
