@@ -93,17 +93,18 @@ type NetworkIO struct {
 }
 
 type ServerMetrics struct {
-	Name              string  `json:"name"`
-	Address           string  `json:"address"`
-	CPUUsage          float64 `json:"cpu_usage"`
-	MemoryUsedPercent float64 `json:"memory_used_percent"`
-	DiskUsedPercent   float64 `json:"disk_used_percent"`
-	NetworkInBytes    uint64  `json:"network_in_bytes"`
-	NetworkOutBytes   uint64  `json:"network_out_bytes"`
-	LoadAverage       string  `json:"load_average"`
-	Timestamp         string  `json:"timestamp"`
-	Status            string  `json:"status"`
-	Message           string  `json:"message,omitempty"`
+	Name              string      `json:"name"`
+	Address           string      `json:"address"`
+	CPUUsage          float64     `json:"cpu_usage"`
+	MemoryUsedPercent float64     `json:"memory_used_percent"`
+	DiskUsedPercent   float64     `json:"disk_used_percent"`
+	DiskSpace         []DiskSpace `json:"disk_space,omitempty"`
+	NetworkInBytes    uint64      `json:"network_in_bytes"`
+	NetworkOutBytes   uint64      `json:"network_out_bytes"`
+	LoadAverage       string      `json:"load_average"`
+	Timestamp         string      `json:"timestamp"`
+	Status            string      `json:"status"`
+	Message           string      `json:"message,omitempty"`
 }
 
 type ServerEndpoint struct {
