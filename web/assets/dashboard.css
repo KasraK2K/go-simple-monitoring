@@ -1581,9 +1581,29 @@ body[data-theme="dark"] .heartbeat-card {
   inset: 0;
   border-radius: 999px;
   background: var(--gradient-secondary);
-  transition: width 0.5s ease;
+  transition: width 0.5s ease, background 0.3s ease, box-shadow 0.3s ease;
   width: 0;
   box-shadow: 0 0 18px rgba(56, 189, 248, 0.28);
+}
+
+.progress-fill--safe {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.35);
+}
+
+.progress-fill--warning {
+  background: linear-gradient(90deg, #facc15, #fde047);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.35);
+}
+
+.progress-fill--caution {
+  background: linear-gradient(90deg, #fb923c, #fdba74);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.35);
+}
+
+.progress-fill--danger {
+  background: linear-gradient(90deg, #f87171, #fca5a5);
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.4);
 }
 
 .charts-grid {

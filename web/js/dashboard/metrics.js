@@ -1,6 +1,27 @@
 import { state } from './state.js';
 import { bytesToMbPerSecond, escapeHtml } from './utils.js';
 
+const PROGRESS_NEAR_DANGER_FRACTION = 0.35;
+
+function getProgressSeverity(value, type) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || !type || !state.thresholds[type]) {
+    return '';
+  }
+  const { warning, critical } = state.thresholds[type];
+  if (numeric >= critical) {
+    return 'danger';
+  }
+  const buffer = Math.max(2, (critical - warning) * PROGRESS_NEAR_DANGER_FRACTION);
+  if (numeric >= critical - buffer) {
+    return 'caution';
+  }
+  if (numeric >= warning) {
+    return 'warning';
+  }
+  return 'safe';
+}
+
 export function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_sent: 0, durationSeconds: null }) {
   setMetricValue('cpu', data.cpu_usage, 1);
   setMetricValue('memory', data.memory?.percentage, 1);
@@ -9,8 +30,8 @@ export function updateMetrics(data, networkDelta = { bytes_received: 0, bytes_se
   setMetricValue('networkTx', bytesToMbPerSecond(networkDelta.bytes_sent, networkDelta.durationSeconds), 2);
   setMetricValue('loadAvg', data.load_average?.one_minute, 2);
 
-  updateProgress('cpuBar', data.cpu_usage);
-  updateProgress('memoryBar', data.memory?.percentage);
+  updateProgress('cpuBar', data.cpu_usage, 'cpu');
+  updateProgress('memoryBar', data.memory?.percentage, 'memory');
   updateDiskSpaces(data.disk_spaces, data.disk?.percentage);
 
   updateProgressAria('cpuBar', data.cpu_usage);
@@ -108,15 +129,33 @@ export function updateDiskSpaces(diskSpaces, overallPercentage) {
   });
 }
 
-export function updateProgress(id, value) {
+export function updateProgress(id, value, severityType = null) {
   const bar = document.getElementById(id);
   if (!bar) return;
   if (value === undefined || value === null || Number.isNaN(Number(value))) {
     bar.style.width = '0%';
+    bar.classList.remove(
+      'progress-fill--safe',
+      'progress-fill--warning',
+      'progress-fill--caution',
+      'progress-fill--danger'
+    );
     return;
   }
   const clamped = Math.min(100, Math.max(0, Number(value)));
   bar.style.width = `${clamped}%`;
+  if (severityType) {
+    const severity = getProgressSeverity(clamped, severityType);
+    bar.classList.remove(
+      'progress-fill--safe',
+      'progress-fill--warning',
+      'progress-fill--caution',
+      'progress-fill--danger'
+    );
+    if (severity) {
+      bar.classList.add(`progress-fill--${severity}`);
+    }
+  }
 }
 
 export function updateTrends(data, networkDelta = { bytes_received: 0, bytes_sent: 0, durationSeconds: null }, referenceMetrics = state.previousMetrics) {
