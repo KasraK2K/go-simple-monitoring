@@ -495,15 +495,6 @@ body[data-theme="light"] .section-handle {
   text-shadow: 0 4px 30px var(--text-halo);
 }
 
-.section-copy {
-  font-size: 0.98rem;
-  color: var(--text-secondary);
-  max-width: 460px;
-  line-height: 1.7;
-  position: relative;
-  z-index: 1;
-}
-
 .section-badge {
   display: inline-flex;
   align-items: center;
