@@ -898,21 +898,15 @@ body[data-theme="light"] .glass-panel::after {
 .servers-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px 32px;
+  gap: 18px;
 }
 
-.servers-header {
+.servers-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-}
-
-.servers-title {
-  font-size: 1.2rem;
-  font-weight: 600;
 }
 
 .servers-meta {
