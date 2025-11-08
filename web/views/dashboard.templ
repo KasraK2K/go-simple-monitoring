@@ -162,13 +162,18 @@ templ MetricsSection() {
         <button class="section-handle" type="button" data-section-handle aria-label="Drag metrics section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="section-heading">
+        <div class="section-heading" data-section-heading>
+            <button class="section-collapse-toggle" type="button" aria-expanded="true" aria-controls="section-content-metrics" data-section-collapse data-section-target="section-content-metrics" data-section-label="Metrics">
+                <span class="sr-only" data-section-toggle-label>Collapse metrics section</span>
+                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+            </button>
             <div class="section-title">
                 <span class="section-badge">Live Signals</span>
                 <h2>Real-time Metrics</h2>
             </div>
         </div>
-        <div class="metrics-grid">
+        <div class="section-content" id="section-content-metrics" data-section-content>
+            <div class="metrics-grid">
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">CPU Usage</span>
@@ -232,6 +237,7 @@ templ MetricsSection() {
             <div id="storageGrid" class="storage-grid" role="region" aria-label="Storage drives">
                 <!-- Storage cards will be dynamically populated here -->
             </div>
+            </div>
         </div>
     </section>
 }
@@ -241,13 +247,18 @@ templ ChartsSection() {
         <button class="section-handle" type="button" data-section-handle aria-label="Drag charts section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="section-heading">
+        <div class="section-heading" data-section-heading>
+            <button class="section-collapse-toggle" type="button" aria-expanded="true" aria-controls="section-content-charts" data-section-collapse data-section-target="section-content-charts" data-section-label="Charts">
+                <span class="sr-only" data-section-toggle-label>Collapse charts section</span>
+                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+            </button>
             <div class="section-title">
                 <span class="section-badge">Trends</span>
                 <h2>Performance Visualisations</h2>
             </div>
         </div>
-        <div class="charts-grid">
+        <div class="section-content" id="section-content-charts" data-section-content>
+            <div class="charts-grid">
             <article class="glass-panel chart-card">
                 <div class="chart-header">
                     <h3>System Performance</h3>
@@ -277,6 +288,7 @@ templ ChartsSection() {
                     <canvas id="usageDonut" aria-label="Resource usage distribution chart"></canvas>
                 </div>
             </article>
+            </div>
         </div>
     </section>
 }
@@ -286,15 +298,21 @@ templ ServersSection() {
         <button class="section-handle" type="button" data-section-handle aria-label="Drag servers section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="section-heading servers-heading">
+        <div class="section-heading servers-heading" data-section-heading>
+            <button class="section-collapse-toggle" type="button" aria-expanded="true" aria-controls="section-content-servers" data-section-collapse data-section-target="section-content-servers" data-section-label="Servers">
+                <span class="sr-only" data-section-toggle-label>Collapse servers section</span>
+                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+            </button>
             <div class="section-title">
                 <span class="section-badge">Remote Servers</span>
                 <h2>Distributed Health</h2>
             </div>
             <div class="servers-summary" id="serverMetricsSummary">-- tracked</div>
         </div>
-        <div class="servers-grid" id="serverMetricsList">
-            <div class="servers-empty" id="serverMetricsEmpty">Server metrics will appear here soon</div>
+        <div class="section-content" id="section-content-servers" data-section-content>
+            <div class="servers-grid" id="serverMetricsList">
+                <div class="servers-empty" id="serverMetricsEmpty">Server metrics will appear here soon</div>
+            </div>
         </div>
     </section>
 }
@@ -304,18 +322,24 @@ templ HeartbeatSection() {
         <button class="section-handle" type="button" data-section-handle aria-label="Drag heartbeats section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="section-heading heartbeat-heading">
+        <div class="section-heading heartbeat-heading" data-section-heading>
+            <button class="section-collapse-toggle" type="button" aria-expanded="true" aria-controls="section-content-heartbeats" data-section-collapse data-section-target="section-content-heartbeats" data-section-label="Heartbeats">
+                <span class="sr-only" data-section-toggle-label>Collapse heartbeat section</span>
+                <i class="fas fa-chevron-up" aria-hidden="true"></i>
+            </button>
             <div class="section-title">
                 <span class="section-badge">Heartbeats</span>
                 <h2>Domain Availability</h2>
             </div>
             <div class="heartbeat-meta" id="heartbeatSummary">-- online / -- total</div>
         </div>
-        <div class="heartbeat-controls">
-            <input type="text" class="heartbeat-search" id="heartbeatSearch" placeholder="Search servers..." aria-label="Search heartbeat targets" />
-        </div>
-        <div class="heartbeat-grid" id="heartbeatList">
-            <div class="heartbeat-empty">No heartbeat data yet</div>
+        <div class="section-content" id="section-content-heartbeats" data-section-content>
+            <div class="heartbeat-controls">
+                <input type="text" class="heartbeat-search" id="heartbeatSearch" placeholder="Search servers..." aria-label="Search heartbeat targets" />
+            </div>
+            <div class="heartbeat-grid" id="heartbeatList">
+                <div class="heartbeat-empty">No heartbeat data yet</div>
+            </div>
         </div>
     </section>
 }
