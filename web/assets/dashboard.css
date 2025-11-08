@@ -1254,20 +1254,14 @@ body[data-theme="light"] .server-card__disk-breakdown {
 .heartbeat-section {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px 32px;
+  gap: 18px;
 }
 
-.heartbeat-header {
+.heartbeat-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.heartbeat-title {
-  font-size: 1.2rem;
-  font-weight: 600;
 }
 
 .heartbeat-meta {

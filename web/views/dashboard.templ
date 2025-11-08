@@ -168,7 +168,7 @@ templ MetricsSection() {
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">CPU Usage</span>
-                    <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">--</span>
+                    <span class="metric-trend" id="cpuTrend" aria-label="CPU trend">-</span>
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="cpu" aria-label="CPU usage percentage">--</span>
@@ -182,7 +182,7 @@ templ MetricsSection() {
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">Memory</span>
-                    <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">--</span>
+                    <span class="metric-trend" id="memoryTrend" aria-label="Memory trend">-</span>
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="memory" aria-label="Memory usage percentage">--</span>
@@ -196,7 +196,7 @@ templ MetricsSection() {
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">Network In</span>
-                    <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">--</span>
+                    <span class="metric-trend" id="networkRxTrend" aria-label="Network in trend">-</span>
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="networkRx" aria-label="Network incoming rate">--</span>
@@ -207,7 +207,7 @@ templ MetricsSection() {
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">Network Out</span>
-                    <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">--</span>
+                    <span class="metric-trend" id="networkTxTrend" aria-label="Network out trend">-</span>
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="networkTx" aria-label="Network outgoing rate">--</span>
@@ -218,7 +218,7 @@ templ MetricsSection() {
             <article class="glass-panel metric-card">
                 <div class="metric-header">
                     <span class="metric-label">Load Average (1m)</span>
-                    <span class="metric-trend" id="loadTrend" aria-label="Load average trend">--</span>
+                    <span class="metric-trend" id="loadTrend" aria-label="Load average trend">-</span>
                 </div>
                 <div class="metric-value-wrap">
                     <span class="metric-value" id="loadAvg" aria-label="One minute load average">--</span>
@@ -296,14 +296,14 @@ templ ServersSection() {
 }
 
 templ HeartbeatSection() {
-    <section class="glass-panel heartbeat-section" data-component="heartbeats" role="region" aria-label="Server heartbeat status" data-dashboard-section data-section-id="heartbeats">
+    <section class="section-block heartbeat-section" data-component="heartbeats" role="region" aria-label="Server heartbeat status" data-dashboard-section data-section-id="heartbeats">
         <button class="section-handle" type="button" data-section-handle aria-label="Drag heartbeats section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="heartbeat-header">
-            <div>
-                <div class="heartbeat-title">Domain Heartbeat</div>
-                <div class="heartbeat-meta">Live status across configured targets</div>
+        <div class="section-heading heartbeat-heading">
+            <div class="section-title">
+                <span class="section-badge">Heartbeats</span>
+                <h2>Domain Availability</h2>
             </div>
             <div class="heartbeat-meta" id="heartbeatSummary">-- online / -- total</div>
         </div>
