@@ -44,8 +44,12 @@ templ DashboardShell(props DashboardProps) {
         <div class="dashboard-grid" data-dashboard-layout>
             @MetricsSection()
             @ChartsSection()
-            @ServersSection()
-            @HeartbeatSection()
+            if props.Config != nil && len(props.Config.Servers) > 0 {
+                @ServersSection()
+            }
+            if props.Config != nil && len(props.Config.Heartbeat) > 0 {
+                @HeartbeatSection()
+            }
         </div>
     </main>
 }
