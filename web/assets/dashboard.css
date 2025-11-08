@@ -376,8 +376,8 @@ body[data-theme="light"] .container::before {
   position: absolute;
   top: 0;
   right: 0;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   border-top-right-radius: var(--radius-md);
   border-bottom-left-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.24);
