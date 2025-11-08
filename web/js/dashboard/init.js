@@ -9,6 +9,7 @@ import { state } from './state.js';
 import { initializeTheme, requestNotificationPermission } from './theme.js';
 import { updateRefreshDisplay, updateRemoteContext } from './ui.js';
 import { buildFilterFromRange, isValidRangePreset } from './ranges.js';
+import { initSectionCollapsibles } from './sections.js';
 
 export async function initDashboard() {
   initializeTheme();
@@ -26,6 +27,7 @@ export async function initDashboard() {
   updateRemoteContext();
   registerEventHandlers();
   initLayoutDragAndDrop();
+  initSectionCollapsibles();
   registerLifecycleHandlers();
 
   window.removeAlert = removeAlert;
