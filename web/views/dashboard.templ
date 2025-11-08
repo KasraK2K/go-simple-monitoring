@@ -278,14 +278,14 @@ templ ChartsSection() {
 }
 
 templ ServersSection() {
-    <section class="glass-panel servers-section" data-component="servers" role="region" aria-label="Remote server metrics" data-dashboard-section data-section-id="servers">
+    <section class="section-block servers-section" data-component="servers" role="region" aria-label="Remote server metrics" data-dashboard-section data-section-id="servers">
         <button class="section-handle" type="button" data-section-handle aria-label="Drag servers section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
-        <div class="servers-header">
-            <div>
-                <div class="servers-title">Remote Servers</div>
-                <div class="servers-meta">Latest health signals from configured servers</div>
+        <div class="section-heading servers-heading">
+            <div class="section-title">
+                <span class="section-badge">Remote Servers</span>
+                <h2>Distributed Health</h2>
             </div>
             <div class="servers-summary" id="serverMetricsSummary">-- tracked</div>
         </div>
