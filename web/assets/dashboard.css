@@ -1526,6 +1526,11 @@ body[data-theme="dark"] .heartbeat-card {
   color: var(--text-secondary);
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  gap: 12px;
+}
+
+.metric-label {
+  white-space: nowrap;
 }
 
 .metric-icon {
