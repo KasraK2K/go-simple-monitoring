@@ -1677,6 +1677,8 @@ body[data-theme="dark"] .heartbeat-card {
 .chart-wrapper {
   position: relative;
   height: 280px;
+  padding: 14px 16px 18px;
+  box-sizing: border-box;
   border-radius: calc(var(--radius-md) - 4px);
   overflow: hidden;
   background: rgba(15, 23, 42, 0.12);
