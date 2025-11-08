@@ -129,6 +129,10 @@ function resolveDiskEntries(metric) {
     .filter((disk) => Number.isFinite(disk.used_pct));
 
   if (normalized.length === 0) {
+    const fallbackValue = Number(metric?.disk_used_percent);
+    if (Number.isFinite(fallbackValue)) {
+      return [{ label: 'Disk', value: fallbackValue, path: metric?.address || '' }];
+    }
     return [];
   }
 

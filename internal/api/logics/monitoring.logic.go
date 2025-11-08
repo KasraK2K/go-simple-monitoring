@@ -636,6 +636,36 @@ func convertDiskMaps(items []map[string]any) []models.DiskSpace {
 	return disks
 }
 
+func convertDiskValueToModels(value any) []models.DiskSpace {
+	switch typed := value.(type) {
+	case []models.DiskSpace:
+		return typed
+	case []map[string]any:
+		return convertDiskMaps(typed)
+	case []any:
+		maps := make([]map[string]any, 0, len(typed))
+		for _, item := range typed {
+			if entry, ok := item.(map[string]any); ok {
+				maps = append(maps, entry)
+			}
+		}
+		return convertDiskMaps(maps)
+	default:
+		if value == nil {
+			return nil
+		}
+		data, err := json.Marshal(value)
+		if err != nil {
+			return nil
+		}
+		var disks []models.DiskSpace
+		if err := json.Unmarshal(data, &disks); err != nil {
+			return nil
+		}
+		return disks
+	}
+}
+
 func toFloat64(value any) float64 {
 	switch v := value.(type) {
 	case float64:
@@ -944,8 +974,29 @@ func convertFlatLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*mo
 	}
 
 	if serverMetrics, ok := entry.Body["server_metrics"]; ok && serverMetrics != nil {
-		// Convert server metrics data if needed
-		// This would require additional conversion logic
+		if metricArray, ok := serverMetrics.([]any); ok {
+			for _, rawMetric := range metricArray {
+				metricMap, ok := rawMetric.(map[string]any)
+				if !ok {
+					continue
+				}
+				metric := models.ServerMetrics{
+					Name:              toString(metricMap["name"]),
+					Address:           normalizeServerAddress(toString(metricMap["address"])),
+					CPUUsage:          toFloat64(metricMap["cpu_usage"]),
+					MemoryUsedPercent: toFloat64(metricMap["memory_used_percent"]),
+					DiskUsedPercent:   toFloat64(metricMap["disk_used_percent"]),
+					NetworkInBytes:    toUint64(metricMap["network_in_bytes"]),
+					NetworkOutBytes:   toUint64(metricMap["network_out_bytes"]),
+					LoadAverage:       toString(metricMap["load_average"]),
+					Timestamp:         toString(metricMap["timestamp"]),
+					Status:            toString(metricMap["status"]),
+					Message:           toString(metricMap["message"]),
+					DiskSpace:         convertDiskValueToModels(metricMap["disk_space"]),
+				}
+				snapshot.ServerMetrics = append(snapshot.ServerMetrics, metric)
+			}
+		}
 	}
 
 	return snapshot, nil

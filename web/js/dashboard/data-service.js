@@ -117,6 +117,8 @@ export async function fetchMetrics() {
       .map((entry) => normalizeMetrics(entry))
       .filter((item) => item && typeof item === "object");
 
+    normalizedList.sort((a, b) => getTimestampMs(b) - getTimestampMs(a));
+
     if (normalizedList.length === 0) {
       // For date range filters with no valid data, show empty state instead of error
       if (filterPayload && state.historicalMode) {
@@ -653,3 +655,12 @@ function extractPortFromAddress(address) {
 }
 
 state.handleServerSelection = handleServerSelection;
+
+function getTimestampMs(entry) {
+  const value = entry?.timestamp || entry?.time || entry?.raw?.timestamp || entry?.raw?.time;
+  if (!value) {
+    return 0;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
