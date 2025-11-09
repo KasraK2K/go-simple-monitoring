@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 )
 
 // LogLevel represents the severity level of a log entry
@@ -40,6 +41,7 @@ func (l LogLevel) String() string {
 type StructuredLogger struct {
 	logger   *log.Logger
 	minLevel LogLevel
+	mu       sync.RWMutex
 }
 
 var defaultLogger *StructuredLogger
@@ -50,32 +52,43 @@ func init() {
 
 // NewStructuredLogger creates a new structured logger instance
 func NewStructuredLogger() *StructuredLogger {
-	minLevel := INFO // Default level
-	envConfig := config.GetEnvConfig()
-	levelStr := envConfig.LogLevel
-	
-	switch strings.ToUpper(levelStr) {
-	case "DEBUG":
-		minLevel = DEBUG
-	case "INFO":
-		minLevel = INFO
-	case "WARN", "WARNING":
-		minLevel = WARN
-	case "ERROR":
-		minLevel = ERROR
-	case "FATAL":
-		minLevel = FATAL
-	}
-
+	minLevel := parseLogLevel(config.GetEnvConfig().LogLevel)
 	return &StructuredLogger{
 		logger:   log.New(os.Stderr, "", log.LstdFlags),
 		minLevel: minLevel,
 	}
 }
 
+// parseLogLevel converts string to LogLevel with sensible defaults
+func parseLogLevel(levelStr string) LogLevel {
+	switch strings.ToUpper(strings.TrimSpace(levelStr)) {
+	case "DEBUG":
+		return DEBUG
+	case "INFO":
+		return INFO
+	case "WARN", "WARNING":
+		return WARN
+	case "ERROR":
+		return ERROR
+	case "FATAL":
+		return FATAL
+	default:
+		return INFO
+	}
+}
+
 // shouldLog checks if a message should be logged based on level
 func (sl *StructuredLogger) shouldLog(level LogLevel) bool {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
 	return level >= sl.minLevel
+}
+
+// SetLevel updates the minimum log level for the logger
+func (sl *StructuredLogger) SetLevel(level LogLevel) {
+	sl.mu.Lock()
+	sl.minLevel = level
+	sl.mu.Unlock()
 }
 
 // Debug logs a debug message
@@ -191,4 +204,17 @@ func LogErrorWithContext(component, message string, err error) {
 
 func LogInfoWithContext(component, message string, err error) {
 	defaultLogger.InfoWithContext(component, message, err)
+}
+
+// SetLogLevel updates the global logger's minimum level using the provided LogLevel.
+func SetLogLevel(level LogLevel) {
+	if defaultLogger == nil {
+		defaultLogger = NewStructuredLogger()
+	}
+	defaultLogger.SetLevel(level)
+}
+
+// SetLogLevelByName updates the global logger's level using a string representation.
+func SetLogLevelByName(level string) {
+	SetLogLevel(parseLogLevel(level))
 }

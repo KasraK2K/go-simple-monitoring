@@ -46,7 +46,7 @@ func ensureDatabaseDirectoryExists() error {
 		if err != nil {
 			return err
 		}
-		LogInfo(fmt.Sprintf("Created database directory: %s", dbFolder))
+		LogInfo("Created database directory: %s", dbFolder)
 	}
 	return nil
 }

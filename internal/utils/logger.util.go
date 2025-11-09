@@ -29,9 +29,9 @@ func ensureLogDirectoryExists(logPath string) {
 	if _, err := os.Stat(logPath); os.IsNotExist(err) {
 		err := os.MkdirAll(logPath, 0755)
 		if err != nil {
-			LogError(fmt.Sprintf("Failed to create log directory: %s", err))
+			LogError("Failed to create log directory: %v", err)
 		} else {
-			LogInfo(fmt.Sprintf("Created log directory: %s", logPath))
+			LogInfo("Created log directory: %s", logPath)
 		}
 	}
 }

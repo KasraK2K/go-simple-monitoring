@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-log/internal/api/logics"
 	"go-log/internal/api/models"
+	"go-log/internal/utils"
 	"io"
 	"net/http"
 	"os"
@@ -22,6 +23,7 @@ type Config struct {
 	ServerURL   string
 	RefreshRate time.Duration
 	AuthToken   string
+	LogLevel    string
 }
 
 type DisplayState struct {
@@ -70,6 +72,7 @@ var (
 
 func main() {
 	config := parseFlags()
+	utils.SetLogLevelByName(config.LogLevel)
 
 	// Setup graceful shutdown
 	c := make(chan os.Signal, 1)
@@ -101,6 +104,7 @@ func parseFlags() Config {
 	flag.StringVar(&config.ServerURL, "url", "", "Monitoring server URL (e.g., http://localhost:3500/monitoring)")
 	flag.DurationVar(&config.RefreshRate, "refresh", 2*time.Second, "Refresh rate (e.g., 2s, 500ms)")
 	flag.StringVar(&config.AuthToken, "token", "", "Authentication token for remote monitoring")
+	flag.StringVar(&config.LogLevel, "log-level", "warn", "Logger level: debug, info, warn, error, fatal")
 
 	flag.Parse()
 	return config
@@ -328,7 +332,7 @@ func updateRAMMetrics(ram models.RAM, _ Config) {
 
 func updateDiskMetrics(diskSpaces []models.DiskSpace, _ Config) {
 	row := metricsRow(2)
-	
+
 	// Find root disk or use first disk for backwards compatibility
 	var disk models.DiskSpace
 	if len(diskSpaces) > 0 {
