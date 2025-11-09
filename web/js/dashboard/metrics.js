@@ -79,20 +79,21 @@ export function updateDiskSpaces(diskSpaces, overallPercentage) {
     const storageCard = document.createElement('article');
     storageCard.className = 'glass-panel metric-card storage-card';
 
-    const usagePercent = disk.used_pct || 0;
+    const usagePercent = Number(disk.used_pct) || 0;
     const totalGB = disk.total_bytes ? (disk.total_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
     const usedGB = disk.used_bytes ? (disk.used_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
     const availableGB = disk.available_bytes ? (disk.available_bytes / 1024 / 1024 / 1024).toFixed(1) : '0';
 
     let badgeClass = '';
-    let progressClass = '';
     if (usagePercent >= state.thresholds.disk.critical) {
       badgeClass = 'critical';
-      progressClass = 'critical';
     } else if (usagePercent >= state.thresholds.disk.warning) {
       badgeClass = 'warning';
-      progressClass = 'warning';
     }
+
+    const clampedUsage = Math.min(100, Math.max(0, usagePercent));
+    const severity = getProgressSeverity(clampedUsage, 'disk');
+    const severityClass = severity ? ` progress-fill--${severity}` : '';
 
     storageCard.innerHTML = `
       <div class="storage-header">
@@ -107,7 +108,7 @@ export function updateDiskSpaces(diskSpaces, overallPercentage) {
         </div>
       </div>
       <div class="storage-progress">
-        <div class="storage-progress-fill ${progressClass}" style="width: ${usagePercent}%"></div>
+        <div class="storage-progress-fill progress-fill${severityClass}" style="width: ${clampedUsage}%"></div>
       </div>
       <div class="storage-stats">
         <div class="storage-stat">
