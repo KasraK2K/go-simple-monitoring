@@ -528,7 +528,7 @@ body[data-theme="light"] .section-handle {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  overflow: hidden;
+  overflow: visible;
   transition: height 0.35s ease, opacity 0.3s ease;
   will-change: height;
 }
@@ -1666,22 +1666,38 @@ body[data-theme="dark"] .heartbeat-card {
 }
 
 .progress-fill--safe {
-  background: linear-gradient(90deg, var(--status-safe), var(--status-safe-bright));
+  background: linear-gradient(
+    90deg,
+    var(--status-safe),
+    var(--status-safe-bright)
+  );
   box-shadow: 0 0 12px rgba(var(--status-safe-rgb), 0.35);
 }
 
 .progress-fill--warning {
-  background: linear-gradient(90deg, var(--status-warning), var(--status-warning-bright));
+  background: linear-gradient(
+    90deg,
+    var(--status-warning),
+    var(--status-warning-bright)
+  );
   box-shadow: 0 0 12px rgba(var(--status-warning-rgb), 0.35);
 }
 
 .progress-fill--caution {
-  background: linear-gradient(90deg, var(--status-caution), var(--status-caution-bright));
+  background: linear-gradient(
+    90deg,
+    var(--status-caution),
+    var(--status-caution-bright)
+  );
   box-shadow: 0 0 12px rgba(var(--status-caution-rgb), 0.35);
 }
 
 .progress-fill--danger {
-  background: linear-gradient(90deg, var(--status-danger), var(--status-danger-bright));
+  background: linear-gradient(
+    90deg,
+    var(--status-danger),
+    var(--status-danger-bright)
+  );
   box-shadow: 0 0 12px rgba(var(--status-danger-rgb), 0.4);
 }
 
@@ -2287,7 +2303,11 @@ body[data-theme="light"] .theme-toggle {
 }
 
 .alert.success .alert-icon {
-  background: linear-gradient(135deg, var(--success), rgba(var(--status-safe-rgb), 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--success),
+    rgba(var(--status-safe-rgb), 0.8)
+  );
   color: #0f172a;
 }
 
@@ -2300,7 +2320,11 @@ body[data-theme="light"] .theme-toggle {
 }
 
 .alert.error .alert-icon {
-  background: linear-gradient(135deg, var(--danger), rgba(var(--status-danger-rgb), 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--danger),
+    rgba(var(--status-danger-rgb), 0.8)
+  );
   color: #0f172a;
 }
 
@@ -2313,7 +2337,11 @@ body[data-theme="light"] .theme-toggle {
 }
 
 .alert.warning .alert-icon {
-  background: linear-gradient(135deg, var(--warning), rgba(var(--status-warning-rgb), 0.8));
+  background: linear-gradient(
+    135deg,
+    var(--warning),
+    rgba(var(--status-warning-rgb), 0.8)
+  );
   color: #0f172a;
 }
 
@@ -2613,7 +2641,8 @@ body[data-theme="light"] .heartbeat-search {
 
 .retry-btn:focus {
   outline: none;
-  box-shadow: 0 16px 28px rgba(var(--status-danger-rgb), 0.25), var(--focus-ring);
+  box-shadow: 0 16px 28px rgba(var(--status-danger-rgb), 0.25),
+    var(--focus-ring);
 }
 
 @media (max-width: 900px) {
