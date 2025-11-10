@@ -25,11 +25,15 @@ export function buildFilterFromRange(range) {
   if (!durationMs) {
     return null;
   }
-  const to = new Date();
-  const from = new Date(to.getTime() - durationMs);
+  
+  // Force UTC calculation to ensure consistency across timezones
+  const now = new Date();
+  const nowUtc = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+  const fromUtc = new Date(nowUtc.getTime() - durationMs);
+  
   return {
-    from: from.toISOString(),
-    to: to.toISOString()
+    from: fromUtc.toISOString(),
+    to: nowUtc.toISOString()
   };
 }
 

@@ -30,13 +30,19 @@ export function formatDateInputToISO(value, endOfRange = false) {
   if (Number.isNaN(date.getTime())) {
     return '';
   }
+  
+  // Force UTC interpretation - treat the input as if it were already UTC
+  // This prevents timezone conversion issues between local and server
+  const utcDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+  
   if (endOfRange) {
     const hasSeconds = /:\d{2}$/.test(value);
     if (!hasSeconds) {
-      date.setSeconds(59, 999);
+      utcDate.setUTCSeconds(59, 999);
     }
   }
-  return date.toISOString();
+  
+  return utcDate.toISOString();
 }
 
 export async function applyDateFilter() {
@@ -103,7 +109,13 @@ export async function applyRangePreset(range) {
     return;
   }
 
-  const formatDate = (date) => date.toISOString().slice(0, 16);
+  // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
+  // Convert UTC timestamps back to local display for the input fields
+  const formatDate = (date) => {
+    // Convert from UTC to local for display in datetime-local inputs
+    const localDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+    return localDate.toISOString().slice(0, 16);
+  };
   const fromDate = new Date(filter.from);
   const toDate = new Date(filter.to);
 
