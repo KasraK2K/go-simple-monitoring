@@ -194,7 +194,7 @@ ProtectSystem=full
 ProtectHome=true
 PrivateTmp=true
 # Allow writes to logs and database paths
-ReadWritePaths=/var/log/monitoring /opt/monitoring /var/syslogs
+ReadWritePaths=/opt/monitoring /var/syslogs
 
 # Restart policy
 Restart=always
@@ -574,6 +574,7 @@ WantedBy=multi-user.target
 ```
 
 After updating the service file:
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl restart monitoring.service
