@@ -51,6 +51,7 @@ export async function fetchMetrics() {
         : null;
     }
 
+
     const response = await fetch(monitoringUrl, {
       method: "POST",
       cache: "no-store",

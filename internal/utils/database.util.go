@@ -461,6 +461,6 @@ func ensureServerLogTable(rawName string) (string, error) {
 }
 
 func normalizeTimestampInput(value string) (string, error) {
-	// Use the new centralized timezone-aware function
-	return NormalizeTimestampInput(value)
+	// Use the database-specific function that always stores in UTC for consistency
+	return NormalizeTimestampForDB(value)
 }
