@@ -73,9 +73,11 @@ export async function fetchMetrics() {
       entries = entries ? [entries] : [];
     }
 
-    const data = entries[0] || null;
+    // For filtered requests, check if we have any entries in the array
+    // For non-filtered requests, check if we have a single entry
+    const hasData = filterPayload ? entries.length > 0 : entries[0] != null;
 
-    if (!data) {
+    if (!hasData) {
       if (filterPayload) {
         if (usingAutoFilter) {
           state.autoFilter = null;
@@ -543,16 +545,6 @@ function normalizeMetrics(raw) {
   };
 }
 
-function buildEndpoint(path) {
-  const base = sanitizeBaseUrl(state.selectedBaseUrl);
-  if (!base) {
-    return path;
-  }
-  if (!path.startsWith("/")) {
-    return `${base}/${path}`;
-  }
-  return `${base}${path}`;
-}
 
 function normalizeConfiguredServers(servers) {
   if (!Array.isArray(servers)) {
