@@ -26,15 +26,17 @@ export function buildFilterFromRange(range) {
     return null;
   }
   
-  // Force UTC calculation to ensure consistency across timezones
+  // Use current UTC time directly - no manual timezone conversion needed
   const now = new Date();
-  const nowUtc = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
-  const fromUtc = new Date(nowUtc.getTime() - durationMs);
+  const fromUtc = new Date(now.getTime() - durationMs);
   
-  return {
+  const result = {
     from: fromUtc.toISOString(),
-    to: nowUtc.toISOString()
+    to: now.toISOString()
   };
+  
+  
+  return result;
 }
 
 export function getAllowedRangePresets() {
