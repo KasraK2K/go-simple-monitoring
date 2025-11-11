@@ -1521,14 +1521,32 @@ func startAutoLogging() {
 		for {
 			select {
 			case <-ticker.C:
-				// Generate monitoring data and log it
-				if data, err := MonitoringDataGenerator(); err == nil {
-					if logErr := utils.LogMonitoringData(data); logErr != nil {
-						utils.LogWarnWithContext("auto-logging", "failed to log monitoring data", logErr)
+				// Generate monitoring data and log it - local monitoring should never fail the entire system
+				func() {
+					defer func() {
+						if r := recover(); r != nil {
+							utils.LogErrorWithContext("auto-logging", "local monitoring panic recovered", fmt.Errorf("%v", r))
+						}
+					}()
+					
+					if data, err := MonitoringDataGenerator(); err == nil {
+						if logErr := utils.LogMonitoringData(data); logErr != nil {
+							utils.LogWarnWithContext("auto-logging", "failed to log monitoring data", logErr)
+						}
+					} else {
+						utils.LogWarnWithContext("auto-logging", "failed to generate monitoring data", err)
 					}
-				}
+				}()
 
-				persistServerLogs()
+				// Persist remote server logs - this should never block or crash local monitoring
+				go func() {
+					defer func() {
+						if r := recover(); r != nil {
+							utils.LogErrorWithContext("server-persistence", "server logging panic recovered", fmt.Errorf("%v", r))
+						}
+					}()
+					persistServerLogs()
+				}()
 			case <-stopChan:
 				return
 			}
@@ -1693,48 +1711,85 @@ func persistServerLogs() {
 		return
 	}
 
+	// Process each server concurrently with individual timeout handling
+	// This prevents one slow/failed server from blocking others
+	var wg sync.WaitGroup
+	
 	for _, server := range cfg.Servers {
-		if utils.IsEmptyOrWhitespace(server.TableName) {
+		if utils.IsEmptyOrWhitespace(server.TableName) || utils.IsEmptyOrWhitespace(server.Address) {
 			continue
 		}
 
-		if utils.IsEmptyOrWhitespace(server.Address) {
-			continue
-		}
+		wg.Add(1)
+		go func(srv models.ServerEndpoint) {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					utils.LogErrorWithContext("server-persistence", 
+						fmt.Sprintf("Server persistence panic for '%s' (%s)", srv.Name, srv.Address),
+						fmt.Errorf("panic: %v", r))
+				}
+			}()
 
-		payload, err := fetchServerMonitoring(server.Address)
-		if err != nil {
-			utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", server.Address), err)
-			continue
-		}
+			// Add timeout context for each server individually
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
 
-		if _, err := updateServerMetricsCache(server, payload); err != nil {
-			utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to parse server metrics from %s", server.Address), err)
-		}
-
-		if writeFile {
-			if err := utils.WriteServerLogToFile(cfg.Path, server, payload); err != nil {
-				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log file for %s", server.Address), err)
+			// Use context-aware fetch with individual server timeout
+			payload, err := fetchServerMonitoringWithContext(ctx, srv.Address)
+			if err != nil {
+				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", srv.Address), err)
+				return
 			}
-		}
 
-		if writeDB {
-			if err := utils.WriteServerLogToDatabase(server.TableName, payload); err != nil {
-				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to database for %s", server.Address), err)
+			// Update cache - this should be fast and not block
+			if _, err := updateServerMetricsCache(srv, payload); err != nil {
+				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to parse server metrics from %s", srv.Address), err)
 			}
-		}
+
+			// File and database operations with error isolation
+			if writeFile {
+				if err := utils.WriteServerLogToFile(cfg.Path, srv, payload); err != nil {
+					utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log file for %s", srv.Address), err)
+				}
+			}
+
+			if writeDB {
+				if err := utils.WriteServerLogToDatabase(srv.TableName, payload); err != nil {
+					utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to database for %s", srv.Address), err)
+				}
+			}
+		}(server)
+	}
+
+	// Wait for all servers to complete with overall timeout
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All servers completed successfully
+	case <-time.After(60 * time.Second):
+		utils.LogWarn("server persistence timed out after 60 seconds; some servers may still be processing")
 	}
 }
 
 func fetchServerMonitoring(baseAddress string) ([]byte, error) {
-	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
-
 	// Get timeout from environment configuration
 	envConfig := config.GetEnvConfig()
 	timeout := envConfig.ServerMonitoringTimeout
 
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
+	
+	return fetchServerMonitoringWithContext(ctx, baseAddress)
+}
+
+func fetchServerMonitoringWithContext(ctx context.Context, baseAddress string) ([]byte, error) {
+	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
 
 	// Use the centralized HTTP utility with resource limits
 	headers := map[string]string{
@@ -1747,7 +1802,7 @@ func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 	if err != nil {
 		// Provide more specific error messages for different failure types
 		if strings.Contains(err.Error(), "timeout") || strings.Contains(err.Error(), "deadline exceeded") {
-			return nil, fmt.Errorf("server timeout after %v: %w", timeout, err)
+			return nil, fmt.Errorf("server timeout: %w", err)
 		}
 		if strings.Contains(err.Error(), "connection refused") {
 			return nil, fmt.Errorf("server unavailable (connection refused): %w", err)
