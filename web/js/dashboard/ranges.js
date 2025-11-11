@@ -26,17 +26,17 @@ export function buildFilterFromRange(range) {
     return null;
   }
   
-  // Use current UTC time directly - no manual timezone conversion needed
+  // Get current time in user's local timezone
   const now = new Date();
-  const fromUtc = new Date(now.getTime() - durationMs);
   
-  const result = {
-    from: fromUtc.toISOString(),
+  // Calculate from time by subtracting duration
+  const fromTime = new Date(now.getTime() - durationMs);
+  
+  // JavaScript's toISOString() automatically converts to UTC
+  return {
+    from: fromTime.toISOString(),
     to: now.toISOString()
   };
-  
-  
-  return result;
 }
 
 export function getAllowedRangePresets() {
