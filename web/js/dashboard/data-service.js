@@ -255,6 +255,12 @@ export async function fetchMetrics() {
 
 export function scheduleNextFetch() {
   clearTimeout(state.refreshTimer);
+
+  const isManualHistoricalView = state.historicalMode && !state.autoFilter;
+  if (isManualHistoricalView) {
+    state.refreshTimer = null;
+    return;
+  }
   state.refreshTimer = setTimeout(async () => {
     try {
       // Always fetch server config from local server to get complete server list
