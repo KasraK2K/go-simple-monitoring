@@ -1789,7 +1789,7 @@ func fetchServerMonitoring(baseAddress string) ([]byte, error) {
 }
 
 func fetchServerMonitoringWithContext(ctx context.Context, baseAddress string) ([]byte, error) {
-	endpoint := strings.TrimRight(baseAddress, "/") + "/monitoring"
+	endpoint := strings.TrimRight(baseAddress, "/") + "/api/v1/monitoring"
 
 	// Use the centralized HTTP utility with resource limits
 	headers := map[string]string{

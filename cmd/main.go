@@ -11,7 +11,7 @@ import (
 	"strings"
 	"syscall"
 
-	"go-log/internal/api/handlers"
+	"go-log/internal/api/router"
 	"go-log/internal/api/logics"
 	"go-log/internal/config"
 	"go-log/internal/utils"
@@ -97,9 +97,10 @@ func main() {
 		os.Exit(0)
 	}()
 
-	handlers.MonitoringRoutes()
+	// Create and configure the Chi router
+	r := router.NewRouter()
 
 	addr := fmt.Sprintf(":%s", envConfig.Port)
 	log.Println("Server running on", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	log.Fatal(http.ListenAndServe(addr, r))
 }

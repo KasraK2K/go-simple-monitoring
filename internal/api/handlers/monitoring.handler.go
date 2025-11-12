@@ -377,3 +377,126 @@ func refreshLabelFromConfig(cfg *models.MonitoringConfig) string {
 	}
 	return cfg.RefreshTime
 }
+
+// Individual API Handlers for Chi Router
+
+// ServerConfigHandler handles server configuration requests
+func ServerConfigHandler(w http.ResponseWriter, r *http.Request) {
+	cfg := logics.GetMonitoringConfig()
+	
+	// Handle remote server config requests (proxy requests)
+	if remoteTarget := strings.TrimSpace(r.URL.Query().Get("remote")); remoteTarget != "" {
+		// Only allow proxy requests if local dashboard is enabled
+		if !IsDashboardEnabled() {
+			http.NotFound(w, r)
+			return
+		}
+		proxyRemoteServerConfig(w, remoteTarget, cfg)
+		return
+	}
+
+	// Handle direct config requests - allow these even when dashboard is disabled
+	// because remote servers need to serve their config to other servers
+	refresh := 2.0
+	if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
+		refresh = d.Seconds()
+	}
+
+	payload := map[string]any{
+		"refresh_interval_seconds": refresh,
+		"heartbeat":                cfg.Heartbeat,
+		"servers":                  cfg.Servers,
+		"storage":                  cfg.Storage,
+		"path":                     cfg.Path,
+		"persist_server_logs":      cfg.PersistServerLogs,
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal config"}`)
+		return
+	}
+
+	setHeader(w, http.StatusOK, string(jsonData))
+}
+
+// TablesHandler serves available tables endpoint
+func TablesHandler(w http.ResponseWriter, r *http.Request) {
+	tables := utils.GetAvailableTables()
+
+	payload := map[string]any{
+		"tables": tables,
+		"count":  len(tables),
+	}
+
+	jsonData, err := json.Marshal(payload)
+	if err != nil {
+		setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal tables data"}`)
+		return
+	}
+
+	setHeader(w, http.StatusOK, string(jsonData))
+}
+
+// MonitoringHandler handles monitoring data requests
+func MonitoringHandler(w http.ResponseWriter, r *http.Request) {
+	// Check token only in production if CHECK_TOKEN_IN_PRODUCTION is enabled
+	if IsProduction() && ShouldCheckTokenInProduction() {
+		_, err := ValidateTokenAndParseGeneric[TokenClaims](r)
+		if err != nil {
+			setHeader(w, http.StatusUnauthorized, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
+			return
+		}
+	}
+
+	// Parse optional filter from request body
+	var filter FilterRequest
+	if r.ContentLength > 0 {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Failed to read request body"}`)
+			return
+		}
+		defer r.Body.Close()
+
+		if len(body) > 0 {
+			err = json.Unmarshal(body, &filter)
+			if err != nil {
+				setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Invalid JSON format"}`)
+				return
+			}
+		}
+	}
+
+	// Generate monitoring data based on filter
+	var responseArray []any
+	var err error
+
+	if filter.From != "" || filter.To != "" || filter.TableName != "" {
+		// Use filtered data from database (with optional table specification)
+		filteredData, err := logics.MonitoringDataGeneratorWithTableFilter(filter.TableName, filter.From, filter.To)
+		if err != nil {
+			setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
+			return
+		}
+		responseArray = filteredData
+	} else {
+		// Use current metrics and wrap in array
+		currentData, err := logics.MonitoringDataGenerator()
+		if err != nil {
+			setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
+			return
+		}
+		responseArray = []any{currentData}
+	}
+
+	// Convert to JSON
+	jsonData, err := json.Marshal(responseArray)
+	if err != nil {
+		setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
+		return
+	}
+
+	setHeader(w, http.StatusOK, string(jsonData))
+}
+
