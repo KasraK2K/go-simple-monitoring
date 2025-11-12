@@ -2396,6 +2396,42 @@ body[data-theme="light"] .theme-toggle {
     0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
+/* Light mode alert styles */
+[data-theme="light"] .alert {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(248, 250, 252, 0.8)
+  );
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  color: var(--text-primary);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .alert:hover {
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+[data-theme="light"] .alert::before {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.1),
+    rgba(139, 92, 246, 0.1)
+  );
+}
+
+[data-theme="light"] .alert-close {
+  background: rgba(0, 0, 0, 0.05);
+  color: rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="light"] .alert-close:hover {
+  background: rgba(0, 0, 0, 0.1);
+  color: rgba(0, 0, 0, 0.8);
+}
+
 /* Export Panel */
 .export-panel {
   position: fixed;
