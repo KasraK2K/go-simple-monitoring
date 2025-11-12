@@ -281,7 +281,7 @@ export async function fetchServerConfig(baseUrl = "") {
   try {
     const sanitizedBase = sanitizeBaseUrl(baseUrl);
     const endpoint = sanitizedBase
-      ? `${sanitizedBase}/api/v1/server-config`
+      ? `/api/v1/server-config?remote=${encodeURIComponent(sanitizedBase)}`
       : "/api/v1/server-config";
     const response = await fetch(endpoint, { cache: "no-store" });
     if (!response.ok) {
@@ -292,6 +292,10 @@ export async function fetchServerConfig(baseUrl = "") {
     const activeBase = sanitizeBaseUrl(state.selectedBaseUrl);
     const matchesActiveServer = sanitizedBase === activeBase;
     const isLocalFetch = !sanitizedBase;
+
+    if (isLocalFetch) {
+      state.localServerConfig = config;
+    }
 
     if (isLocalFetch) {
       const normalizedServers = normalizeConfiguredServers(config.servers || []);
@@ -642,7 +646,9 @@ function findTableNameForServer(serverAddress) {
   const sanitizedAddress = sanitizeBaseUrl(serverAddress);
   
   // Look for the server in the configuration to find its table_name
-  const servers = state.serverConfig?.servers || [];
+  const servers = state.localServerConfig?.servers
+    || state.serverConfig?.servers
+    || [];
   
   for (const server of servers) {
     const serverSanitized = sanitizeBaseUrl(server.address);
