@@ -34,7 +34,7 @@ export async function fetchMetrics() {
     if (isRemoteServer) {
       // For remote servers, ALWAYS use local server with table_name parameter
       const tableName = findTableNameForServer(state.selectedBaseUrl);
-      monitoringUrl = "/monitoring"; // Local server endpoint
+      monitoringUrl = "/api/v1/monitoring"; // Local server endpoint
       requestBody = JSON.stringify({
         table_name: tableName,
         from: filterPayload?.from || undefined,
@@ -42,7 +42,7 @@ export async function fetchMetrics() {
       });
     } else {
       // Local server requests: use local endpoint
-      monitoringUrl = "/monitoring";
+      monitoringUrl = "/api/v1/monitoring";
       requestBody = filterPayload
         ? JSON.stringify({
             from: filterPayload.from || undefined,
