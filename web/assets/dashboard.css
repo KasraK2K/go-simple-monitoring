@@ -719,7 +719,7 @@ body[data-theme="light"] .glass-panel::after {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  overflow: hidden;
+  overflow: visible;
   max-height: 900px;
   opacity: 1;
   transition: max-height 0.5s ease, opacity 0.4s ease, transform 0.45s ease;
@@ -3051,3 +3051,10 @@ body[data-theme="light"] .heartbeat-search {
     background: rgba(15, 23, 42, 0.92);
   }
 }
+
+
+/* Fix for background scrolling issue - ensure background is always fixed */
+body {
+  background-attachment: fixed;
+}
+
