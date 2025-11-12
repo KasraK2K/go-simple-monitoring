@@ -121,17 +121,13 @@ func DashboardShell(props DashboardProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if props.Config != nil && len(props.Config.Servers) > 0 {
-			templ_7745c5c3_Err = ServersSection().Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = ServersSection(props.Config == nil || len(props.Config.Servers) == 0).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
-		if props.Config != nil && len(props.Config.Heartbeat) > 0 {
-			templ_7745c5c3_Err = HeartbeatSection().Render(ctx, templ_7745c5c3_Buffer)
-			if templ_7745c5c3_Err != nil {
-				return templ_7745c5c3_Err
-			}
+		templ_7745c5c3_Err = HeartbeatSection(props.Config == nil || len(props.Config.Heartbeat) == 0).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></main>")
 		if templ_7745c5c3_Err != nil {
@@ -227,7 +223,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 105, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 101, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -240,7 +236,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 138, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 134, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -341,7 +337,7 @@ func ChartsSection() templ.Component {
 	})
 }
 
-func ServersSection() templ.Component {
+func ServersSection(isInitiallyHidden bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -362,7 +358,38 @@ func ServersSection() templ.Component {
 			templ_7745c5c3_Var11 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<section class=\"section-block servers-section\" data-component=\"servers\" role=\"region\" aria-label=\"Remote server metrics\" data-dashboard-section data-section-id=\"servers\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag servers section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading servers-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-servers\" data-section-collapse data-section-target=\"section-content-servers\" data-section-label=\"Servers\"><span class=\"sr-only\" data-section-toggle-label>Collapse servers section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Remote Servers</span><h2>Distributed Health</h2></div><div class=\"servers-summary\" id=\"serverMetricsSummary\">-- tracked</div></div><div class=\"section-content\" id=\"section-content-servers\" data-section-content><div class=\"servers-grid\" id=\"serverMetricsList\"><div class=\"servers-empty\" id=\"serverMetricsEmpty\">Server metrics will appear here soon</div></div></div></section>")
+		var templ_7745c5c3_Var12 = []any{sectionClasses("section-block servers-section", isInitiallyHidden)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var12...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<section class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var13 string
+		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var12).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-component=\"servers\" role=\"region\" aria-label=\"Remote server metrics\" data-dashboard-section data-section-id=\"servers\" aria-hidden=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var14 string
+		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 292, Col: 263}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag servers section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading servers-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-servers\" data-section-collapse data-section-target=\"section-content-servers\" data-section-label=\"Servers\"><span class=\"sr-only\" data-section-toggle-label>Collapse servers section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Remote Servers</span><h2>Distributed Health</h2></div><div class=\"servers-summary\" id=\"serverMetricsSummary\">-- tracked</div></div><div class=\"section-content\" id=\"section-content-servers\" data-section-content><div class=\"servers-grid\" id=\"serverMetricsList\"><div class=\"servers-empty\" id=\"serverMetricsEmpty\">Server metrics will appear here soon</div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -370,7 +397,7 @@ func ServersSection() templ.Component {
 	})
 }
 
-func HeartbeatSection() templ.Component {
+func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -386,17 +413,55 @@ func HeartbeatSection() templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var12 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var12 == nil {
-			templ_7745c5c3_Var12 = templ.NopComponent
+		templ_7745c5c3_Var15 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var15 == nil {
+			templ_7745c5c3_Var15 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section class=\"section-block heartbeat-section\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\" data-dashboard-section data-section-id=\"heartbeats\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag heartbeats section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading heartbeat-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-heartbeats\" data-section-collapse data-section-target=\"section-content-heartbeats\" data-section-label=\"Heartbeats\"><span class=\"sr-only\" data-section-toggle-label>Collapse heartbeat section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Heartbeats</span><h2>Domain Availability</h2></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"section-content\" id=\"section-content-heartbeats\" data-section-content><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></div></section>")
+		var templ_7745c5c3_Var16 = []any{sectionClasses("section-block heartbeat-section", isInitiallyHidden)}
+		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var16...)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<section class=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var17 string
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(templ.CSSClasses(templ_7745c5c3_Var16).String())
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 1, Col: 0}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\" data-dashboard-section data-section-id=\"heartbeats\" aria-hidden=\"")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var18 string
+		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 316, Col: 273}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag heartbeats section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading heartbeat-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-heartbeats\" data-section-collapse data-section-target=\"section-content-heartbeats\" data-section-label=\"Heartbeats\"><span class=\"sr-only\" data-section-toggle-label>Collapse heartbeat section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Heartbeats</span><h2>Domain Availability</h2></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"section-content\" id=\"section-content-heartbeats\" data-section-content><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		return nil
 	})
+}
+
+func sectionClasses(base string, hidden bool) string {
+	if hidden {
+		return base + " is-hidden"
+	}
+	return base
 }
 
 func computeRefreshLabel(cfg *models.MonitoringConfig) string {

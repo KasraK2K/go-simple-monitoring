@@ -1,5 +1,6 @@
 const SECTION_COLLAPSE_STORAGE_KEY = 'dashboardSectionCollapseState';
 let cachedCollapseState = null;
+const sectionCache = new Map();
 
 function loadStoredCollapseState() {
   if (cachedCollapseState) {
@@ -144,4 +145,32 @@ export function initSectionCollapsibles() {
       persistCollapseState(sectionId, nextCollapsed);
     });
   });
+}
+
+function findSectionElement(sectionId) {
+  if (!sectionId) {
+    return null;
+  }
+  if (sectionCache.has(sectionId)) {
+    const cached = sectionCache.get(sectionId);
+    if (cached?.isConnected) {
+      return cached;
+    }
+    sectionCache.delete(sectionId);
+  }
+  const element = document.querySelector(`[data-dashboard-section][data-section-id="${sectionId}"]`);
+  if (element) {
+    sectionCache.set(sectionId, element);
+  }
+  return element;
+}
+
+export function setSectionVisibility(sectionId, isVisible) {
+  const section = findSectionElement(sectionId);
+  if (!section) {
+    return;
+  }
+  const shouldHide = !isVisible;
+  section.classList.toggle('is-hidden', shouldHide);
+  section.setAttribute('aria-hidden', shouldHide ? 'true' : 'false');
 }

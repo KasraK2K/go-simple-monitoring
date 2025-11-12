@@ -265,6 +265,9 @@ export function scheduleNextFetch() {
     try {
       // Always fetch server config from local server to get complete server list
       await fetchServerConfig("");
+      if (state.selectedBaseUrl) {
+        await fetchServerConfig(state.selectedBaseUrl);
+      }
       await fetchMetrics();
     } catch (error) {
       console.error("Scheduled fetch failed:", error);
@@ -287,34 +290,40 @@ export async function fetchServerConfig(baseUrl = "") {
 
     const config = await response.json();
     const activeBase = sanitizeBaseUrl(state.selectedBaseUrl);
-    if (sanitizedBase !== activeBase) {
-      return config;
-    }
+    const matchesActiveServer = sanitizedBase === activeBase;
+    const isLocalFetch = !sanitizedBase;
 
-    const normalizedServers = normalizeConfiguredServers(config.servers || []);
+    if (isLocalFetch) {
+      const normalizedServers = normalizeConfiguredServers(config.servers || []);
+      state.availableServers = normalizedServers;
 
-    state.serverConfig = config;
-    state.availableServers = normalizedServers;
-
-    if (!activeBase) {
-      state.selectedServer = null;
-    } else {
-      const matchedServer = normalizedServers.find(
-        (server) => server.address === activeBase
-      );
-      if (matchedServer) {
-        state.selectedServer = { ...matchedServer };
+      if (!activeBase) {
+        state.selectedServer = null;
+      } else {
+        const matchedServer = normalizedServers.find(
+          (server) => server.address === activeBase
+        );
+        if (matchedServer) {
+          state.selectedServer = { ...matchedServer };
+        }
       }
+
+      renderServerButtons();
     }
-    renderServerButtons();
-    updateRemoteContext();
 
-    updateServerMetricsSection(state.serverMetrics || [], config.servers || []);
+    const shouldUpdateActiveConfig = matchesActiveServer || (!activeBase && isLocalFetch);
 
-    const candidate = Number(config.refresh_interval_seconds) * 1000;
-    if (!Number.isNaN(candidate) && candidate > 0) {
-      state.refreshInterval = candidate;
-      updateRefreshDisplay();
+    if (shouldUpdateActiveConfig) {
+      state.serverConfig = config;
+      updateServerMetricsSection(state.serverMetrics || [], config.servers || []);
+
+      const candidate = Number(config.refresh_interval_seconds) * 1000;
+      if (!Number.isNaN(candidate) && candidate > 0) {
+        state.refreshInterval = candidate;
+        updateRefreshDisplay();
+      }
+
+      updateRemoteContext();
     }
 
     return config;
@@ -390,9 +399,7 @@ export async function handleServerSelection(server) {
 
   state.selectedServer = server.address ? { ...server, address } : null;
   state.selectedBaseUrl = address;
-  
-  // Fetch server config from local server to ensure state.serverConfig has the complete server list
-  await fetchServerConfig("");
+  state.serverConfig = null;
   
   state.autoFilter = state.defaultRangePreset ? buildFilterFromRange(state.defaultRangePreset) : null;
   state.pendingFilter = null;
@@ -415,6 +422,9 @@ export async function handleServerSelection(server) {
 
   clearTimeout(state.refreshTimer);
   await fetchServerConfig("");
+  if (address) {
+    await fetchServerConfig(address);
+  }
   await fetchMetrics();
   scheduleNextFetch();
 }

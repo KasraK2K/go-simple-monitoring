@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { setSectionVisibility } from './sections.js';
 import {
   escapeHtml,
   formatLastChecked,
@@ -8,15 +9,35 @@ import {
   statusLabel
 } from './utils.js';
 
-export function updateHeartbeat(servers = [], uptimeStats = null) {
+export function updateHeartbeat(servers = [], uptimeStats = null, configuredTargets = null) {
   const list = document.getElementById('heartbeatList');
   const summary = document.getElementById('heartbeatSummary');
   if (!list) return;
 
+  const configuredList = Array.isArray(configuredTargets)
+    ? configuredTargets
+    : Array.isArray(state.serverConfig?.heartbeat)
+      ? state.serverConfig.heartbeat
+      : [];
+  const heartbeatServers = Array.isArray(servers) ? servers : [];
+  const hasConfiguredTargets = configuredList.length > 0;
+  const hasHeartbeatData = heartbeatServers.length > 0;
+  const shouldShow = hasConfiguredTargets || hasHeartbeatData;
+
+  setSectionVisibility('heartbeats', shouldShow);
+
+  if (!shouldShow) {
+    list.innerHTML = '';
+    if (summary) {
+      summary.textContent = '-- online / -- total';
+    }
+    return;
+  }
+
   list.innerHTML = '';
 
-  if (!servers || servers.length === 0) {
-    list.innerHTML = '<div class="heartbeat-empty">No heartbeat targets configured</div>';
+  if (!hasHeartbeatData) {
+    list.innerHTML = '<div class="heartbeat-empty">Waiting for heartbeat data…</div>';
     if (summary) {
       summary.textContent = '0 online / 0 total';
     }
@@ -27,7 +48,7 @@ export function updateHeartbeat(servers = [], uptimeStats = null) {
   let uptimeAccumulator = 0;
   let uptimeSamples = 0;
 
-  servers.forEach((server) => {
+  heartbeatServers.forEach((server) => {
     const status = (server.status || '').toLowerCase();
     if (status === 'up') onlineCount += 1;
 
@@ -79,7 +100,7 @@ export function updateHeartbeat(servers = [], uptimeStats = null) {
   });
 
   if (summary) {
-    let summaryText = `${onlineCount} online / ${servers.length} total`;
+    let summaryText = `${onlineCount} online / ${heartbeatServers.length} total`;
     if (uptimeSamples > 0) {
       const avgUptime = uptimeAccumulator / uptimeSamples;
       summaryText += ` • Avg ${avgUptime.toFixed(1)}% uptime`;

@@ -1,4 +1,5 @@
 import { state } from './state.js';
+import { setSectionVisibility } from './sections.js';
 import { formatLastChecked, sanitizeBaseUrl } from './utils.js';
 
 const ROOT_DISK_PATHS = ['/', '\\', '/System/Volumes/Data'];
@@ -357,6 +358,8 @@ export function updateServerMetricsSection(metrics = [], configuredServers = [])
 
   const merged = mergeConfiguredWithMetrics(metrics || [], configuredServers || []);
   state.serverMetrics = merged;
+
+  setSectionVisibility('servers', merged.length > 0);
 
   if (merged.length === 0) {
     const message = Array.isArray(configuredServers) && configuredServers.length > 0

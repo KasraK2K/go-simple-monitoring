@@ -44,12 +44,8 @@ templ DashboardShell(props DashboardProps) {
         <div class="dashboard-grid" data-dashboard-layout>
             @MetricsSection()
             @ChartsSection()
-            if props.Config != nil && len(props.Config.Servers) > 0 {
-                @ServersSection()
-            }
-            if props.Config != nil && len(props.Config.Heartbeat) > 0 {
-                @HeartbeatSection()
-            }
+            @ServersSection(props.Config == nil || len(props.Config.Servers) == 0)
+            @HeartbeatSection(props.Config == nil || len(props.Config.Heartbeat) == 0)
         </div>
     </main>
 }
@@ -292,8 +288,8 @@ templ ChartsSection() {
     </section>
 }
 
-templ ServersSection() {
-    <section class="section-block servers-section" data-component="servers" role="region" aria-label="Remote server metrics" data-dashboard-section data-section-id="servers">
+templ ServersSection(isInitiallyHidden bool) {
+    <section class={ sectionClasses("section-block servers-section", isInitiallyHidden) } data-component="servers" role="region" aria-label="Remote server metrics" data-dashboard-section data-section-id="servers" aria-hidden={ fmt.Sprintf("%t", isInitiallyHidden) }>
         <button class="section-handle" type="button" data-section-handle aria-label="Drag servers section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
@@ -316,8 +312,8 @@ templ ServersSection() {
     </section>
 }
 
-templ HeartbeatSection() {
-    <section class="section-block heartbeat-section" data-component="heartbeats" role="region" aria-label="Server heartbeat status" data-dashboard-section data-section-id="heartbeats">
+templ HeartbeatSection(isInitiallyHidden bool) {
+    <section class={ sectionClasses("section-block heartbeat-section", isInitiallyHidden) } data-component="heartbeats" role="region" aria-label="Server heartbeat status" data-dashboard-section data-section-id="heartbeats" aria-hidden={ fmt.Sprintf("%t", isInitiallyHidden) }>
         <button class="section-handle" type="button" data-section-handle aria-label="Drag heartbeats section" draggable="true">
             <i class="fas fa-grip-vertical"></i>
         </button>
@@ -341,6 +337,13 @@ templ HeartbeatSection() {
             </div>
         </div>
     </section>
+}
+
+func sectionClasses(base string, hidden bool) string {
+    if hidden {
+        return base + " is-hidden"
+    }
+    return base
 }
 
 func computeRefreshLabel(cfg *models.MonitoringConfig) string {
