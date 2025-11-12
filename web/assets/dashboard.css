@@ -395,6 +395,10 @@ body[data-theme="light"] .container::before {
   position: relative;
 }
 
+[data-dashboard-section].is-hidden {
+  display: none !important;
+}
+
 [data-dashboard-section].is-dragging {
   opacity: 0.9;
   transform: scale(0.995);

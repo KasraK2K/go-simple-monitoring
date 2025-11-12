@@ -101,7 +101,7 @@ func MonitoringRoutes() {
 		return views.MetricsSection()
 	})
 	registerComponent("/components/heartbeats.html", func() templ.Component {
-		return views.HeartbeatSection()
+		return views.HeartbeatSection(false)
 	})
 	registerComponent("/components/chrome.html", func() templ.Component {
 		return views.ChromeComponent()
