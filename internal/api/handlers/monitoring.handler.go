@@ -41,16 +41,21 @@ func MonitoringRoutes() {
 	assetsDir := http.StripPrefix("/assets/", webstatic.GetAssetsHandler())
 
 	configHandler := func(w http.ResponseWriter, r *http.Request) {
-		if !IsDashboardEnabled() {
-			http.NotFound(w, r)
-			return
-		}
-
 		cfg := logics.GetMonitoringConfig()
+		
+		// Handle remote server config requests (proxy requests)
 		if remoteTarget := strings.TrimSpace(r.URL.Query().Get("remote")); remoteTarget != "" {
+			// Only allow proxy requests if local dashboard is enabled
+			if !IsDashboardEnabled() {
+				http.NotFound(w, r)
+				return
+			}
 			proxyRemoteServerConfig(w, remoteTarget, cfg)
 			return
 		}
+
+		// Handle direct config requests - allow these even when dashboard is disabled
+		// because remote servers need to serve their config to other servers
 
 		refresh := 2.0
 		if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
@@ -240,6 +245,7 @@ func proxyRemoteServerConfig(w http.ResponseWriter, target string, cfg *models.M
 		return
 	}
 
+	// Try to fetch config from remote server first
 	remoteURL := fmt.Sprintf("%s/api/v1/server-config", strings.TrimRight(normalized, "/"))
 	req, err := http.NewRequest(http.MethodGet, remoteURL, nil)
 	if err != nil {
@@ -260,6 +266,19 @@ func proxyRemoteServerConfig(w http.ResponseWriter, target string, cfg *models.M
 		return
 	}
 
+	// If remote server returns 404, it's likely an older version without the endpoint
+	// Fall back to generating a compatible config based on local configuration
+	if resp.StatusCode == http.StatusNotFound {
+		fallbackConfig := generateFallbackRemoteConfig(normalized, cfg)
+		jsonData, err := json.Marshal(fallbackConfig)
+		if err != nil {
+			writeJSONError(w, http.StatusInternalServerError, fmt.Sprintf("failed to marshal fallback config: %v", err))
+			return
+		}
+		setHeader(w, http.StatusOK, string(jsonData))
+		return
+	}
+
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		if len(body) == 0 {
 			writeJSONError(w, resp.StatusCode, fmt.Sprintf("remote server returned status %d", resp.StatusCode))
@@ -270,6 +289,27 @@ func proxyRemoteServerConfig(w http.ResponseWriter, target string, cfg *models.M
 	}
 
 	setHeader(w, http.StatusOK, string(body))
+}
+
+// generateFallbackRemoteConfig creates a compatible configuration for older remote servers
+// that don't have the /api/v1/server-config endpoint
+func generateFallbackRemoteConfig(_ string, localCfg *models.MonitoringConfig) map[string]any {
+	// Use local config as base but adapt for remote server context
+	refresh := 2.0
+	if d, err := time.ParseDuration(localCfg.RefreshTime); err == nil && d > 0 {
+		refresh = d.Seconds()
+	}
+
+	// For older remote servers, provide a minimal config that works with the frontend
+	// Since they don't have their own server list, we show empty servers and heartbeat
+	return map[string]any{
+		"refresh_interval_seconds": refresh,
+		"heartbeat":                []any{}, // Older servers likely don't have complex heartbeat configs
+		"servers":                  []any{}, // Older servers don't monitor other servers
+		"storage":                  localCfg.Storage,
+		"path":                     localCfg.Path,
+		"persist_server_logs":      localCfg.PersistServerLogs,
+	}
 }
 
 func normalizeRemoteAddress(raw string) (string, error) {
