@@ -6,6 +6,7 @@ export const state = {
   refreshTimer: null,
   previousMetrics: null,
   serverConfig: null,
+  localServerConfig: null,
   availableServers: [],
   selectedServer: null,
   selectedBaseUrl: '',

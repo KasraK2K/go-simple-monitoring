@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/a-h/templ"
@@ -27,6 +30,8 @@ type FilterRequest struct {
 	TableName string `json:"table_name,omitempty"`
 }
 
+var remoteConfigHTTPClient = &http.Client{Timeout: 10 * time.Second}
+
 func MonitoringRoutes() {
 	// Initialize monitoring configuration at startup
 	logics.InitMonitoringConfig()
@@ -42,6 +47,11 @@ func MonitoringRoutes() {
 		}
 
 		cfg := logics.GetMonitoringConfig()
+		if remoteTarget := strings.TrimSpace(r.URL.Query().Get("remote")); remoteTarget != "" {
+			proxyRemoteServerConfig(w, remoteTarget, cfg)
+			return
+		}
+
 		refresh := 2.0
 		if d, err := time.ParseDuration(cfg.RefreshTime); err == nil && d > 0 {
 			refresh = d.Seconds()
@@ -216,6 +226,106 @@ func MonitoringRoutes() {
 
 	// Apply middleware to restrict to POST method only
 	http.HandleFunc("/monitoring", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodPost, http.MethodOptions)(monitoringHandler))))
+}
+
+func proxyRemoteServerConfig(w http.ResponseWriter, target string, cfg *models.MonitoringConfig) {
+	normalized, err := normalizeRemoteAddress(target)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, fmt.Sprintf("invalid remote address: %v", err))
+		return
+	}
+
+	if cfg == nil || !isRemoteServerAllowed(normalized, cfg.Servers) {
+		writeJSONError(w, http.StatusForbidden, "remote server is not allowed")
+		return
+	}
+
+	remoteURL := fmt.Sprintf("%s/api/v1/server-config", strings.TrimRight(normalized, "/"))
+	req, err := http.NewRequest(http.MethodGet, remoteURL, nil)
+	if err != nil {
+		writeJSONError(w, http.StatusBadGateway, fmt.Sprintf("failed to create remote request: %v", err))
+		return
+	}
+
+	resp, err := remoteConfigHTTPClient.Do(req)
+	if err != nil {
+		writeJSONError(w, http.StatusBadGateway, fmt.Sprintf("remote config request failed: %v", err))
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		writeJSONError(w, http.StatusBadGateway, fmt.Sprintf("failed to read remote response: %v", err))
+		return
+	}
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		if len(body) == 0 {
+			writeJSONError(w, resp.StatusCode, fmt.Sprintf("remote server returned status %d", resp.StatusCode))
+			return
+		}
+		setHeader(w, resp.StatusCode, string(body))
+		return
+	}
+
+	setHeader(w, http.StatusOK, string(body))
+}
+
+func normalizeRemoteAddress(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", fmt.Errorf("empty remote address")
+	}
+	if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+		trimmed = "http://" + trimmed
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil {
+		return "", err
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("unsupported scheme %s", parsed.Scheme)
+	}
+	if parsed.Host == "" {
+		return "", fmt.Errorf("missing host")
+	}
+	cleanPath := path.Clean(parsed.Path)
+	if cleanPath == "." {
+		cleanPath = ""
+	}
+	if cleanPath == "/" {
+		cleanPath = ""
+	}
+	cleanPath = strings.TrimRight(cleanPath, "/")
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	base := fmt.Sprintf("%s://%s", parsed.Scheme, parsed.Host)
+	if cleanPath != "" {
+		base += cleanPath
+	}
+	return base, nil
+}
+
+func isRemoteServerAllowed(target string, servers []models.ServerEndpoint) bool {
+	for _, server := range servers {
+		normalized, err := normalizeRemoteAddress(server.Address)
+		if err != nil {
+			continue
+		}
+		if normalized == target {
+			return true
+		}
+	}
+	return false
+}
+
+func writeJSONError(w http.ResponseWriter, status int, message string) {
+	resp, _ := json.Marshal(map[string]any{
+		"status": false,
+		"error":  message,
+	})
+	setHeader(w, status, string(resp))
 }
 
 func refreshLabelFromConfig(cfg *models.MonitoringConfig) string {
