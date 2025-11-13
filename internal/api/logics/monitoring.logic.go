@@ -1153,21 +1153,30 @@ func getAllDiskSpaces() ([]models.DiskSpace, error) {
 }
 
 func createStorageSignature(diskSpace models.DiskSpace) string {
-	// For APFS and other shared storage pools, multiple volumes can have the same total size and usage
-	// We need to deduplicate these by treating them as one logical storage unit
+    // For APFS and other shared storage pools, multiple volumes can have the same total size and usage
+    // We need to deduplicate these by treating them as one logical storage unit
 
-	// If multiple volumes have identical total_bytes and used_pct, they're likely sharing the same storage pool
-	// Use size+usage pattern as signature to group them
-	sizeUsageSignature := fmt.Sprintf("size:%d:usage:%.2f", diskSpace.TotalBytes, diskSpace.UsedPct)
+    // On macOS (APFS), multiple logical volumes (System/Data/Preboot/Recovery) sit in one container
+    // and often expose similar sizes. Group them by their base disk (e.g., /dev/disk1 for /dev/disk1sX)
+    if runtime.GOOS == "darwin" {
+        dev := strings.TrimSpace(diskSpace.Device)
+        if dev != "" && dev != "unknown" {
+            // Extract root disk identifier: /dev/diskN from /dev/diskNsM
+            // Examples: /dev/disk1s1 -> /dev/disk1, /dev/disk3s5 -> /dev/disk3
+            root := dev
+            if i := strings.Index(dev, "s"); i > 0 {
+                root = dev[:i]
+            }
+            if strings.HasPrefix(root, "/dev/disk") {
+                return fmt.Sprintf("macdisk:%s", root)
+            }
+        }
+    }
 
-	// But still prefer device name for truly separate devices
-	if diskSpace.Device != "" && diskSpace.Device != "unknown" {
-		// For now, use the size+usage pattern for better deduplication
-		// This helps with APFS containers where multiple volumes share space
-		return sizeUsageSignature
-	}
-
-	return sizeUsageSignature
+    // Fallback: If multiple volumes have identical total_bytes and used_pct, they're likely sharing the same storage pool
+    // Use size+usage pattern as signature to group them
+    sizeUsageSignature := fmt.Sprintf("size:%d:usage:%.2f", diskSpace.TotalBytes, diskSpace.UsedPct)
+    return sizeUsageSignature
 }
 
 func isMoreImportantMountPoint(newPath, existingPath string) bool {
@@ -1194,13 +1203,21 @@ func isMoreImportantMountPoint(newPath, existingPath string) bool {
 }
 
 func shouldSkipFileSystem(fstype, mountpoint string) bool {
-	// Skip pseudo filesystems and network filesystems
-	skipFSTypes := []string{
-		"devfs", "devtmpfs", "tmpfs", "proc", "sysfs", "debugfs", "securityfs",
-		"cgroup", "cgroup2", "pstore", "bpf", "tracefs", "configfs", "fusectl",
-		"selinuxfs", "systemd-1", "mqueue", "hugetlbfs", "autofs", "nfs", "nfs4",
-		"cifs", "smbfs", "fuse", "overlay", "squashfs", "iso9660",
-	}
+    // Skip pseudo filesystems and network filesystems
+    skipFSTypes := []string{
+        // Common virtual / network FS
+        "devfs", "devtmpfs", "tmpfs", "proc", "sysfs", "debugfs", "securityfs",
+        "cgroup", "cgroup2", "pstore", "bpf", "tracefs", "configfs", "fusectl",
+        "selinuxfs", "systemd-1", "mqueue", "hugetlbfs", "autofs", "nfs", "nfs4",
+        "cifs", "smbfs", "fuse", "overlay", "squashfs", "iso9660",
+        // macOS-specific virtual FS types
+        "nullfs",       // overlay wrappers under /private/var/folders
+        "apfs_snapshot", // APFS snapshot mounts (if reported explicitly)
+        "webdav",       // iCloud Drive mounts
+        "afpfs",        // legacy AppleShare
+        "osxfuse", "fusefs", // user-space filesystems
+        "volfs",        // legacy HFS-style paths
+    }
 
 	for _, skipType := range skipFSTypes {
 		if strings.Contains(strings.ToLower(fstype), strings.ToLower(skipType)) {
@@ -1208,32 +1225,37 @@ func shouldSkipFileSystem(fstype, mountpoint string) bool {
 		}
 	}
 
-	// Skip certain mount points
-	skipMountpoints := []string{
-		"/dev", "/proc", "/sys", "/run", "/boot/efi", "/snap",
-	}
+    // Skip certain mount points
+    skipMountpoints := []string{
+        "/dev", "/proc", "/sys", "/run", "/boot/efi", "/snap",
+        // macOS ephemeral / synthetic mounts
+        "/System/Volumes/Update",      // include all subpaths (SFR update snapshots)
+        "/System/Volumes/Preboot",
+        "/System/Volumes/Recovery",
+        "/System/Volumes/VM",
+        "/private/var/folders",        // app sandboxes & wrapper nullfs mounts
+        "/System/Volumes/Data/private/var/folders",
+        "/Network",                     // automounted network root
+    }
 
-	for _, skipMount := range skipMountpoints {
-		if strings.HasPrefix(mountpoint, skipMount) {
-			return true
-		}
-	}
+    for _, skipMount := range skipMountpoints {
+        if strings.HasPrefix(mountpoint, skipMount) {
+            return true
+        }
+    }
 
 	// Skip macOS system volumes that are not useful for monitoring
-	macOSSystemVolumes := []string{
-		"/System/Volumes/xarts",
-		"/System/Volumes/iSCPreboot",
-		"/System/Volumes/Hardware",
-		"/System/Volumes/Preboot",
-		"/System/Volumes/Update",
-		"/System/Volumes/VM", // Virtual memory - not a real storage volume
-	}
+    macOSSystemVolumes := []string{
+        "/System/Volumes/xarts",
+        "/System/Volumes/iSCPreboot",
+        "/System/Volumes/Hardware",
+    }
 
-	for _, systemVolume := range macOSSystemVolumes {
-		if mountpoint == systemVolume {
-			return true
-		}
-	}
+    for _, systemVolume := range macOSSystemVolumes {
+        if strings.HasPrefix(mountpoint, systemVolume) {
+            return true
+        }
+    }
 
 	return false
 }
