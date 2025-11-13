@@ -228,6 +228,9 @@ sudo systemctl enable monitoring.service
 # Start the service
 sudo systemctl start monitoring.service
 
+# Restart the service
+sudo systemctl restart monitoring.service
+
 # Check service status
 sudo systemctl status monitoring.service
 ```
