@@ -98,6 +98,13 @@ export function clearAllAlerts() {
   state.activeAlerts.clear();
 }
 
+function determinePhase(value, thresholds) {
+  if (value == null || !Number.isFinite(value) || !thresholds) return 'ok';
+  if (value >= thresholds.critical) return 'critical';
+  if (value >= thresholds.warning) return 'warning';
+  return 'ok';
+}
+
 export function checkThresholds(data) {
   if (!data) return;
 
@@ -125,23 +132,34 @@ export function checkThresholds(data) {
     if (check.value == null || !Number.isFinite(check.value)) return;
 
     const alertKey = `threshold_${check.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const phase = determinePhase(check.value, check.thresholds);
+    const prevPhase = state.lastThresholdPhase.get(alertKey) || 'ok';
 
-    if (check.value >= check.thresholds.critical) {
-      if (!state.activeAlerts.has(alertKey)) {
-        const alertId = showAlert('error', `${check.name} usage critical: ${check.value.toFixed(1)}${check.unit}`, 0);
-        if (alertId) {
-          state.activeAlerts.set(alertKey, alertId);
-        }
-      }
-    } else if (check.value >= check.thresholds.warning) {
-      if (!state.activeAlerts.has(alertKey)) {
-        const alertId = showAlert('warning', `${check.name} usage high: ${check.value.toFixed(1)}${check.unit}`, 10000);
-        if (alertId) {
-          state.activeAlerts.set(alertKey, alertId);
-        }
-      }
-    } else if (state.activeAlerts.has(alertKey)) {
+    if (phase === prevPhase) {
+      // No phase change; do nothing to avoid spamming alerts.
+      return;
+    }
+
+    // Remove existing alert UI if any for this metric
+    if (state.activeAlerts.has(alertKey)) {
       removeAlert(alertKey);
     }
+
+    // On phase change, raise appropriate alert
+    if (phase === 'critical') {
+      const alertId = showAlert('error', `${check.name} usage critical: ${check.value.toFixed(1)}${check.unit}`, 0);
+      if (alertId) state.activeAlerts.set(alertKey, alertId);
+    } else if (phase === 'warning') {
+      const alertId = showAlert('warning', `${check.name} usage high: ${check.value.toFixed(1)}${check.unit}`, 10000);
+      if (alertId) state.activeAlerts.set(alertKey, alertId);
+    } else if (phase === 'ok') {
+      // Optionally show a short recovery notice when exiting warning/critical
+      if (prevPhase === 'critical' || prevPhase === 'warning') {
+        showAlert('success', `${check.name} back to normal: ${check.value.toFixed(1)}${check.unit}`, 6000);
+      }
+      // No persistent alert to track when OK
+    }
+
+    state.lastThresholdPhase.set(alertKey, phase);
   });
 }

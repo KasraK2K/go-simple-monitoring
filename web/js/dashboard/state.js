@@ -20,6 +20,7 @@ export const state = {
   connectionState: 'online',
   currentTheme: 'dark',
   activeAlerts: new Map(),
+  lastThresholdPhase: new Map(),
   notificationPermission: 'default',
   lastMetricValues: {},
   thresholds: {
