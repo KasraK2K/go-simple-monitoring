@@ -42,10 +42,12 @@ dashboard:$apr1$s7.F32Y2$zMSpxtQrqXVyL4x//OtOl/
 ```
 
 The sample credentials are:
+
 - **Username**: `dashboard`
 - **Password**: `SamplePass123`
 
 To generate your own password hash:
+
 ```bash
 openssl passwd -apr1 '<your-password>'
 ```
@@ -67,11 +69,30 @@ upstream api_monitoring_app {
 server {
     listen 80;
     listen [::]:80;
-    server_name <YOUR_DOMAIN>;
+    server_name api-monitoring.techsuite.ai;
+
+    # --- Gzip compression ---
+    # It's best to place these in the http {} block globally,
+    # but including them here in server {} also works.
+    gzip on;
+    gzip_comp_level 5;              # balance CPU and size
+    gzip_min_length 1024;           # only compress responses >= 1KB
+    gzip_vary on;                   # add Vary: Accept-Encoding
+    gzip_proxied any;               # allow compression for proxied responses
+    gzip_types
+        text/plain
+        text/css
+        text/xml
+        application/json
+        application/javascript
+        application/x-javascript
+        application/xml
+        application/xml+rss
+        image/svg+xml;
 
     # Increase default buffer sizes for larger responses
     client_max_body_size 20m;
-    
+
     # Handle large responses (log exports with date ranges)
     proxy_buffering on;
     proxy_buffer_size 128k;
@@ -90,6 +111,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Let nginx handle compression to clients (avoid upstream compression)
+        proxy_set_header Accept-Encoding "";
         proxy_set_header Connection "";
         proxy_read_timeout 60s;
         proxy_send_timeout 60s;
@@ -105,6 +128,8 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        # Let nginx handle compression to clients (avoid upstream compression)
+        proxy_set_header Accept-Encoding "";
         proxy_set_header Connection "";
         proxy_read_timeout 60s;
         proxy_send_timeout 60s;
@@ -129,8 +154,16 @@ The nginx config includes:
   - API endpoints remain accessible
 
 - **Upstream configuration**:
+
   - Proxies to local application on `127.0.0.1:3500`
   - Includes proper headers and timeouts
+
+- **Gzip compression**:
+  - Enabled at the `server {}` level via `gzip on;`
+  - `gzip_types` includes common text and JSON/JS content
+  - `gzip_vary on;` adds `Vary: Accept-Encoding` for proper caching
+  - `gzip_proxied any;` compresses proxied responses
+  - `proxy_set_header Accept-Encoding "";` ensures the app returns uncompressed responses so nginx can compress at the edge
 
 ### 4. Apply configuration
 
@@ -151,6 +184,16 @@ sudo nginx -s reload
 1. Visit `https://<YOUR_DOMAIN>/` - should prompt for username/password
 2. Test API endpoints like `https://<YOUR_DOMAIN>/api/...` - should work without authentication
 3. Use the credentials from your htpasswd file to access the dashboard
+
+### Verify Gzip
+
+Use curl to confirm gzip is active:
+
+```bash
+curl -I -H 'Accept-Encoding: gzip' https://<YOUR_DOMAIN>/api/v1/server-config
+# Look for:  Content-Encoding: gzip
+# And:       Vary: Accept-Encoding
+```
 
 ## Security Notes
 
@@ -175,7 +218,7 @@ server {
 
     ssl_certificate /path/to/your/certificate.crt;
     ssl_certificate_key /path/to/your/private.key;
-    
+
     # ... rest of configuration same as above
 }
 
