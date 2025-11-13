@@ -409,19 +409,15 @@ body[data-theme="light"] .container::before {
   border-color: var(--border-strong);
 }
 
+
 .section-handle {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: 32px;
-  height: 32px;
-  border-top-right-radius: var(--radius-md);
-  border-bottom-left-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  border-top: none;
-  border-right: none;
-  border-top-left-radius: 0;
-  border-bottom-right-radius: 0;
+  top: 10px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -430,31 +426,38 @@ body[data-theme="light"] .container::before {
   align-items: center;
   justify-content: center;
   cursor: grab;
-  z-index: 5;
-  opacity: 0;
-  pointer-events: none;
+  z-index: 2;
+  opacity: 0.65;
+  pointer-events: auto;
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
   transition: opacity 0.2s ease, border-color var(--transition-base),
     background var(--transition-base), box-shadow var(--transition-base),
-    color var(--transition-base), transform 0.2s ease;
+    color var(--transition-base), transform 0.25s ease;
 }
 
 body[data-theme="light"] .section-handle {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   color: var(--text-primary);
   border-color: rgba(148, 163, 184, 0.3);
-  border-top: none;
-  border-right: none;
 }
 
-[data-dashboard-section]:hover .section-handle,
+.section-handle:hover,
 .section-handle:focus-visible,
 [data-dashboard-section].is-dragging .section-handle {
   opacity: 1;
-  pointer-events: auto;
   border-color: var(--border-strong);
   background: rgba(56, 189, 248, 0.18);
   color: var(--text-primary);
-  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.35);
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.32);
+}
+
+.section-collapse-toggle:hover,
+.section-collapse-toggle:focus-visible {
+  opacity: 1;
+  border-color: var(--border-strong);
+  background: rgba(56, 189, 248, 0.18);
+  color: var(--text-primary);
+  box-shadow: 0 14px 26px rgba(15, 23, 42, 0.32);
 }
 
 .section-handle:focus-visible {
@@ -463,12 +466,50 @@ body[data-theme="light"] .section-handle {
 
 .section-handle:active {
   cursor: grabbing;
-  transform: scale(0.96);
+  transform: scale(0.97);
 }
 
 .section-handle i {
   pointer-events: none;
+  font-size: 12px;
+  line-height: 1;
+  width: 1em;
+  height: 1em;
+  display: block;
 }
+
+.section-collapse-toggle:active {
+  transform: scale(0.97);
+}
+
+/* Hide controls by default; reveal on section heading hover (staggered) */
+.section-handle,
+.section-collapse-toggle {
+  opacity: 0;
+  pointer-events: none;
+  transition-delay: 0ms;
+}
+
+.section-block:hover .section-handle,
+.section-block:has(.section-heading:hover) .section-handle,
+.section-block .section-handle:focus-visible,
+.section-block.is-dragging .section-handle {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0ms;
+}
+
+.section-block:hover .section-collapse-toggle,
+.section-block:has(.section-heading:hover) .section-collapse-toggle,
+.section-block .section-collapse-toggle:focus-visible,
+.section-block.is-dragging .section-collapse-toggle {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 140ms;
+}
+
+/* Servers header-specific visibility and spacing */
+/* Removed servers-only overrides; using generic hover rules for all sections */
 
 .section-heading {
   display: flex;
@@ -476,7 +517,7 @@ body[data-theme="light"] .section-handle {
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  padding: 20px 24px 20px 64px;
+  padding: 20px 24px 20px 24px;
   border-radius: var(--radius-md);
   background: linear-gradient(
     135deg,
@@ -491,12 +532,12 @@ body[data-theme="light"] .section-handle {
 
 .section-collapse-toggle {
   position: absolute;
-  top: 16px;
-  left: 20px;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.3);
+  top: 10px;
+  right: 42px; /* closer to the handle */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.28);
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -506,17 +547,15 @@ body[data-theme="light"] .section-handle {
   justify-content: center;
   cursor: pointer;
   z-index: 2;
-  transition: border-color var(--transition-base),
+  box-shadow: 0 10px 18px rgba(15, 23, 42, 0.18);
+  transition: opacity 0.2s ease, border-color var(--transition-base),
     background var(--transition-base), color var(--transition-base),
-    transform 0.2s ease;
+    transform 0.25s ease;
 }
 
-.section-collapse-toggle:hover,
-.section-collapse-toggle:focus-visible {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-  background: rgba(56, 189, 248, 0.12);
-}
+/* No extra ring for collapse toggle; matches handle style */
+
+/* Hover/focus handled in shared block with .section-handle */
 
 .section-collapse-toggle:focus-visible {
   outline: none;
@@ -525,6 +564,11 @@ body[data-theme="light"] .section-handle {
 
 .section-collapse-toggle i {
   transition: transform 0.2s ease;
+  font-size: 12px;
+  line-height: 1;
+  width: 1em;
+  height: 1em;
+  display: block;
 }
 
 .section-block.is-collapsed .section-collapse-toggle i {
@@ -2598,6 +2642,21 @@ body[data-theme="light"] .theme-toggle i { color: #0f172a; }
   .theme-toggle {
     width: 56px;
     height: 56px;
+  }
+
+  .section-handle,
+  .section-collapse-toggle {
+    width: 40px;
+    height: 40px;
+    top: 8px;
+  }
+  .section-collapse-toggle { right: 56px; }
+  /* On touch, keep controls visible and interactive */
+  .section-handle,
+  .section-collapse-toggle {
+    opacity: 1;
+    pointer-events: auto;
+    transition-delay: 0ms;
   }
 }
 
