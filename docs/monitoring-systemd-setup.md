@@ -62,7 +62,7 @@ Create your `configs.json` configuration file:
 sudo tee /opt/monitoring/configs.json >/dev/null <<'EOF'
 {
   "refresh_time": "5s",
-  "storage": "both",
+  "storage": ["file", "sqlite", "postgresql"],
   "persist_server_logs": true,
   "logrotate": {
     "enabled": true,
@@ -134,12 +134,19 @@ HAS_DASHBOARD=true
 
 # Path Configuration
 BASE_LOG_FOLDER=/var/syslogs/log
-BASE_DATABASE_FOLDER=/var/syslogs/database
+SQLITE_DNS=/var/syslogs/database/monitoring.db
 
 # Database Configuration
 DB_MAX_CONNECTIONS=30
 DB_CONNECTION_TIMEOUT=30
 DB_IDLE_TIMEOUT=300
+
+# PostgreSQL (optional when using storage ["postgresql"]) 
+# POSTGRES_USER=monitoring
+# POSTGRES_PASSWORD=monitoring
+# POSTGRES_HOST=localhost
+# POSTGRES_PORT=5432
+# POSTGRES_DB=monitoring
 
 # Server Monitoring
 SERVER_MONITORING_TIMEOUT=15s

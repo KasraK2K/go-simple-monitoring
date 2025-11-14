@@ -17,9 +17,9 @@ var (
 // InitLogger initializes the logger with configuration
 func InitLogger(config *models.MonitoringConfig) {
 	logConfig = config
-	
+
 	// Ensure log directory exists if using file storage and path is configured
-	if config != nil && config.Storage == "file" && config.Path != "" {
+	if config != nil && HasStorage(config.Storage, "file") && config.Path != "" {
 		ensureLogDirectoryExists(config.Path)
 	}
 }
@@ -38,32 +38,32 @@ func ensureLogDirectoryExists(logPath string) {
 
 // BuildMonitoringLogEntry converts a SystemMonitoring snapshot into the log entry structure used for persistence.
 func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLogEntry {
-    if data == nil {
-        return models.MonitoringLogEntry{}
-    }
+	if data == nil {
+		return models.MonitoringLogEntry{}
+	}
 
-    return models.MonitoringLogEntry{
-        Time: FormatTimestampUTC(data.Timestamp),
-        Body: map[string]any{
-            // Keep only fields used by the dashboard UI
-            // CPU
-            "cpu_usage_percent":  data.CPU.UsagePercent,
-            // RAM (percentage only is used by UI)
-            "ram_used_percent":   data.RAM.UsedPct,
-            // Disk (keep detailed disks for storage cards)
-            "disk_spaces":        data.DiskSpace,
-            // Network (throughput derived from these two)
-            "network_bytes_sent": data.NetworkIO.BytesSent,
-            "network_bytes_recv": data.NetworkIO.BytesRecv,
-            // Load average (UI normalizer reads process.* as fallback)
-            "process_load_avg_1":  data.Process.LoadAvg1,
-            "process_load_avg_5":  data.Process.LoadAvg5,
-            "process_load_avg_15": data.Process.LoadAvg15,
-            // Sections
-            "heartbeat":      formatHeartbeatForLog(data.Heartbeat),
-            "server_metrics": data.ServerMetrics,
-        },
-    }
+	return models.MonitoringLogEntry{
+		Time: FormatTimestampUTC(data.Timestamp),
+		Body: map[string]any{
+			// Keep only fields used by the dashboard UI
+			// CPU
+			"cpu_usage_percent": data.CPU.UsagePercent,
+			// RAM (percentage only is used by UI)
+			"ram_used_percent": data.RAM.UsedPct,
+			// Disk (keep detailed disks for storage cards)
+			"disk_spaces": data.DiskSpace,
+			// Network (throughput derived from these two)
+			"network_bytes_sent": data.NetworkIO.BytesSent,
+			"network_bytes_recv": data.NetworkIO.BytesRecv,
+			// Load average (UI normalizer reads process.* as fallback)
+			"process_load_avg_1":  data.Process.LoadAvg1,
+			"process_load_avg_5":  data.Process.LoadAvg5,
+			"process_load_avg_15": data.Process.LoadAvg15,
+			// Sections
+			"heartbeat":      formatHeartbeatForLog(data.Heartbeat),
+			"server_metrics": data.ServerMetrics,
+		},
+	}
 }
 
 // LogMonitoringData writes monitoring data to daily log file
@@ -75,22 +75,34 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 	// Create log entry
 	logEntry := BuildMonitoringLogEntry(data)
 
-	// Write to storage based on configuration
-	switch logConfig.Storage {
-	case "none":
+	// Write to selected storage backends (empty list = none)
+	if len(logConfig.Storage) == 0 {
 		return nil
-	case "file":
-		return writeLogEntry(logEntry)
-	case "sqlite":
-		return writeToTableInternal(DefaultTableName, logEntry)
-	case "both":
-		if err := writeLogEntry(logEntry); err != nil {
-			return err
-		}
-		return writeToTableInternal(DefaultTableName, logEntry)
-	default:
-		return fmt.Errorf("invalid storage type: %s", logConfig.Storage)
 	}
+
+	var firstErr error
+	for _, backend := range logConfig.Storage {
+		switch strings.ToLower(strings.TrimSpace(backend)) {
+		case "file":
+			if err := writeLogEntry(logEntry); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		case "sqlite":
+			if err := writeToTableInternal(DefaultTableName, logEntry); err != nil && firstErr == nil {
+				firstErr = err
+			}
+        case "postgresql":
+            if IsPostgresInitialized() {
+                if err := WriteToPostgres(DefaultTableName, logEntry); err != nil && firstErr == nil {
+                    firstErr = err
+                }
+            }
+		default:
+			// ignore unknown values
+		}
+	}
+
+	return firstErr
 }
 
 // formatHeartbeatForLog converts heartbeat data to log-friendly format
@@ -124,7 +136,7 @@ func writeLogEntry(entry models.MonitoringLogEntry) error {
 	now := NowUTC()
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	logPath := filepath.Join(validatedLogDir, filename)
-	
+
 	// Validate that the final log path is still within the secure directory
 	if !strings.HasPrefix(filepath.Clean(logPath), filepath.Clean(validatedLogDir)) {
 		return fmt.Errorf("security violation: log path outside validated directory")
@@ -196,7 +208,7 @@ func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload
 
 	now := NowUTC()
 	serverDir := filepath.Join(validatedBasePath, "servers", dirName)
-	
+
 	// Create server directory with secure permissions
 	if err := CreateSecureDirectory(serverDir); err != nil {
 		return fmt.Errorf("failed to create server log directory: %w", err)
@@ -204,7 +216,7 @@ func WriteServerLogToFile(basePath string, server models.ServerEndpoint, payload
 
 	filename := fmt.Sprintf("%s.log", now.Format("2006-01-02"))
 	logPath := filepath.Join(serverDir, filename)
-	
+
 	// Validate that the final log path is still within the secure directory
 	if !strings.HasPrefix(filepath.Clean(logPath), filepath.Clean(serverDir)) {
 		return fmt.Errorf("security violation: log path outside server directory")

@@ -8,6 +8,7 @@ import (
 	"go-log/internal/api/models"
 	"go-log/internal/config"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -25,12 +26,6 @@ var (
 	validTableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\x60]+$`)
 )
 
-// getDatabaseFolder returns the base database folder from environment
-func getDatabaseFolder() string {
-	envConfig := config.GetEnvConfig()
-	return envConfig.BaseDatabaseFolder
-}
-
 // getDatabasePath returns the full path to the database file
 func getDatabasePath() string {
 	envConfig := config.GetEnvConfig()
@@ -39,14 +34,13 @@ func getDatabasePath() string {
 
 // ensureDatabaseDirectoryExists creates the database directory if it doesn't exist
 func ensureDatabaseDirectoryExists() error {
-	envConfig := config.GetEnvConfig()
-	dbFolder := envConfig.BaseDatabaseFolder
-	if _, err := os.Stat(dbFolder); os.IsNotExist(err) {
-		err := os.MkdirAll(dbFolder, 0755)
-		if err != nil {
+	dbPath := getDatabasePath()
+	folder := filepath.Dir(dbPath)
+	if _, err := os.Stat(folder); os.IsNotExist(err) {
+		if err := os.MkdirAll(folder, 0755); err != nil {
 			return err
 		}
-		LogInfo("Created database directory: %s", dbFolder)
+		LogInfo("Created database directory: %s", folder)
 	}
 	return nil
 }
@@ -56,17 +50,17 @@ func validateTableName(tableName string) error {
 	if tableName == "" {
 		return fmt.Errorf("table name cannot be empty")
 	}
-	
+
 	// Check length
 	if len(tableName) > 64 {
 		return fmt.Errorf("table name too long (max 64 characters)")
 	}
-	
+
 	// Check against regex
 	if !validTableNameRegex.MatchString(tableName) {
 		return fmt.Errorf("table name contains invalid characters (only alphanumeric, underscore, and backticks allowed)")
 	}
-	
+
 	// Check for SQL keywords and dangerous patterns
 	lowerName := strings.ToLower(strings.Trim(tableName, "`"))
 	sqlKeywords := []string{
@@ -74,13 +68,13 @@ func validateTableName(tableName string) error {
 		"database", "schema", "index", "view", "trigger", "procedure", "function",
 		"union", "where", "order", "group", "having", "join", "from", "into",
 	}
-	
+
 	for _, keyword := range sqlKeywords {
 		if lowerName == keyword {
 			return fmt.Errorf("table name cannot be SQL keyword: %s", keyword)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -98,7 +92,7 @@ func InitDatabase() error {
 
 	// Get database path from environment
 	dbPath := getDatabasePath()
-	
+
 	// Ensure database directory exists
 	if err := ensureDatabaseDirectoryExists(); err != nil {
 		return fmt.Errorf("failed to create database directory: %w", err)
@@ -120,7 +114,7 @@ func InitDatabase() error {
 	// Test connection with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	if err = db.PingContext(ctx); err != nil {
 		db.Close()
 		return fmt.Errorf("failed to ping database: %w", err)
@@ -132,7 +126,7 @@ func InitDatabase() error {
 		return fmt.Errorf("failed to create default table: %w", err)
 	}
 
-	LogInfo("database initialized with max_connections=%d, connection_timeout=%ds, idle_timeout=%ds", 
+	LogInfo("sqlite database initialized with max_connections=%d, connection_timeout=%ds, idle_timeout=%ds",
 		maxConn, connTimeout, idleTimeout)
 	return nil
 }
@@ -143,7 +137,7 @@ func ensureTable(tableName string) error {
 	if err := validateTableName(tableName); err != nil {
 		return fmt.Errorf("invalid table name: %w", err)
 	}
-	
+
 	// Get clean name for index naming (remove brackets, quotes etc.)
 	cleanName := SanitizeTableName(tableName)
 
@@ -461,6 +455,15 @@ func ensureServerLogTable(rawName string) (string, error) {
 }
 
 func normalizeTimestampInput(value string) (string, error) {
-	// Use the database-specific function that always stores in UTC for consistency
-	return NormalizeTimestampForDB(value)
+    // Use the database-specific function that always stores in UTC for consistency
+    return NormalizeTimestampForDB(value)
+}
+
+// PrepareSQLiteServerTable ensures a server log table exists in SQLite.
+func PrepareSQLiteServerTable(rawName string) error {
+    if !IsDatabaseInitialized() {
+        return nil
+    }
+    _, err := ensureServerLogTable(rawName)
+    return err
 }

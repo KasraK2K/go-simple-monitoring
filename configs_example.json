@@ -1,6 +1,6 @@
 {
   "refresh_time": "5s",
-  "storage": "both",
+  "storage": ["file", "sqlite", "postgresql"],
   "persist_server_logs": false,
   "logrotate": {
     "enabled": true,

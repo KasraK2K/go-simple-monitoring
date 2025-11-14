@@ -1,10 +1,11 @@
 package config
 
 import (
-	"os"
-	"strconv"
-	"strings"
-	"time"
+    "fmt"
+    "os"
+    "strconv"
+    "strings"
+    "time"
 )
 
 // EnvConfig holds all environment variable configurations
@@ -37,14 +38,21 @@ type EnvConfig struct {
 	HasDashboard          bool
 	DashboardDefaultRange string
 
-	// Paths
-	BaseLogFolder      string
-	BaseDatabaseFolder string
+    // Paths
+    BaseLogFolder string
+    SQLiteDSN     string
 
 	// Database
 	DBMaxConnections    int
 	DBConnectionTimeout int
-	DBIdleTimeout       int
+    DBIdleTimeout       int
+
+    // Postgres
+    PostgresUser string
+    PostgresPassword string
+    PostgresHost string
+    PostgresPort string
+    PostgresDB   string
 
 	// Monitoring
 	MonitorConfigPath       string
@@ -108,13 +116,20 @@ func InitEnvConfig() {
 		DashboardDefaultRange: sanitizeDashboardRange(getEnvString("DASHBOARD_DEFAULT_RANGE", "")),
 
 		// Paths
-		BaseLogFolder:      getEnvString("BASE_LOG_FOLDER", "./logs"),
-		BaseDatabaseFolder: getEnvString("BASE_DATABASE_FOLDER", "./"),
+        BaseLogFolder: getEnvString("BASE_LOG_FOLDER", "./logs"),
+        SQLiteDSN:     getEnvString("SQLITE_DNS", "./monitoring.db"),
 
 		// Database
 		DBMaxConnections:    getEnvInt("DB_MAX_CONNECTIONS", 10),
 		DBConnectionTimeout: getEnvInt("DB_CONNECTION_TIMEOUT", 30),
-		DBIdleTimeout:       getEnvInt("DB_IDLE_TIMEOUT", 300),
+        DBIdleTimeout:       getEnvInt("DB_IDLE_TIMEOUT", 300),
+
+        // Postgres
+        PostgresUser: getEnvString("POSTGRES_USER", "monitoring"),
+        PostgresPassword: getEnvString("POSTGRES_PASSWORD", "monitoring"),
+        PostgresHost: getEnvString("POSTGRES_HOST", "localhost"),
+        PostgresPort: getEnvString("POSTGRES_PORT", "5432"),
+        PostgresDB: getEnvString("POSTGRES_DB", "monitoring"),
 
 		// Monitoring
 		MonitorConfigPath:       getEnvString("MONITOR_CONFIG_PATH", ""),
@@ -247,10 +262,21 @@ func (c *EnvConfig) GetDashboardDefaultRange() string {
 
 // GetDatabasePath returns the full path to the database file
 func (c *EnvConfig) GetDatabasePath() string {
-	if c.BaseDatabaseFolder == "./" {
-		return "./monitoring.db"
-	}
-	return c.BaseDatabaseFolder + "/monitoring.db"
+    // Return SQLite DSN/path directly
+    return c.SQLiteDSN
+}
+
+// GetPostgresDSN returns DSN if set, otherwise synthesizes one from POSTGRES_* vars.
+func (c *EnvConfig) GetPostgresDSN() string {
+    user := strings.TrimSpace(c.PostgresUser)
+    pass := strings.TrimSpace(c.PostgresPassword)
+    host := strings.TrimSpace(c.PostgresHost)
+    port := strings.TrimSpace(c.PostgresPort)
+    db := strings.TrimSpace(c.PostgresDB)
+    if user == "" || host == "" || port == "" || db == "" {
+        return ""
+    }
+    return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", user, pass, host, port, db)
 }
 
 // IsRateLimitEnabled returns true if rate limiting is enabled

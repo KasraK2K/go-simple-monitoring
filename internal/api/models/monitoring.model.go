@@ -61,13 +61,13 @@ const (
 )
 
 type MonitoringConfig struct {
-	Path              string           `json:"path"`         // Log file destination path
-	RefreshTime       string           `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
-    Storage           string           `json:"storage"`      // Storage type: "file", "sqlite", "both", or "none"
-	PersistServerLogs bool             `json:"persist_server_logs"`
-	Heartbeat         []ServerConfig   `json:"heartbeat"`
-	Servers           []ServerEndpoint `json:"servers"`
-	LogRotate         *LogRotateConfig `json:"logrotate,omitempty"`
+    Path              string           `json:"path"`         // Log file destination path
+    RefreshTime       string           `json:"refresh_time"` // Refresh interval (e.g., "2s", "30s")
+    Storage           []string         `json:"storage"`      // Storage backends: any of ["file", "sqlite", "postgresql"]. Empty = none.
+    PersistServerLogs bool             `json:"persist_server_logs"`
+    Heartbeat         []ServerConfig   `json:"heartbeat"`
+    Servers           []ServerEndpoint `json:"servers"`
+    LogRotate         *LogRotateConfig `json:"logrotate,omitempty"`
 }
 
 type LogRotateConfig struct {

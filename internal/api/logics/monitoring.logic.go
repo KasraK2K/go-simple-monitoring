@@ -71,12 +71,19 @@ func InitMonitoringConfig() {
 			// Initialize logger and database for API server mode
 			utils.InitLogger(monitoringConfig)
 
-			if monitoringConfig.Storage == "sqlite" || monitoringConfig.Storage == "both" {
-				if err := utils.InitDatabase(); err != nil {
-					log.Printf("Failed to initialize database: %v", err)
-				}
-			}
-			startAutoLogging()
+            if utils.HasStorage(monitoringConfig.Storage, "sqlite") {
+                if err := utils.InitDatabase(); err != nil {
+                    log.Printf("Failed to initialize database: %v", err)
+                }
+            }
+            if utils.HasStorage(monitoringConfig.Storage, "postgresql") {
+                if err := utils.InitPostgres(); err != nil {
+                    log.Printf("Failed to initialize PostgreSQL: %v", err)
+                }
+            }
+				// Pre-create per-server tables
+				ensureServerTables(monitoringConfig)
+				startAutoLogging()
 		}
 		lastConfigModTime = utils.NowUTC()
 	})
@@ -157,11 +164,18 @@ func ensureConfigLoaded() {
 						monitoringConfig = newConfig
 						utils.InitLogger(monitoringConfig)
 
-						if monitoringConfig.Storage == "sqlite" || monitoringConfig.Storage == "both" {
-							if err := utils.InitDatabase(); err != nil {
-								log.Printf("Failed to initialize database: %v", err)
-							}
-						}
+                        if utils.HasStorage(monitoringConfig.Storage, "sqlite") {
+                            if err := utils.InitDatabase(); err != nil {
+                                log.Printf("Failed to initialize database: %v", err)
+                            }
+                        }
+                        if utils.HasStorage(monitoringConfig.Storage, "postgresql") {
+                            if err := utils.InitPostgres(); err != nil {
+                                log.Printf("Failed to initialize PostgreSQL: %v", err)
+                            }
+                        }
+						// Pre-create per-server tables
+						ensureServerTables(monitoringConfig)
 						startAutoLogging()
 					}
 					lastConfigModTime = utils.NowUTC()
@@ -184,18 +198,49 @@ func getDefaultLogPath() string {
 
 // getDefaultConfig returns default configuration
 func getDefaultConfig() *models.MonitoringConfig {
-	return &models.MonitoringConfig{
-		Path:              getDefaultLogPath(),
-		RefreshTime:       "2s",
-		Storage:           "file",
-		PersistServerLogs: false,
-		Heartbeat:         []models.ServerConfig{},
-		Servers:           []models.ServerEndpoint{},
-		LogRotate: &models.LogRotateConfig{
-			Enabled:    true,
-			MaxAgeDays: 30,
-		},
-	}
+    return &models.MonitoringConfig{
+        Path:              getDefaultLogPath(),
+        RefreshTime:       "2s",
+        Storage:           []string{"file"},
+        PersistServerLogs: false,
+        Heartbeat:         []models.ServerConfig{},
+        Servers:           []models.ServerEndpoint{},
+        LogRotate: &models.LogRotateConfig{
+            Enabled:    true,
+            MaxAgeDays: 30,
+        },
+    }
+}
+
+// ensureServerTables pre-creates per-server tables for selected storage backends
+func ensureServerTables(cfg *models.MonitoringConfig) {
+    if cfg == nil || len(cfg.Servers) == 0 {
+        return
+    }
+
+    // SQLite
+    if utils.HasStorage(cfg.Storage, "sqlite") && utils.IsDatabaseInitialized() {
+        for _, srv := range cfg.Servers {
+            if utils.IsEmptyOrWhitespace(srv.TableName) {
+                continue
+            }
+            if err := utils.PrepareSQLiteServerTable(srv.TableName); err != nil {
+                utils.LogWarnWithContext("init", fmt.Sprintf("failed to prepare sqlite table for %s", srv.TableName), err)
+            }
+        }
+    }
+
+    // PostgreSQL
+    if utils.HasStorage(cfg.Storage, "postgresql") && utils.IsPostgresInitialized() {
+        for _, srv := range cfg.Servers {
+            if utils.IsEmptyOrWhitespace(srv.TableName) {
+                continue
+            }
+            if err := utils.PreparePostgresServerTable(srv.TableName); err != nil {
+                utils.LogWarnWithContext("init", fmt.Sprintf("failed to prepare postgres table for %s", srv.TableName), err)
+            }
+        }
+    }
 }
 
 func MonitoringDataGenerator() (*models.SystemMonitoring, error) {
@@ -707,29 +752,51 @@ func normalizeServerAddress(address string) string {
 }
 
 func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, error) {
-	// Check if database is initialized and accessible
-	if !utils.IsDatabaseInitialized() {
-		currentData, err := MonitoringDataGenerator()
-		if err != nil {
-			return []any{}, err
-		}
-		if currentData != nil {
-			return []any{currentData}, nil
-		}
-		return []any{}, nil
-	}
+    cfg := GetMonitoringConfig()
+    hasSQLite := utils.IsDatabaseInitialized()
+    hasPG := utils.IsPostgresInitialized()
+    if !hasSQLite && !hasPG {
+        currentData, err := MonitoringDataGenerator()
+        if err != nil {
+            return []any{}, err
+        }
+        if currentData != nil {
+            return []any{currentData}, nil
+        }
+        return []any{}, nil
+    }
 
 	// Determine which table to query
 	var filteredData []models.MonitoringLogEntry
 	var err error
 
-	if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {
-		// Query default table (handle both empty string and "default" API parameter)
-		filteredData, err = utils.QueryFilteredTableData(utils.DefaultTableName, from, to)
-	} else {
-		// Query specific table
-		filteredData, err = utils.QueryFilteredTableData(tableName, from, to)
-	}
+    // Prefer sqlite if selected and available; otherwise use postgres if available
+    useSQLite := utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
+    usePostgres := utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+
+    if useSQLite {
+        if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {
+            filteredData, err = utils.QueryFilteredTableData(utils.DefaultTableName, from, to)
+        } else {
+            filteredData, err = utils.QueryFilteredTableData(tableName, from, to)
+        }
+    } else if usePostgres {
+        if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {
+            filteredData, err = utils.QueryFilteredPostgresData(utils.DefaultTableName, from, to)
+        } else {
+            filteredData, err = utils.QueryFilteredPostgresData(tableName, from, to)
+        }
+    } else {
+        // Neither backend is usable
+        currentData, err := MonitoringDataGenerator()
+        if err != nil {
+            return []any{}, err
+        }
+        if currentData != nil {
+            return []any{currentData}, nil
+        }
+        return []any{}, nil
+    }
 
 	if err != nil {
 		return []any{}, fmt.Errorf("failed to query filtered monitoring data: %w", err)
@@ -1605,9 +1672,10 @@ func configureLogRotation() {
 		return
 	}
 
-	if strings.EqualFold(monitoringConfig.Storage, "none") {
-		return
-	}
+    // If storage backends are empty, treat as none
+    if monitoringConfig.Storage == nil || len(monitoringConfig.Storage) == 0 {
+        return
+    }
 
 	rotateCfg := monitoringConfig.LogRotate
 	if rotateCfg == nil || !rotateCfg.Enabled {
@@ -1619,18 +1687,25 @@ func configureLogRotation() {
 		maxAge = 30
 	}
 
-	performCleanup := func(retention int) {
-		if err := utils.CleanOldLogs(retention); err != nil {
-			utils.LogWarnWithContext("log-rotation", "log cleanup failed", err)
-		}
+    performCleanup := func(retention int) {
+        if utils.HasStorage(monitoringConfig.Storage, "file") {
+            if err := utils.CleanOldLogs(retention); err != nil {
+                utils.LogWarnWithContext("log-rotation", "log cleanup failed", err)
+            }
+        }
 
-		cutoff := time.Now().AddDate(0, 0, -retention)
-		if utils.IsDatabaseInitialized() {
-			if err := utils.CleanOldDatabaseEntries(cutoff); err != nil {
-				utils.LogWarnWithContext("log-rotation", "database cleanup failed", err)
-			}
-		}
-	}
+        cutoff := time.Now().AddDate(0, 0, -retention)
+        if utils.HasStorage(monitoringConfig.Storage, "sqlite") && utils.IsDatabaseInitialized() {
+            if err := utils.CleanOldDatabaseEntries(cutoff); err != nil {
+                utils.LogWarnWithContext("log-rotation", "sqlite cleanup failed", err)
+            }
+        }
+        if utils.HasStorage(monitoringConfig.Storage, "postgresql") && utils.IsPostgresInitialized() {
+            if err := utils.CleanOldPostgresEntries(cutoff); err != nil {
+                utils.LogWarnWithContext("log-rotation", "postgres cleanup failed", err)
+            }
+        }
+    }
 
 	performCleanup(maxAge)
 
@@ -1712,26 +1787,23 @@ func persistServerLogs() {
 	cfg := monitoringConfig
 	monitoringConfigMu.RUnlock()
 
-	if cfg == nil || !cfg.PersistServerLogs {
-		return
-	}
+    // Persist remote server logs whenever servers are configured
+    if cfg == nil || len(cfg.Servers) == 0 {
+        return
+    }
 
-	storage := strings.ToLower(strings.TrimSpace(cfg.Storage))
-	if storage == "none" {
-		return
-	}
-
-	writeFile := storage == "file" || storage == "both"
-	writeDB := (storage == "sqlite" || storage == "both") && utils.IsDatabaseInitialized()
+    writeFile := utils.HasStorage(cfg.Storage, "file")
+    writeSqlite := utils.HasStorage(cfg.Storage, "sqlite") && utils.IsDatabaseInitialized()
+    writePG := utils.HasStorage(cfg.Storage, "postgresql") && utils.IsPostgresInitialized()
 
 	if writeFile && utils.IsEmptyOrWhitespace(cfg.Path) {
 		utils.LogWarn("persist_server_logs enabled but log path is empty; skipping file persistence")
 		writeFile = false
 	}
 
-	if !writeFile && !writeDB {
-		return
-	}
+    if !writeFile && !writeSqlite && !writePG {
+        return
+    }
 
 	// Process each server concurrently with individual timeout handling
 	// This prevents one slow/failed server from blocking others
@@ -1775,17 +1847,22 @@ func persistServerLogs() {
             }
 
 			// File and database operations with error isolation
-			if writeFile {
-				if err := utils.WriteServerLogToFile(cfg.Path, srv, payload); err != nil {
-					utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log file for %s", srv.Address), err)
-				}
-			}
+            if writeFile {
+                if err := utils.WriteServerLogToFile(cfg.Path, srv, payload); err != nil {
+                    utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log file for %s", srv.Address), err)
+                }
+            }
 
-			if writeDB {
-				if err := utils.WriteServerLogToDatabase(srv.TableName, payload); err != nil {
-					utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to database for %s", srv.Address), err)
-				}
-			}
+            if writeSqlite {
+                if err := utils.WriteServerLogToDatabase(srv.TableName, payload); err != nil {
+                    utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to sqlite for %s", srv.Address), err)
+                }
+            }
+            if writePG {
+                if err := utils.WriteServerLogToPostgres(srv.TableName, payload); err != nil {
+                    utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to write server log to postgres for %s", srv.Address), err)
+                }
+            }
 		}(server)
 	}
 
