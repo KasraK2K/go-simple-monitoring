@@ -182,9 +182,11 @@ The application uses centralized environment configuration. All available variab
 Configure storage behavior in `configs.json`:
 
 - `"file"` - Write logs only to log files
-- `"db"` - Write logs only to SQLite database
+- `"sqlite"` - Write logs only to SQLite database
 - `"both"` - Write logs to both files and database (recommended)
 - `"none"` - Disable persistence entirely
+
+Breaking change: prior `storage: "db"` is no longer supported. Use `"sqlite"` instead.
 
 ### What Gets Persisted (Compact Format)
 

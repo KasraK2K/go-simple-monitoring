@@ -81,7 +81,7 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 		return nil
 	case "file":
 		return writeLogEntry(logEntry)
-	case "db":
+	case "sqlite":
 		return writeToTableInternal(DefaultTableName, logEntry)
 	case "both":
 		if err := writeLogEntry(logEntry); err != nil {
