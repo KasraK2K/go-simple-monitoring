@@ -1758,16 +1758,21 @@ func persistServerLogs() {
 			defer cancel()
 
 			// Use context-aware fetch with individual server timeout
-			payload, err := fetchServerMonitoringWithContext(ctx, srv.Address)
-			if err != nil {
-				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", srv.Address), err)
-				return
-			}
+            payload, err := fetchServerMonitoringWithContext(ctx, srv.Address)
+            if err != nil {
+                utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to fetch monitoring data from %s", srv.Address), err)
+                return
+            }
 
-			// Update cache - this should be fast and not block
-			if _, err := updateServerMetricsCache(srv, payload); err != nil {
-				utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to parse server metrics from %s", srv.Address), err)
-			}
+            // Trim payload to only fields used by the dashboard
+            if trimmed, terr := utils.FilterMonitoringPayload(payload); terr == nil && len(trimmed) > 0 {
+                payload = trimmed
+            }
+
+            // Update cache - this should be fast and not block
+            if _, err := updateServerMetricsCache(srv, payload); err != nil {
+                utils.LogWarnWithContext("server-monitoring", fmt.Sprintf("failed to parse server metrics from %s", srv.Address), err)
+            }
 
 			// File and database operations with error isolation
 			if writeFile {

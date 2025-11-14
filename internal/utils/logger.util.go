@@ -38,54 +38,32 @@ func ensureLogDirectoryExists(logPath string) {
 
 // BuildMonitoringLogEntry converts a SystemMonitoring snapshot into the log entry structure used for persistence.
 func BuildMonitoringLogEntry(data *models.SystemMonitoring) models.MonitoringLogEntry {
-	if data == nil {
-		return models.MonitoringLogEntry{}
-	}
+    if data == nil {
+        return models.MonitoringLogEntry{}
+    }
 
-	return models.MonitoringLogEntry{
-		Time: FormatTimestampUTC(data.Timestamp),
-		Body: map[string]any{
-			"cpu_usage_percent":    data.CPU.UsagePercent,
-			"cpu_cores":            data.CPU.CoreCount,
-			"cpu_goroutines":       data.CPU.Goroutines,
-			"cpu_load_average":     data.CPU.LoadAverage,
-			"cpu_architecture":     data.CPU.Architecture,
-			"ram_used_percent":     data.RAM.UsedPct,
-			"ram_total_bytes":      data.RAM.TotalBytes,
-			"ram_used_bytes":       data.RAM.UsedBytes,
-			"ram_available_bytes":  data.RAM.AvailableBytes,
-			"disk_used_percent":    getRootDiskMetric(data.DiskSpace, "used_percent"),
-			"disk_total_bytes":     getRootDiskMetric(data.DiskSpace, "total_bytes"),
-			"disk_used_bytes":      getRootDiskMetric(data.DiskSpace, "used_bytes"),
-			"disk_available_bytes": getRootDiskMetric(data.DiskSpace, "available_bytes"),
-			"disk_spaces":          data.DiskSpace, // Full disk array for detailed info
-			"network_bytes_sent":   data.NetworkIO.BytesSent,
-			"network_bytes_recv":   data.NetworkIO.BytesRecv,
-			"network_packets_sent": data.NetworkIO.PacketsSent,
-			"network_packets_recv": data.NetworkIO.PacketsRecv,
-			"network_errors_in":    data.NetworkIO.ErrorsIn,
-			"network_errors_out":   data.NetworkIO.ErrorsOut,
-			"network_drops_in":     data.NetworkIO.DropsIn,
-			"network_drops_out":    data.NetworkIO.DropsOut,
-			"diskio_read_bytes":    data.DiskIO.ReadBytes,
-			"diskio_write_bytes":   data.DiskIO.WriteBytes,
-			"diskio_read_count":    data.DiskIO.ReadCount,
-			"diskio_write_count":   data.DiskIO.WriteCount,
-			"diskio_read_time":     data.DiskIO.ReadTime,
-			"diskio_write_time":    data.DiskIO.WriteTime,
-			"diskio_io_time":       data.DiskIO.IOTime,
-			"process_total":        data.Process.TotalProcesses,
-			"process_running":      data.Process.RunningProcs,
-			"process_sleeping":     data.Process.SleepingProcs,
-			"process_zombie":       data.Process.ZombieProcs,
-			"process_stopped":      data.Process.StoppedProcs,
-			"process_load_avg_1":   data.Process.LoadAvg1,
-			"process_load_avg_5":   data.Process.LoadAvg5,
-			"process_load_avg_15":  data.Process.LoadAvg15,
-			"heartbeat":            formatHeartbeatForLog(data.Heartbeat),
-			"server_metrics":       data.ServerMetrics,
-		},
-	}
+    return models.MonitoringLogEntry{
+        Time: FormatTimestampUTC(data.Timestamp),
+        Body: map[string]any{
+            // Keep only fields used by the dashboard UI
+            // CPU
+            "cpu_usage_percent":  data.CPU.UsagePercent,
+            // RAM (percentage only is used by UI)
+            "ram_used_percent":   data.RAM.UsedPct,
+            // Disk (keep detailed disks for storage cards)
+            "disk_spaces":        data.DiskSpace,
+            // Network (throughput derived from these two)
+            "network_bytes_sent": data.NetworkIO.BytesSent,
+            "network_bytes_recv": data.NetworkIO.BytesRecv,
+            // Load average (UI normalizer reads process.* as fallback)
+            "process_load_avg_1":  data.Process.LoadAvg1,
+            "process_load_avg_5":  data.Process.LoadAvg5,
+            "process_load_avg_15": data.Process.LoadAvg15,
+            // Sections
+            "heartbeat":      formatHeartbeatForLog(data.Heartbeat),
+            "server_metrics": data.ServerMetrics,
+        },
+    }
 }
 
 // LogMonitoringData writes monitoring data to daily log file
