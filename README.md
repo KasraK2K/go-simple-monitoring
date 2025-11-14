@@ -186,15 +186,69 @@ Configure storage behavior in `configs.json`:
 - `"both"` - Write logs to both files and database (recommended)
 - `"none"` - Disable persistence entirely
 
-### Storage Requirements (Development)
+### What Gets Persisted (Compact Format)
+
+To reduce storage, only UI‑used fields are persisted for local monitoring snapshots and remote server payloads:
+
+- `time` (added automatically)
+- `cpu_usage_percent`
+- `ram_used_percent`
+- `disk_spaces` array: `path`, `device`, `filesystem`, `total_bytes`, `used_bytes`, `available_bytes`, `used_pct`
+- `network_bytes_sent`, `network_bytes_recv`
+- `process_load_avg_1`, `process_load_avg_5`, `process_load_avg_15`
+- `heartbeat` (name, url, status, response_ms, response_time, last_checked)
+- `server_metrics` (unchanged, already compact)
+
+Example single entry (pretty‑printed):
+
+```json
+{
+  "time": "2024-11-14T12:34:56Z",
+  "cpu_usage_percent": 12.3,
+  "ram_used_percent": 45.6,
+  "disk_spaces": [
+    {
+      "path": "/",
+      "device": "/dev/disk1s1",
+      "filesystem": "apfs",
+      "total_bytes": 500000000000,
+      "used_bytes": 300000000000,
+      "available_bytes": 200000000000,
+      "used_pct": 60.0
+    }
+  ],
+  "network_bytes_sent": 123456789,
+  "network_bytes_recv": 987654321,
+  "process_load_avg_1": 0.42,
+  "process_load_avg_5": 0.37,
+  "process_load_avg_15": 0.31,
+  "heartbeat": [
+    {
+      "name": "Google",
+      "url": "https://www.google.com",
+      "status": "up",
+      "response_ms": 120,
+      "response_time": "120ms",
+      "last_checked": "2024-11-14T12:34:56Z"
+    }
+  ],
+  "server_metrics": []
+}
+```
+
+### Storage Requirements (Compact, Typical)
+
+The new compact format typically reduces storage by ~40–60% depending on number of disks, heartbeats, and remote servers. Approximate sizes for a local setup (1–2 disks, ≤5 heartbeats, ≤5 remote servers):
 
 | Interval | Daily Size | Weekly Size | Monthly Size |
 | -------- | ---------- | ----------- | ------------ |
-| 2s       | ~69 MB     | ~485 MB     | ~2.1 GB      |
-| 5s       | ~28 MB     | ~194 MB     | ~0.83 GB     |
-| 10s      | ~14 MB     | ~97 MB      | ~0.41 GB     |
+| 2s       | ~35–45 MB  | ~245–315 MB | ~1.0–1.4 GB  |
+| 5s       | ~14–18 MB  | ~98–126 MB  | ~0.4–0.6 GB  |
+| 10s      | ~7–9 MB    | ~49–63 MB   | ~0.2–0.3 GB  |
 
-**Note**: Estimates assume standard system monitoring with heartbeat checks. Actual usage varies with configuration.
+Notes:
+- Estimates assume standard system monitoring with heartbeats enabled and a small number of remote servers.
+- Actual usage varies with data retention window, number of disks, and number of monitored servers.
 
 ## API Endpoints
 
