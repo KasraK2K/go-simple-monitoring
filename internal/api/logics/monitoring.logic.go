@@ -71,7 +71,7 @@ func InitMonitoringConfig() {
 			// Initialize logger and database for API server mode
 			utils.InitLogger(monitoringConfig)
 
-			if monitoringConfig.Storage == "db" || monitoringConfig.Storage == "both" {
+			if monitoringConfig.Storage == "sqlite" || monitoringConfig.Storage == "both" {
 				if err := utils.InitDatabase(); err != nil {
 					log.Printf("Failed to initialize database: %v", err)
 				}
@@ -157,7 +157,7 @@ func ensureConfigLoaded() {
 						monitoringConfig = newConfig
 						utils.InitLogger(monitoringConfig)
 
-						if monitoringConfig.Storage == "db" || monitoringConfig.Storage == "both" {
+						if monitoringConfig.Storage == "sqlite" || monitoringConfig.Storage == "both" {
 							if err := utils.InitDatabase(); err != nil {
 								log.Printf("Failed to initialize database: %v", err)
 							}
@@ -1722,7 +1722,7 @@ func persistServerLogs() {
 	}
 
 	writeFile := storage == "file" || storage == "both"
-	writeDB := (storage == "db" || storage == "both") && utils.IsDatabaseInitialized()
+	writeDB := (storage == "sqlite" || storage == "both") && utils.IsDatabaseInitialized()
 
 	if writeFile && utils.IsEmptyOrWhitespace(cfg.Path) {
 		utils.LogWarn("persist_server_logs enabled but log path is empty; skipping file persistence")
