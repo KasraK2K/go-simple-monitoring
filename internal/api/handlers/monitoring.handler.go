@@ -62,14 +62,14 @@ func MonitoringRoutes() {
 			refresh = d.Seconds()
 		}
 
-		payload := map[string]any{
-			"refresh_interval_seconds": refresh,
-			"heartbeat":                cfg.Heartbeat,
-			"servers":                  cfg.Servers,
-			"storage":                  cfg.Storage,
-			"path":                     cfg.Path,
-			"persist_server_logs":      cfg.PersistServerLogs,
-		}
+        payload := map[string]any{
+            "refresh_interval_seconds": refresh,
+            "heartbeat":                cfg.Heartbeat,
+            "servers":                  cfg.Servers,
+            "storage":                  cfg.Storage,
+            "path":                     cfg.Path,
+            "persist_server_logs":      cfg.PersistServerLogs,
+        }
 
 		jsonData, err := json.Marshal(payload)
 		if err != nil {
@@ -302,14 +302,14 @@ func generateFallbackRemoteConfig(_ string, localCfg *models.MonitoringConfig) m
 
 	// For older remote servers, provide a minimal config that works with the frontend
 	// Since they don't have their own server list, we show empty servers and heartbeat
-	return map[string]any{
-		"refresh_interval_seconds": refresh,
-		"heartbeat":                []any{}, // Older servers likely don't have complex heartbeat configs
-		"servers":                  []any{}, // Older servers don't monitor other servers
-		"storage":                  localCfg.Storage,
-		"path":                     localCfg.Path,
-		"persist_server_logs":      localCfg.PersistServerLogs,
-	}
+    return map[string]any{
+        "refresh_interval_seconds": refresh,
+        "heartbeat":                []any{}, // Older servers likely don't have complex heartbeat configs
+        "servers":                  []any{}, // Older servers don't monitor other servers
+        "storage":                  localCfg.Storage,
+        "path":                     localCfg.Path,
+        "persist_server_logs":      localCfg.PersistServerLogs,
+    }
 }
 
 func normalizeRemoteAddress(raw string) (string, error) {
@@ -402,14 +402,14 @@ func ServerConfigHandler(w http.ResponseWriter, r *http.Request) {
 		refresh = d.Seconds()
 	}
 
-	payload := map[string]any{
-		"refresh_interval_seconds": refresh,
-		"heartbeat":                cfg.Heartbeat,
-		"servers":                  cfg.Servers,
-		"storage":                  cfg.Storage,
-		"path":                     cfg.Path,
-		"persist_server_logs":      cfg.PersistServerLogs,
-	}
+    payload := map[string]any{
+        "refresh_interval_seconds": refresh,
+        "heartbeat":                cfg.Heartbeat,
+        "servers":                  cfg.Servers,
+        "storage":                  cfg.Storage,
+        "path":                     cfg.Path,
+        "persist_server_logs":      cfg.PersistServerLogs,
+    }
 
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
@@ -499,4 +499,3 @@ func MonitoringHandler(w http.ResponseWriter, r *http.Request) {
 
 	setHeader(w, http.StatusOK, string(jsonData))
 }
-

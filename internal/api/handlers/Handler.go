@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"go-log/internal/config"
-	"go-log/internal/utils"
-	"log"
-	"net/http"
-	"os"
+    "go-log/internal/config"
+    "go-log/internal/utils"
+    "log"
+    "net/http"
+    "os"
+    "path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -135,8 +136,8 @@ func GetLogFolder() string {
 }
 
 func GetDatabaseFolder() string {
-	envConfig := config.GetEnvConfig()
-	return envConfig.BaseDatabaseFolder
+    envConfig := config.GetEnvConfig()
+    return filepath.Dir(envConfig.GetDatabasePath())
 }
 
 func GetDatabasePath() string {

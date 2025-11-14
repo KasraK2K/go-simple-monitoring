@@ -8,7 +8,7 @@ A comprehensive Go-based monitoring service that tracks system resources, monito
 - **Remote Server Monitoring**: Monitor multiple remote monitoring endpoints
 - **Heartbeat Checks**: Monitor external services and APIs for availability
 - **Web Dashboard**: Real-time monitoring dashboard with configurable access
-- **Dual Storage**: Support for file-based logging and SQLite database storage
+- **Pluggable Storage**: File, SQLite, and PostgreSQL (TimescaleDB) backends
 - **Rate Limiting**: Built-in request rate limiting with configurable thresholds
 - **CORS Support**: Configurable cross-origin resource sharing
 - **Log Rotation**: Automatic cleanup of old logs and database records
@@ -69,7 +69,7 @@ DASHBOARD_DEFAULT_RANGE=24h # 1h, 6h, 24h, 7d, 30d. Leave empty for live data on
 
 # Path Configuration
 BASE_LOG_FOLDER=./logs
-BASE_DATABASE_FOLDER=.
+SQLITE_DNS=./monitoring.db
 
 # CORS Configuration (for development)
 CORS_ALLOWED_ORIGINS=http://localhost:3500,http://127.0.0.1:3500
@@ -88,7 +88,7 @@ Create or modify `configs.json` for monitoring settings:
 {
   "path": "./logs",
   "refresh_time": "5s",
-  "storage": "both",
+  "storage": ["file", "sqlite", "postgresql"],
   "persist_server_logs": true,
   "logrotate": {
     "enabled": true,
@@ -147,46 +147,129 @@ MONITOR_CONFIG_PATH=/path/to/your/config.json go run ./cmd
 The application uses centralized environment configuration. All available variables:
 
 ### Required Variables
+
 - `AES_SECRET` - AES encryption key (minimum 32 characters)
 - `JWT_SECRET` - JWT signing key (minimum 16 characters)
 
 ### Server Configuration
+
 - `PORT` - Server port (default: 3500)
 - `GO_ENV` - Environment mode (development/production)
 
 ### Security & Access
+
 - `CORS_ALLOWED_ORIGINS` - Comma-separated allowed origins
 - `CHECK_TOKEN` - Enable token validation (default: false)
 - `HAS_DASHBOARD` - Enable/disable dashboard access (default: true)
 
 ### Rate Limiting
+
 - `RATE_LIMIT_ENABLED` - Enable rate limiting (default: true)
 - `RATE_LIMIT_RPS` - Requests per second (default: 10)
 - `RATE_LIMIT_BURST` - Burst capacity (default: 20)
 
 ### Storage Paths
+
 - `BASE_LOG_FOLDER` - Log files directory (default: ./logs)
-- `BASE_DATABASE_FOLDER` - Database directory (default: .)
 
 ### Database Configuration
+
 - `DB_MAX_CONNECTIONS` - Maximum database connections (default: 30)
 - `DB_CONNECTION_TIMEOUT` - Connection timeout in seconds (default: 30)
 - `DB_IDLE_TIMEOUT` - Idle connection timeout in seconds (default: 300)
+- `SQLITE_DNS` - SQLite database file path/DSN (default: `./monitoring.db`)
+- PostgreSQL (used when `storage` contains `"postgresql"`):
+  - `POSTGRES_USER` (default: `monitoring`)
+  - `POSTGRES_PASSWORD` (default: `monitoring`)
+  - `POSTGRES_HOST` (default: `localhost`)
+  - `POSTGRES_PORT` (default: `5432`)
+  - `POSTGRES_DB` (default: `monitoring`)
+  - The app automatically builds a DSN from these variables.
 
 ### Monitoring Configuration
+
 - `SERVER_MONITORING_TIMEOUT` - Remote server timeout (default: 15s)
 - `LOG_LEVEL` - Logging level (default: INFO)
 
 ## Storage Configuration
 
-Configure storage behavior in `configs.json`:
+Configure storage behavior in `configs.json` using an array:
 
-- `"file"` - Write logs only to log files
-- `"sqlite"` - Write logs only to SQLite database
-- `"both"` - Write logs to both files and database (recommended)
-- `"none"` - Disable persistence entirely
+- `"file"` - Write logs to log files
+- `"sqlite"` - Write logs to SQLite database
+- `"postgresql"` - Write logs to PostgreSQL (TimescaleDB recommended)
 
-Breaking change: prior `storage: "db"` is no longer supported. Use `"sqlite"` instead.
+Notes:
+
+- Set multiple backends at once, e.g. `["file", "sqlite"]`.
+- An empty array disables persistence entirely.
+- Breaking change: previous `"db"` and `"both"` values are removed. Use the array form instead, e.g. `["sqlite"]`.
+
+Example:
+
+```json
+{
+  "path": "./logs",
+  "refresh_time": "5s",
+  "storage": ["file", "sqlite"],
+  "persist_server_logs": true
+}
+```
+
+### PostgreSQL + TimescaleDB
+
+PostgreSQL persistence supports TimescaleDB for downsampling historical data.
+
+- Set `"storage": ["postgresql"]` or combine, e.g. `["file", "postgresql"]`.
+- Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` in `.env`.
+
+TimescaleDB setup (run once on your database):
+
+```sql
+-- Enable TimescaleDB
+CREATE EXTENSION IF NOT EXISTS timescaledb;
+
+-- Raw log table (JSONB payload)
+CREATE TABLE IF NOT EXISTS monitoring_logs (
+  time timestamptz NOT NULL,
+  data jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+SELECT create_hypertable('monitoring_logs', 'time', if_not_exists => TRUE);
+
+-- Example 1h downsampled view (average CPU and RAM)
+CREATE MATERIALIZED VIEW IF NOT EXISTS monitoring_logs_1h
+WITH (timescaledb.continuous) AS
+SELECT
+  time_bucket('1 hour', time) AS bucket,
+  AVG((data->>'cpu_usage_percent')::double precision) AS cpu_usage,
+  AVG((data->>'ram_used_percent')::double precision) AS ram_usage
+FROM monitoring_logs
+GROUP BY bucket;
+
+SELECT add_continuous_aggregate_policy(
+  'monitoring_logs_1h',
+  start_offset => INTERVAL '7 days',
+  end_offset => INTERVAL '1 hour',
+  schedule_interval => INTERVAL '1 hour'
+);
+```
+
+Server payloads (remote `servers[*]`) can be stored in per-table streams as needed; adapt schema to your preference (e.g., add a `table_name` column or per-table hypertables).
+
+Implementation note: the codebase includes the PostgreSQL integration points, but you must add a Postgres driver to your build (for example `github.com/jackc/pgx/v5/stdlib`) and wire the DSN. Without a driver, writes will be no‑ops with warnings.
+
+Docker quick start
+
+- Start a local TimescaleDB instance via compose:
+
+  ```bash
+  ./scripts/postgres-timescale-up.sh
+  # or (if you export POSTGRES_USER/PASSWORD/DB yourself)
+  # docker compose -f scripts/docker-compose.timescale.yml up -d
+  ```
+
+- The TimescaleDB extension is enabled on first startup (see `scripts/timescale-init/init.sql`).
 
 ### What Gets Persisted (Compact Format)
 
@@ -240,7 +323,9 @@ Example single entry (pretty‑printed):
 
 ### Storage Requirements (Compact, Typical)
 
-The new compact format typically reduces storage by ~40–60% depending on number of disks, heartbeats, and remote servers. Approximate sizes for a local setup (1–2 disks, ≤5 heartbeats, ≤5 remote servers):
+Estimates below are per storage backend. If you select multiple backends in `storage`, the storage footprint is roughly additive. Values assume 1–2 disks, ≤5 heartbeats, ≤5 remote servers.
+
+File (JSON logs)
 
 | Interval | Daily Size | Weekly Size | Monthly Size |
 | -------- | ---------- | ----------- | ------------ |
@@ -248,15 +333,38 @@ The new compact format typically reduces storage by ~40–60% depending on numbe
 | 5s       | ~14–18 MB  | ~98–126 MB  | ~0.4–0.6 GB  |
 | 10s      | ~7–9 MB    | ~49–63 MB   | ~0.2–0.3 GB  |
 
+SQLite (JSON per row + indexes)
+
+| Interval | Daily Size | Weekly Size | Monthly Size |
+| -------- | ---------- | ----------- | ------------ |
+| 2s       | ~40–55 MB  | ~280–385 MB | ~1.2–1.7 GB  |
+| 5s       | ~16–22 MB  | ~112–154 MB | ~0.5–0.75 GB |
+| 10s      | ~8–11 MB   | ~56–77 MB   | ~0.25–0.35 GB|
+
+PostgreSQL (raw hypertable, no compression)
+
+| Interval | Daily Size | Weekly Size | Monthly Size |
+| -------- | ---------- | ----------- | ------------ |
+| 2s       | ~40–60 MB  | ~280–420 MB | ~1.2–1.8 GB  |
+| 5s       | ~16–24 MB  | ~112–168 MB | ~0.5–0.8 GB  |
+| 10s      | ~8–12 MB   | ~56–84 MB   | ~0.25–0.4 GB |
+
+PostgreSQL with TimescaleDB downsampling (example policy)
+
+- Keep raw data 7 days, then maintain 1h aggregates indefinitely.
+- Raw segment ~ the “PostgreSQL (raw)” weekly line (e.g., 280–420 MB at 2s).
+- 1h continuous aggregates typically compress by 80–95% vs raw; monthly total is often ≤ 0.3–0.6 GB depending on retention and policies.
+
 Notes:
-- Estimates assume standard system monitoring with heartbeats enabled and a small number of remote servers.
-- Actual usage varies with data retention window, number of disks, and number of monitored servers.
+
+- These are indicative ranges; real usage varies with retention, number of disks, and remote servers.
+- For PostgreSQL, enabling compression and adjusting retention can materially reduce footprint.
 
 ## API Endpoints
 
 | Endpoint                | Method | Description                                                        |
 | ----------------------- | ------ | ------------------------------------------------------------------ |
-| `/`                     | GET    | Main dashboard UI (if `HAS_DASHBOARD=true`)                       |
+| `/`                     | GET    | Main dashboard UI (if `HAS_DASHBOARD=true`)                        |
 | `/api/v1/server-config` | GET    | Server configuration including refresh interval and server list    |
 | `/api/v1/tables`        | GET    | Available database table names and count                           |
 | `/monitoring`           | POST   | System monitoring data with optional filtering and table selection |
@@ -373,7 +481,7 @@ The application can monitor remote servers that expose a `/monitoring` endpoint.
       "table_name": "production_monitoring"
     },
     {
-      "name": "Staging Environment", 
+      "name": "Staging Environment",
       "address": "https://staging.example.com",
       "table_name": "staging_monitoring"
     }
@@ -382,6 +490,7 @@ The application can monitor remote servers that expose a `/monitoring` endpoint.
 ```
 
 **Notes:**
+
 - Each server must expose a `/monitoring` endpoint returning system metrics
 - `table_name` creates separate storage for each server's data
 - Unavailable servers won't break overall functionality
