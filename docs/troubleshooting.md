@@ -8,11 +8,14 @@ Common issues, solutions, and debugging techniques for the monitoring service.
 
 ### Health Check Commands
 ```bash
-# Check service status
-curl http://localhost:3500/health
+# Check service status (dashboard must be enabled)
+curl http://localhost:3500
 
-# Check database connectivity  
-curl http://localhost:3500/health/db
+# Check server configuration (always available)
+curl http://localhost:3500/api/v1/server-config
+
+# Test monitoring endpoint (core functionality)
+curl -X POST http://localhost:3500/api/v1/monitoring
 
 # View service logs
 sudo journalctl -u monitoring.service -f
@@ -20,6 +23,21 @@ sudo journalctl -u monitoring.service -f
 # Check database connection manually
 psql -U monitoring -d monitoring -h localhost
 ```
+
+### Available API Endpoints
+
+The monitoring service exposes the following endpoints:
+
+| **Endpoint** | **Method** | **Purpose** | **Requires Dashboard** |
+|--------------|------------|-------------|------------------------|
+| `/` | GET | Dashboard interface | ✅ Yes |
+| `/api/v1/server-config` | GET | Server configuration | ❌ No |
+| `/api/v1/monitoring` | POST | Submit monitoring data | ❌ No |
+| `/api/v1/tables` | GET | List database tables | ✅ Yes |
+| `/js/*` | GET | JavaScript files | ✅ Yes |
+| `/assets/*` | GET | Static assets | ✅ Yes |
+
+**Note**: When `HAS_DASHBOARD=false`, only the core API endpoints (`/api/v1/server-config` and `/api/v1/monitoring`) are available.
 
 ## 🚫 Common Issues
 
@@ -399,7 +417,7 @@ sudo systemctl restart monitoring.service
 # Create external monitor script
 cat > /usr/local/bin/monitor-health.sh << 'EOF'
 #!/bin/bash
-URL="http://localhost:3500/health"
+URL="http://localhost:3500/api/v1/server-config"
 if ! curl -f -s "$URL" > /dev/null; then
     echo "$(date): Monitoring service unhealthy" | logger -t monitor-health
     systemctl restart monitoring.service
@@ -458,7 +476,7 @@ sudo -u postgres psql -d monitoring -c "\dt"
 For production issues:
 1. Check this troubleshooting guide first
 2. Review service logs: `sudo journalctl -u monitoring.service -f`
-3. Test basic connectivity: `curl http://localhost:3500/health`
+3. Test basic connectivity: `curl http://localhost:3500` (if dashboard enabled)
 4. Report with collected information above
 
 ---

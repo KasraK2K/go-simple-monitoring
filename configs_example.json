@@ -18,8 +18,8 @@
       "timeout": 5
     },
     {
-      "name": "Local API Health",
-      "url": "http://localhost:8080/health",
+      "name": "Local API Server",
+      "url": "http://localhost:8080",
       "timeout": 3
     },
     {

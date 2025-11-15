@@ -156,7 +156,7 @@ CORS_ALLOWED_ORIGINS=https://your-domain.com,https://www.your-domain.com
     },
     {
       "name": "API Health",
-      "url": "https://api.your-website.com/health",
+      "url": "https://api.your-website.com",
       "timeout": 3
     }
   ],
@@ -287,9 +287,9 @@ server {
         proxy_set_header Connection "upgrade";
     }
 
-    # Health check endpoint
-    location /health {
-        proxy_pass http://127.0.0.1:3500/health;
+    # API endpoints
+    location /api/ {
+        proxy_pass http://127.0.0.1:3500/api/;
         access_log off;
     }
 }
@@ -389,15 +389,15 @@ sudo nano /opt/monitoring/bin/health-check.sh
 #!/bin/bash
 # Health check script for monitoring service
 
-SERVICE_URL="http://localhost:3500/health"
+SERVICE_URL="http://localhost:3500/api/v1/server-config"
 SERVICE_NAME="monitoring"
 
 # Check if service is responding
 if curl -f -s "$SERVICE_URL" > /dev/null; then
-    echo "✅ $SERVICE_NAME is healthy"
+    echo "✅ $SERVICE_NAME is running"
     exit 0
 else
-    echo "❌ $SERVICE_NAME is unhealthy"
+    echo "❌ $SERVICE_NAME is not responding"
     
     # Restart service
     sudo systemctl restart monitoring.service
