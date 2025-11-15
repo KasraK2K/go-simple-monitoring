@@ -141,7 +141,7 @@ func InitEnvConfig() {
         ServerMonitoringTimeout: getEnvDuration("SERVER_MONITORING_TIMEOUT", 15*time.Second),
 
         // Downsampling
-        DownsampleMaxPoints: getEnvInt("MONITORING_DOWNSAMPLE_MAX_POINTS", 0),
+        DownsampleMaxPoints: getEnvInt("MONITORING_DOWNSAMPLE_MAX_POINTS", 150),
 
 		// HTTP Client
 		HTTPMaxConnsPerHost:       getEnvInt("HTTP_MAX_CONNS_PER_HOST", 10),
@@ -179,8 +179,15 @@ func getEnvString(key, defaultValue string) string {
 
 func getEnvInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
-		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
-			return parsed
+		if parsed, err := strconv.Atoi(value); err == nil {
+			// For downsampling, allow 0 to disable, but validate positive values
+			if key == "MONITORING_DOWNSAMPLE_MAX_POINTS" {
+				if parsed >= 0 && parsed <= 10000 {
+					return parsed
+				}
+			} else if parsed > 0 {
+				return parsed
+			}
 		}
 	}
 	return defaultValue

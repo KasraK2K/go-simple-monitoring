@@ -193,9 +193,11 @@ The application uses centralized environment configuration. All available variab
 
 ### Downsampling (historical queries)
 
-- `MONITORING_DOWNSAMPLE_MAX_POINTS` - Target number of points for historical queries.
-  - If unset or `0`: downsampling disabled (all rows returned).
-  - If `> 0`: downsampling applies only when raw row count for the selected range exceeds this value, returning ~that many evenly sampled rows.
+- `MONITORING_DOWNSAMPLE_MAX_POINTS` - Target number of points for historical queries (default: 150).
+  - If `0`: downsampling disabled (all rows returned).
+  - If `> 0`: smart downsampling applies when data exceeds this threshold.
+  - Uses TimescaleDB `time_bucket()` when available, falls back to `ntile()` for standard PostgreSQL.
+  - Recommended values: 100-500 for optimal performance/detail balance.
 
 ## Storage Configuration
 
@@ -222,9 +224,14 @@ Example:
 }
 ```
 
-### PostgreSQL + TimescaleDB (optional)
+### PostgreSQL + TimescaleDB (recommended)
 
-PostgreSQL persistence works out of the box. TimescaleDB is optional if you want your own continuous aggregates; the app now has built‑in count‑based downsampling controlled by `MONITORING_DOWNSAMPLE_MAX_POINTS`.
+PostgreSQL persistence works out of the box. TimescaleDB is recommended for optimal time-series performance:
+
+- **Without TimescaleDB**: Uses standard PostgreSQL with `ntile()` downsampling
+- **With TimescaleDB**: Automatically uses `time_bucket()` for efficient time-based downsampling
+- **Auto-detection**: System automatically detects TimescaleDB extension and chooses optimal strategy
+- **Performance**: TimescaleDB provides significantly better performance for large time-series datasets
 
 - Set `"storage": ["postgresql"]` or combine, e.g. `["file", "postgresql"]`.
 - Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` in `.env`.
