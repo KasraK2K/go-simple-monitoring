@@ -1,4 +1,6 @@
-# Deployment Guide
+# Systemd Service Setup Guide
+
+**📚 Navigation:** [🏠 Main README](../README.md) | [🚀 Production Deployment](production-deployment.md) | [🗄️ PostgreSQL Setup](postgresql-setup.md) | [🌐 Nginx Setup](nginx-setup.md)
 
 This guide shows how to deploy the Go monitoring service to production using systemd on Linux.
 

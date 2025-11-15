@@ -1,5 +1,7 @@
 # Nginx Authentication Setup for API Monitoring Dashboard
 
+**📚 Navigation:** [🏠 Main README](../README.md) | [🚀 Production Deployment](production-deployment.md) | [🗄️ PostgreSQL Setup](postgresql-setup.md) | [🔧 CLI Usage](cli-usage.md)
+
 This guide explains how to configure nginx with basic authentication for the dashboard (`/` path) while keeping other API endpoints open.
 
 ## Overview
