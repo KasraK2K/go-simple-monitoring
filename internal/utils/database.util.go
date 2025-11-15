@@ -141,16 +141,14 @@ func ensureTable(tableName string) error {
 	// Get clean name for index naming (remove brackets, quotes etc.)
 	cleanName := SanitizeTableName(tableName)
 
-	statements := []string{
-		fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			timestamp TEXT NOT NULL,
-			data TEXT NOT NULL,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-		);`, tableName),
-		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp);`, cleanName, tableName),
-		fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_created_at ON %s(created_at);`, cleanName, tableName),
-	}
+    statements := []string{
+        fmt.Sprintf(`CREATE TABLE IF NOT EXISTS %s (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            data TEXT NOT NULL
+        );`, tableName),
+        fmt.Sprintf(`CREATE INDEX IF NOT EXISTS idx_%s_timestamp ON %s(timestamp);`, cleanName, tableName),
+    }
 
 	for _, stmt := range statements {
 		if _, err := db.Exec(stmt); err != nil {
@@ -158,7 +156,7 @@ func ensureTable(tableName string) error {
 		}
 	}
 
-	return nil
+    return nil
 }
 
 // writeToTableInternal is the internal implementation for writing to any table
@@ -315,8 +313,8 @@ func cleanTableEntries(tableName string, cutoffDate time.Time, totalCleaned *int
 		return fmt.Errorf("invalid table name: %w", err)
 	}
 
-	query := fmt.Sprintf(`DELETE FROM %s WHERE created_at < ?`, tableName)
-	result, err := db.Exec(query, cutoffDate)
+    query := fmt.Sprintf(`DELETE FROM %s WHERE timestamp < ?`, tableName)
+    result, err := db.Exec(query, FormatTimestampUTC(cutoffDate))
 	if err != nil {
 		return fmt.Errorf("failed to delete old entries: %w", err)
 	}
@@ -371,26 +369,26 @@ func QueryFilteredTableData(tableName, from, to string) ([]models.MonitoringLogE
 	}
 
 	// Build query based on provided filters
-	if fromNormalized != "" && toNormalized != "" {
-		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
-				WHERE created_at >= ? AND created_at <= ? 
-				ORDER BY created_at DESC`, tableName)
-		args = []any{fromNormalized, toNormalized}
-	} else if fromNormalized != "" {
-		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
-				WHERE created_at >= ? 
-				ORDER BY created_at DESC`, tableName)
-		args = []any{fromNormalized}
-	} else if toNormalized != "" {
-		query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
-				WHERE created_at <= ? 
-				ORDER BY created_at DESC`, tableName)
-		args = []any{toNormalized}
-	} else {
-		// No date filters, get all entries from the table
-		query = fmt.Sprintf(`SELECT timestamp, data FROM %s ORDER BY created_at DESC`, tableName)
-		args = []any{}
-	}
+    if fromNormalized != "" && toNormalized != "" {
+        query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
+                WHERE timestamp >= ? AND timestamp <= ? 
+                ORDER BY timestamp DESC`, tableName)
+        args = []any{fromNormalized, toNormalized}
+    } else if fromNormalized != "" {
+        query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
+                WHERE timestamp >= ? 
+                ORDER BY timestamp DESC`, tableName)
+        args = []any{fromNormalized}
+    } else if toNormalized != "" {
+        query = fmt.Sprintf(`SELECT timestamp, data FROM %s 
+                WHERE timestamp <= ? 
+                ORDER BY timestamp DESC`, tableName)
+        args = []any{toNormalized}
+    } else {
+        // No date filters, get all entries from the table
+        query = fmt.Sprintf(`SELECT timestamp, data FROM %s ORDER BY timestamp DESC`, tableName)
+        args = []any{}
+    }
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
