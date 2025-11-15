@@ -191,6 +191,12 @@ The application uses centralized environment configuration. All available variab
 - `SERVER_MONITORING_TIMEOUT` - Remote server timeout (default: 15s)
 - `LOG_LEVEL` - Logging level (default: INFO)
 
+### Downsampling (historical queries)
+
+- `MONITORING_DOWNSAMPLE_MAX_POINTS` - Target number of points for historical queries.
+  - If unset or `0`: downsampling disabled (all rows returned).
+  - If `> 0`: downsampling applies only when raw row count for the selected range exceeds this value, returning ~that many evenly sampled rows.
+
 ## Storage Configuration
 
 Configure storage behavior in `configs.json` using an array:
@@ -216,14 +222,14 @@ Example:
 }
 ```
 
-### PostgreSQL + TimescaleDB
+### PostgreSQL + TimescaleDB (optional)
 
-PostgreSQL persistence supports TimescaleDB for downsampling historical data.
+PostgreSQL persistence works out of the box. TimescaleDB is optional if you want your own continuous aggregates; the app now has built‑in count‑based downsampling controlled by `MONITORING_DOWNSAMPLE_MAX_POINTS`.
 
 - Set `"storage": ["postgresql"]` or combine, e.g. `["file", "postgresql"]`.
 - Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` in `.env`.
 
-TimescaleDB setup (run once on your database):
+TimescaleDB setup (run once on your database), adapted to the app's schema (`timestamp`, `data`):
 
 ```sql
 -- Enable TimescaleDB
@@ -231,17 +237,16 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 
 -- Raw log table (JSONB payload)
 CREATE TABLE IF NOT EXISTS monitoring_logs (
-  time timestamptz NOT NULL,
-  data jsonb NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now()
+  timestamp timestamptz NOT NULL,
+  data jsonb NOT NULL
 );
-SELECT create_hypertable('monitoring_logs', 'time', if_not_exists => TRUE);
+SELECT create_hypertable('monitoring_logs', 'timestamp', if_not_exists => TRUE);
 
 -- Example 1h downsampled view (average CPU and RAM)
 CREATE MATERIALIZED VIEW IF NOT EXISTS monitoring_logs_1h
 WITH (timescaledb.continuous) AS
 SELECT
-  time_bucket('1 hour', time) AS bucket,
+  time_bucket('1 hour', timestamp) AS bucket,
   AVG((data->>'cpu_usage_percent')::double precision) AS cpu_usage,
   AVG((data->>'ram_used_percent')::double precision) AS ram_usage
 FROM monitoring_logs

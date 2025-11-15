@@ -54,9 +54,14 @@ type EnvConfig struct {
     PostgresPort string
     PostgresDB   string
 
-	// Monitoring
-	MonitorConfigPath       string
-	ServerMonitoringTimeout time.Duration
+    // Monitoring
+    MonitorConfigPath       string
+    ServerMonitoringTimeout time.Duration
+
+    // Downsampling
+    // If 0 or unset: disable server-side downsampling for Postgres historical queries
+    // If >0: target approximately this many points via bucketing
+    DownsampleMaxPoints int
 
 	// HTTP Client
 	HTTPMaxConnsPerHost       int
@@ -86,7 +91,7 @@ var envConfig *EnvConfig
 
 // InitEnvConfig initializes the environment configuration
 func InitEnvConfig() {
-	envConfig = &EnvConfig{
+    envConfig = &EnvConfig{
 		// Server Configuration
 		Port: getEnvString("PORT", "3500"),
 
@@ -131,9 +136,12 @@ func InitEnvConfig() {
         PostgresPort: getEnvString("POSTGRES_PORT", "5432"),
         PostgresDB: getEnvString("POSTGRES_DB", "monitoring"),
 
-		// Monitoring
-		MonitorConfigPath:       getEnvString("MONITOR_CONFIG_PATH", ""),
-		ServerMonitoringTimeout: getEnvDuration("SERVER_MONITORING_TIMEOUT", 15*time.Second),
+        // Monitoring
+        MonitorConfigPath:       getEnvString("MONITOR_CONFIG_PATH", ""),
+        ServerMonitoringTimeout: getEnvDuration("SERVER_MONITORING_TIMEOUT", 15*time.Second),
+
+        // Downsampling
+        DownsampleMaxPoints: getEnvInt("MONITORING_DOWNSAMPLE_MAX_POINTS", 0),
 
 		// HTTP Client
 		HTTPMaxConnsPerHost:       getEnvInt("HTTP_MAX_CONNS_PER_HOST", 10),

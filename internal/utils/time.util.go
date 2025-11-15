@@ -112,17 +112,17 @@ func ParseTimestampUTC(value string) (time.Time, error) {
 
 // NormalizeTimestampForDB normalizes a timestamp for database storage (always in UTC)
 func NormalizeTimestampForDB(value string) (string, error) {
-	if value == "" {
-		return "", nil
-	}
+    if value == "" {
+        return "", nil
+    }
 
-	parsed, err := ParseTimestamp(value)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse timestamp: %w", err)
-	}
+    parsed, err := ParseTimestamp(value)
+    if err != nil {
+        return "", fmt.Errorf("failed to parse timestamp: %w", err)
+    }
 
-	// Always store in UTC for database consistency
-	return parsed.UTC().Format("2006-01-02 15:04:05"), nil
+    // Always store in UTC for database consistency as RFC3339
+    return FormatTimestampUTC(parsed), nil
 }
 
 // NormalizeTimestampInput normalizes user input timestamps with timezone awareness

@@ -30,19 +30,19 @@ export function formatDateInputToISO(value, endOfRange = false) {
   if (Number.isNaN(date.getTime())) {
     return '';
   }
-  
-  // Force UTC interpretation - treat the input as if it were already UTC
-  // This prevents timezone conversion issues between local and server
-  const utcDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-  
+
+  // IMPORTANT: datetime-local values are parsed as local time by the browser.
+  // new Date(value) already represents the correct absolute instant in UTC.
+  // Do NOT apply timezoneOffset math here, or you will double-shift.
   if (endOfRange) {
     const hasSeconds = /:\d{2}$/.test(value);
     if (!hasSeconds) {
-      utcDate.setUTCSeconds(59, 999);
+      // Set to end-of-minute to make the upper bound inclusive
+      date.setSeconds(59, 999);
     }
   }
-  
-  return utcDate.toISOString();
+
+  return date.toISOString();
 }
 
 export async function applyDateFilter() {
@@ -112,8 +112,9 @@ export async function applyRangePreset(range) {
   // Format date for datetime-local input (YYYY-MM-DDTHH:mm)
   // Convert UTC timestamps back to local display for the input fields
   const formatDate = (date) => {
-    // Convert from UTC to local for display in datetime-local inputs
-    const localDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+    // Convert UTC Date -> local wall time string for datetime-local input
+    // Use subtraction because getTimezoneOffset is minutes to add to local to get UTC
+    const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
     return localDate.toISOString().slice(0, 16);
   };
   const fromDate = new Date(filter.from);

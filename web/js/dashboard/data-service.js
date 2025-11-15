@@ -634,7 +634,7 @@ function setActiveRangeButton(range) {
 function formatDateForInput(date) {
   // Convert UTC timestamp to local time for display in datetime-local inputs
   // This ensures the input shows the expected local time while maintaining UTC consistency
-  const localDate = new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
+  const localDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
   const pad = (value) => String(value).padStart(2, "0");
   return (
     `${localDate.getFullYear()}-${pad(localDate.getMonth() + 1)}-${pad(localDate.getDate())}` +
