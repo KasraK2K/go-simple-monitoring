@@ -228,8 +228,8 @@ export function updateCharts(data, networkDelta = { bytes_received: 0, bytes_sen
 
   if (state.networkChart) {
     state.networkChart.data.labels.push(timestamp);
-    state.networkChart.data.datasets[0].data.push(bytesToMbPerSecond(networkDelta.bytes_received) || 0);
-    state.networkChart.data.datasets[1].data.push(bytesToMbPerSecond(networkDelta.bytes_sent) || 0);
+    state.networkChart.data.datasets[0].data.push(bytesToMbPerSecond(networkDelta.bytes_received, networkDelta.durationSeconds) || 0);
+    state.networkChart.data.datasets[1].data.push(bytesToMbPerSecond(networkDelta.bytes_sent, networkDelta.durationSeconds) || 0);
 
     if (state.networkChart.data.labels.length > maxPoints) {
       state.networkChart.data.labels.shift();
