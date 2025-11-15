@@ -119,8 +119,8 @@ const refreshIntervals = [
       "timeout": 5
     },
     {
-      "name": "API Health Check",
-      "url": "https://api.example.com/health", 
+      "name": "API Server",
+      "url": "https://api.example.com", 
       "timeout": 3
     }
   ]

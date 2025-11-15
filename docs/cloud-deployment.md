@@ -282,14 +282,14 @@ AZURE_TENANT_ID=${{ secrets.AZURE_TENANT_ID }}
 ### Health Check Endpoints
 
 ```bash
-# Application health
-curl https://your-app.com/health
+# Application status (dashboard enabled)
+curl https://your-app.com/
 
-# Database connectivity
-curl https://your-app.com/health/db
+# API server configuration
+curl https://your-app.com/api/v1/server-config
 
-# Metrics endpoint
-curl https://your-app.com/metrics
+# API monitoring endpoint 
+curl -X POST https://your-app.com/api/v1/monitoring
 ```
 
 ### Cloud Monitoring Integration
