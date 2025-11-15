@@ -2,6 +2,16 @@
 
 A comprehensive Go-based monitoring service that tracks system resources, monitors remote servers, and provides heartbeat checks with a web dashboard interface.
 
+## 📚 Documentation Navigation
+
+| **Quick Start** | **Deployment** | **Configuration** | **Advanced** |
+|------------------|----------------|-------------------|--------------|
+| [Local Development](#local-development) | [🚀 Production Deployment](docs/production-deployment.md) | [🔧 CLI Usage](docs/cli-usage.md) | [🐳 Docker Setup](docs/docker-deployment.md) |
+| [Configuration](#configuration) | [🌐 Nginx Setup](docs/nginx-setup.md) | [🗄️ PostgreSQL/TimescaleDB](docs/postgresql-setup.md) | [🛠️ Systemd Setup](docs/monitoring-systemd-setup.md) |
+| [API Reference](#api-endpoints) | [☁️ Cloud Deployment](docs/cloud-deployment.md) | [📊 Dashboard Guide](docs/dashboard-guide.md) | [🔍 Troubleshooting](docs/troubleshooting.md) |
+
+> **🔗 All documentation is cross-linked for easy navigation. Missing a document? [Create an issue](https://github.com/your-repo/issues/new)!**
+
 ## Features
 
 - **System Monitoring**: CPU, memory, disk space, network I/O, disk I/O, and process statistics
@@ -233,55 +243,39 @@ PostgreSQL persistence works out of the box. TimescaleDB is recommended for opti
 - **Auto-detection**: System automatically detects TimescaleDB extension and chooses optimal strategy
 - **Performance**: TimescaleDB provides significantly better performance for large time-series datasets
 
-- Set `"storage": ["postgresql"]` or combine, e.g. `["file", "postgresql"]`.
-- Provide `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_DB` in `.env`.
+#### Quick Setup with Docker
 
-TimescaleDB setup (run once on your database), adapted to the app's schema (`timestamp`, `data`):
+```bash
+# Start TimescaleDB with one command
+./scripts/postgres-timescale-up.sh
 
-```sql
--- Enable TimescaleDB
-CREATE EXTENSION IF NOT EXISTS timescaledb;
-
--- Raw log table (JSONB payload)
-CREATE TABLE IF NOT EXISTS monitoring_logs (
-  timestamp timestamptz NOT NULL,
-  data jsonb NOT NULL
-);
-SELECT create_hypertable('monitoring_logs', 'timestamp', if_not_exists => TRUE);
-
--- Example 1h downsampled view (average CPU and RAM)
-CREATE MATERIALIZED VIEW IF NOT EXISTS monitoring_logs_1h
-WITH (timescaledb.continuous) AS
-SELECT
-  time_bucket('1 hour', timestamp) AS bucket,
-  AVG((data->>'cpu_usage_percent')::double precision) AS cpu_usage,
-  AVG((data->>'ram_used_percent')::double precision) AS ram_usage
-FROM monitoring_logs
-GROUP BY bucket;
-
-SELECT add_continuous_aggregate_policy(
-  'monitoring_logs_1h',
-  start_offset => INTERVAL '7 days',
-  end_offset => INTERVAL '1 hour',
-  schedule_interval => INTERVAL '1 hour'
-);
+# Stop when done
+./scripts/postgres-timescale-up.sh --stop
 ```
 
-Server payloads (remote `servers[*]`) can be stored in per-table streams as needed; adapt schema to your preference (e.g., add a `table_name` column or per-table hypertables).
+#### Configuration
 
-Implementation note: the codebase includes the PostgreSQL integration points, but you must add a Postgres driver to your build (for example `github.com/jackc/pgx/v5/stdlib`) and wire the DSN. Without a driver, writes will be no‑ops with warnings.
+Set `"storage": ["postgresql"]` in `configs.json` and configure `.env`:
 
-Docker quick start
+```bash
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=monitoring
+POSTGRES_USER=monitoring
+POSTGRES_PASSWORD=your_secure_password
+```
 
-- Start a local TimescaleDB instance via compose:
+**📖 For detailed setup instructions, see [PostgreSQL Setup Guide](docs/postgresql-setup.md)**
 
-  ```bash
-  ./scripts/postgres-timescale-up.sh
-  # or (if you export POSTGRES_USER/PASSWORD/DB yourself)
-  # docker compose -f scripts/docker-compose.timescale.yml up -d
-  ```
+#### Advanced Setup
 
-- The TimescaleDB extension is enabled on first startup (see `scripts/timescale-init/init.sql`).
+For production deployment, manual installation, or cloud setup, see the comprehensive guides:
+
+- 🗄️ **[PostgreSQL Setup Guide](docs/postgresql-setup.md)** - Complete setup instructions
+- 🚀 **[Production Deployment](docs/production-deployment.md)** - Server deployment
+- ☁️ **[Cloud Deployment](docs/cloud-deployment.md)** - AWS, GCP, Azure options
+
+> **💡 The application automatically creates and optimizes database tables, including TimescaleDB hypertables when available. No manual SQL setup required!**
 
 ### What Gets Persisted (Compact Format)
 

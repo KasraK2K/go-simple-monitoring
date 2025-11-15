@@ -1,6 +1,8 @@
-# Monitor CLI
+# Monitor CLI Usage Guide
 
-The monitor CLI (`cmd/monitor`) is a standalone terminal UI for inspecting local or remote system metrics. Use the steps below to build the Linux binary inside Docker and install it system-wide on your servers.
+**📚 Navigation:** [🏠 Main README](../README.md) | [🚀 Production Deployment](production-deployment.md) | [🗄️ PostgreSQL Setup](postgresql-setup.md) | [🌐 Nginx Setup](nginx-setup.md)
+
+The monitor CLI (`cmd/monitor`) is a standalone terminal UI for inspecting local or remote system metrics. Perfect for server administration and troubleshooting.
 
 ## 1. Build a Linux Binary
 1. Ensure Docker Desktop/Engine is running.
