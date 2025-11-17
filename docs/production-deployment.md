@@ -123,6 +123,11 @@ BASE_LOG_FOLDER=/opt/monitoring/logs
 LOG_LEVEL=INFO
 MONITORING_DOWNSAMPLE_MAX_POINTS=200
 
+# Historical Query Storage Selection
+# Which database to use for historical queries with date ranges
+# Valid values: "sqlite", "postgresql" (default: postgresql)
+HISTORICAL_QUERY_STORAGE=postgresql
+
 # Security
 CHECK_TOKEN=true
 RATE_LIMIT_ENABLED=true

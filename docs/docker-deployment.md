@@ -78,6 +78,7 @@ services:
       - POSTGRES_USER=monitoring
       - POSTGRES_PASSWORD=secure_password
       - ENVIRONMENT=production
+      - HISTORICAL_QUERY_STORAGE=postgresql
     volumes:
       - ./configs.json:/app/configs.json
       - monitoring_logs:/app/logs

@@ -251,6 +251,11 @@ CHECK_TOKEN=true
 MONITORING_DOWNSAMPLE_MAX_POINTS=200
 RATE_LIMIT_ENABLED=true
 
+# Historical Query Storage Selection
+# Which database to use for historical queries with date ranges
+# Valid values: "sqlite", "postgresql" (default: postgresql)  
+HISTORICAL_QUERY_STORAGE=postgresql
+
 # Logging
 LOG_LEVEL=INFO
 ```

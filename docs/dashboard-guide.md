@@ -47,7 +47,16 @@ The monitoring dashboard provides real-time and historical views of:
 - **PostgreSQL**: Count-based sampling
 - **Configurable**: `MONITORING_DOWNSAMPLE_MAX_POINTS=200`
 
-### 3. Auto-Refresh Settings
+### 3. Historical Query Storage
+The monitoring service supports independent database selection for historical data queries:
+
+- **Current Data Queries**: Real-time monitoring uses default storage preference
+- **Historical Data Queries**: Time range selections use dedicated storage backend
+- **Environment Variable**: `HISTORICAL_QUERY_STORAGE=postgresql|sqlite`
+- **Performance Optimization**: Use PostgreSQL for large historical datasets, SQLite for smaller data
+- **Automatic Fallback**: System falls back gracefully when preferred storage unavailable
+
+### 4. Auto-Refresh Settings
 ```javascript
 // Available refresh intervals
 const refreshIntervals = [

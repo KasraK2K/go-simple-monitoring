@@ -770,9 +770,30 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 	var filteredData []models.MonitoringLogEntry
 	var err error
 
-    // Prefer sqlite if selected and available; otherwise use postgres if available
-    useSQLite := utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
-    usePostgres := utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+    // Check if this is a historical query (date range provided)
+    isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) && !utils.IsEmptyOrWhitespace(to)
+    
+    var useSQLite, usePostgres bool
+    
+    if isHistoricalQuery {
+        // For historical queries, use the HISTORICAL_QUERY_STORAGE environment variable
+        historicalStorage := config.GetEnvConfig().GetHistoricalQueryStorage()
+        if historicalStorage == "sqlite" && utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite {
+            useSQLite = true
+            usePostgres = false
+        } else if historicalStorage == "postgresql" && utils.HasStorage(cfg.Storage, "postgresql") && hasPG {
+            useSQLite = false
+            usePostgres = true
+        } else {
+            // Fallback to original logic if preferred storage is not available
+            useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
+            usePostgres = utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+        }
+    } else {
+        // For non-historical queries, use original logic (prefer sqlite)
+        useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
+        usePostgres = utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+    }
 
     if useSQLite {
         if utils.IsEmptyOrWhitespace(tableName) || tableName == "default" {

@@ -43,6 +43,11 @@ POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 POSTGRES_DB=monitoring
 
+# Historical Query Storage Selection
+# Which database to use for historical queries with date ranges
+# Valid values: "sqlite", "postgresql" (default: postgresql)
+HISTORICAL_QUERY_STORAGE=postgresql
+
 # Enable PostgreSQL storage
 # Edit configs.json: "storage": ["postgresql"]
 ```
@@ -172,6 +177,53 @@ The application automatically creates and configures tables when it starts:
 # Start your monitoring service
 ./monitoring-server
 ```
+
+## 🔄 Historical Query Storage Configuration
+
+### Advanced Storage Selection
+
+The monitoring service supports independent database selection for historical queries (queries with date ranges). This allows you to optimize performance by using different databases for current data versus historical analysis.
+
+#### Environment Variable Configuration
+
+```bash
+# Historical Query Storage Selection
+# Valid values: "sqlite", "postgresql" (default: postgresql)
+HISTORICAL_QUERY_STORAGE=postgresql
+```
+
+#### Use Cases
+
+**Use PostgreSQL for Historical Queries** (Recommended)
+```bash
+HISTORICAL_QUERY_STORAGE=postgresql
+```
+- ✅ **Best for**: Large datasets, complex queries, production environments
+- ✅ **Performance**: Optimized for time-series data with TimescaleDB
+- ✅ **Scalability**: Handles millions of records efficiently
+- ✅ **Advanced Features**: Compression, retention policies, continuous aggregates
+
+**Use SQLite for Historical Queries**
+```bash
+HISTORICAL_QUERY_STORAGE=sqlite
+```
+- ✅ **Best for**: Small to medium datasets, development environments
+- ✅ **Simplicity**: Single file database, easy backup and migration
+- ✅ **Resource Usage**: Lower memory footprint for smaller datasets
+- ⚠️ **Limitation**: Less efficient for very large historical datasets
+
+#### Important Notes
+
+1. **Storage Configuration Required**: The selected storage type must be included in your `configs.json` storage array:
+   ```json
+   {
+     "storage": ["postgresql", "sqlite"]
+   }
+   ```
+
+2. **Automatic Fallback**: If the preferred storage isn't available, the system automatically falls back to the original storage selection logic.
+
+3. **Current vs Historical**: Non-historical queries (current data) continue using the original preference logic (SQLite preferred).
 
 ## ⚡ Performance Optimization
 

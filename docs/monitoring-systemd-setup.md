@@ -153,6 +153,11 @@ DB_IDLE_TIMEOUT=300
 # Server Monitoring
 SERVER_MONITORING_TIMEOUT=15s
 
+# Historical Query Storage Selection
+# Which database to use for historical queries with date ranges
+# Valid values: "sqlite", "postgresql" (default: postgresql)
+HISTORICAL_QUERY_STORAGE=postgresql
+
 # HTTP Client Configuration (optional, uses defaults if not set)
 # HTTP_MAX_CONNS_PER_HOST=10
 # HTTP_MAX_IDLE_CONNS=100
