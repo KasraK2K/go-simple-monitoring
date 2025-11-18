@@ -125,18 +125,23 @@ wait_for_database() {
 # Test database connection
 test_connection() {
     print_status "Testing database connection..."
-    
-    if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" exec -T timescaledb psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();" &> /dev/null; then
+
+    # Pass password via env to avoid interactive prompt
+    # Capture error output so we can surface real failure reasons (e.g., permissions)
+    local output
+    if output=$($DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" \
+        timescaledb psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT version();" 2>&1); then
         print_success "Database connection successful"
         
         # Check TimescaleDB extension
-        if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" exec -T timescaledb psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT * FROM pg_extension WHERE extname = 'timescaledb';" | grep -q timescaledb; then
+        if $DOCKER_COMPOSE_CMD -f "$COMPOSE_FILE" exec -T -e PGPASSWORD="$POSTGRES_PASSWORD" timescaledb psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT * FROM pg_extension WHERE extname = 'timescaledb';" | grep -q timescaledb; then
             print_success "TimescaleDB extension is available"
         else
             print_warning "TimescaleDB extension may not be properly installed"
         fi
     else
         print_error "Failed to connect to database"
+        echo "$output"
         return 1
     fi
 }
@@ -152,7 +157,7 @@ show_connection_info() {
     echo "  Password: $POSTGRES_PASSWORD"
     echo ""
     print_status "🔗 To connect manually:"
-    echo "  $DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" exec timescaledb psql -U $POSTGRES_USER -d $POSTGRES_DB"
+    echo "  $DOCKER_COMPOSE_CMD -f \"$COMPOSE_FILE\" exec -e PGPASSWORD=\"$POSTGRES_PASSWORD\" timescaledb psql -U $POSTGRES_USER -d $POSTGRES_DB"
     echo ""
     print_status "⚙️  Your .env file should contain:"
     echo "  POSTGRES_HOST=localhost"

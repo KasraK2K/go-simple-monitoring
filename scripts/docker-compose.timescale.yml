@@ -15,7 +15,7 @@ services:
       # Initialization SQL (runs on first startup only)
       - ./timescale-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U monitoring -d monitoring"]
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,13 +28,19 @@ services:
     depends_on:
       - timescaledb
     environment:
-      # Use the service name as host for container-to-container networking
-      POSTGRES_HOST: timescaledb
+      # Connect to the DB container by its container_name for reliability
+      POSTGRES_HOST: monitoring-timescaledb
+      POSTGRES_PORT: "5432"
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       # Cron schedule: daily at 03:00. Adjust if needed.
       SCHEDULE: "0 3 * * *"
+      # Optional: retention (tune as needed)
+      BACKUP_KEEP_DAYS: "7"
+      BACKUP_KEEP_WEEKS: "4"
+      BACKUP_KEEP_MONTHS: "6"
+      TZ: "UTC"
     volumes:
       # Backups will be written inside the container to /backups,
       # which maps to the host path below.
