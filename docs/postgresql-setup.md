@@ -20,6 +20,9 @@ This guide covers setting up PostgreSQL with optional TimescaleDB extension for 
 # Clone and navigate to project
 cd api.go-monitoring
 
+# Make the script executable (fixes Permission denied)
+chmod +x ./scripts/postgres-timescale-up.sh
+
 # Start TimescaleDB with Docker Compose
 ./scripts/postgres-timescale-up.sh
 
