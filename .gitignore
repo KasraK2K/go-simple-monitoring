@@ -57,6 +57,7 @@ out/
 .claude/
 .gocache/
 data/
+database/
 configs-1000.json
 configs-2000.json
 monitoring.db-shm
