@@ -16,6 +16,11 @@ cd api.go-monitoring
 # Start with PostgreSQL + TimescaleDB
 docker-compose -f scripts/docker-compose.timescale.yml up -d
 
+# Backups: PostgreSQL logical dumps are written to /var/syslogs/database/postgresql
+# Ensure the host directory exists and is writable
+sudo mkdir -p /var/syslogs/database/postgresql
+sudo chown $USER:$USER /var/syslogs/database/postgresql
+
 # Build and run monitoring service
 docker-compose up -d
 ```
@@ -95,6 +100,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/timescale-init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  # Nightly logical backups (03:00) to the host path
+  timescaledb-backup:
+    image: prodrigestivill/postgres-backup-local:latest
+    depends_on:
+      - timescaledb
+    environment:
+      - POSTGRES_HOST=timescaledb
+      - POSTGRES_USER=monitoring
+      - POSTGRES_PASSWORD=secure_password
+      - POSTGRES_DB=monitoring
+      - SCHEDULE=0 3 * * *
+    volumes:
+      - /var/syslogs/database/postgresql:/backups
     restart: unless-stopped
 
   nginx:

@@ -79,7 +79,8 @@ DASHBOARD_DEFAULT_RANGE=24h # 1h, 6h, 24h, 7d, 30d. Leave empty for live data on
 
 # Path Configuration
 BASE_LOG_FOLDER=./logs
-SQLITE_DNS=./monitoring.db
+# SQLite database file path (recommended)
+SQLITE_DNS=/var/syslogs/database/sqlite/monitoring.db
 
 # CORS Configuration (for development)
 CORS_ALLOWED_ORIGINS=http://localhost:3500,http://127.0.0.1:3500
@@ -187,7 +188,7 @@ The application uses centralized environment configuration. All available variab
 - `DB_MAX_CONNECTIONS` - Maximum database connections (default: 30)
 - `DB_CONNECTION_TIMEOUT` - Connection timeout in seconds (default: 30)
 - `DB_IDLE_TIMEOUT` - Idle connection timeout in seconds (default: 300)
-- `SQLITE_DNS` - SQLite database file path/DSN (default: `./monitoring.db`)
+- `SQLITE_DNS` - SQLite database file path/DSN (recommended: `/var/syslogs/database/sqlite/monitoring.db`)
 - PostgreSQL (used when `storage` contains `"postgresql"`):
   - `POSTGRES_USER` (default: `monitoring`)
   - `POSTGRES_PASSWORD` (default: `monitoring`)
@@ -252,6 +253,8 @@ PostgreSQL persistence works out of the box. TimescaleDB is recommended for opti
 # Stop when done
 ./scripts/postgres-timescale-up.sh --stop
 ```
+
+Backups: the compose stack includes a scheduled backup service writing PostgreSQL dumps to `/var/syslogs/database/postgresql`. Ensure this directory exists and is writable.
 
 #### Configuration
 

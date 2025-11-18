@@ -28,6 +28,10 @@ chmod +x ./scripts/postgres-timescale-up.sh
 
 # Or manually:
 docker-compose -f scripts/docker-compose.timescale.yml up -d
+
+# Backups: PostgreSQL logical dumps are saved to /var/syslogs/database/postgresql
+sudo mkdir -p /var/syslogs/database/postgresql
+sudo chown $USER:$USER /var/syslogs/database/postgresql
 ```
 
 ### 2. Configuration
@@ -227,6 +231,19 @@ HISTORICAL_QUERY_STORAGE=sqlite
 2. **Automatic Fallback**: If the preferred storage isn't available, the system automatically falls back to the original storage selection logic.
 
 3. **Current vs Historical**: Non-historical queries (current data) continue using the original preference logic (SQLite preferred).
+
+## 💾 Backups (Docker Compose)
+
+- The provided Compose file includes a `timescaledb-backup` service using `prodrigestivill/postgres-backup-local`.
+- Default schedule: daily at 03:00 (cron `0 3 * * *`).
+- Backup location on host: `/var/syslogs/database/postgresql` (mounted as `/backups` in the container).
+- To trigger an immediate backup:
+
+```bash
+docker compose -f scripts/docker-compose.timescale.yml run --rm timescaledb-backup backup
+```
+
+Adjust `SCHEDULE` or retention variables as needed.
 
 ## ⚡ Performance Optimization
 

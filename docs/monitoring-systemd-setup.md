@@ -34,7 +34,7 @@ sudo useradd --system --no-create-home --shell /usr/sbin/nologin monitoring || t
 # App, logs, and database directories
 sudo mkdir -p /opt/monitoring
 sudo mkdir -p /var/syslogs/log
-sudo mkdir -p /var/syslogs/database
+sudo mkdir -p /var/syslogs/database/sqlite /var/syslogs/database/postgresql
 
 # Place your compiled binary and config files here (adjust source paths)
 sudo cp /path/to/monitoring /opt/monitoring/monitoring
@@ -136,7 +136,7 @@ HAS_DASHBOARD=true
 
 # Path Configuration
 BASE_LOG_FOLDER=/var/syslogs/log
-SQLITE_DNS=/var/syslogs/database/monitoring.db
+SQLITE_DNS=/var/syslogs/database/sqlite/monitoring.db
 
 # Database Configuration
 DB_MAX_CONNECTIONS=30
@@ -423,10 +423,10 @@ Storage usage depends on your configuration settings and the amount of data coll
 ```bash
 # Check current disk usage
 du -sh /var/log/monitoring/
-du -sh /opt/monitoring/monitoring.db
+du -sh /var/syslogs/database/sqlite/monitoring.db
 
 # Check database size and record counts
-sqlite3 /opt/monitoring/monitoring.db "
+sqlite3 /var/syslogs/database/sqlite/monitoring.db "
 SELECT
     name as table_name,
     (SELECT COUNT(*) FROM \`default\`) as system_records,
@@ -438,7 +438,7 @@ FROM sqlite_master WHERE type='table';
 find /var/log/monitoring/ -name "*.log" -mtime +7 -delete
 
 # Database cleanup (keeps last 30 days of data)
-sqlite3 /opt/monitoring/monitoring.db "
+sqlite3 /var/syslogs/database/sqlite/monitoring.db "
 DELETE FROM \`default\` WHERE datetime(timestamp) < datetime('now', '-30 days');
 DELETE FROM heartbeat_results WHERE datetime(timestamp) < datetime('now', '-30 days');
 VACUUM;
@@ -529,7 +529,7 @@ sudo chown -R monitoring:monitoring /opt/monitoring
 
 ### Database file:
 
-- The SQLite database file will be automatically created in `/var/syslogs/database/` when the service starts
+- The SQLite database file will be automatically created in `/var/syslogs/database/sqlite/` when the service starts
 - No manual upload required for the database
 
 ### Important Permission Note:

@@ -19,3 +19,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # Nightly logical backups dumped to host path
+  timescaledb-backup:
+    image: prodrigestivill/postgres-backup-local:latest
+    container_name: monitoring-timescaledb-backup
+    restart: unless-stopped
+    depends_on:
+      - timescaledb
+    environment:
+      # Use the service name as host for container-to-container networking
+      POSTGRES_HOST: timescaledb
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      # Cron schedule: daily at 03:00. Adjust if needed.
+      SCHEDULE: "0 3 * * *"
+    volumes:
+      # Backups will be written inside the container to /backups,
+      # which maps to the host path below.
+      - /var/syslogs/database/postgresql:/backups
