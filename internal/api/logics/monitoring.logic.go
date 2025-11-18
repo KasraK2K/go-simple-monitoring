@@ -770,8 +770,8 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 	var filteredData []models.MonitoringLogEntry
 	var err error
 
-    // Check if this is a historical query (date range provided) or database query (no date range but database available)
-    isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) && !utils.IsEmptyOrWhitespace(to)
+    // Check if this is a historical query (any date range provided) or database query (no date range but database available)
+    isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) || !utils.IsEmptyOrWhitespace(to)
     isDatabaseQuery := (hasSQLite || hasPG) && (isHistoricalQuery || (utils.IsEmptyOrWhitespace(from) && utils.IsEmptyOrWhitespace(to)))
     
     var useSQLite, usePostgres bool
