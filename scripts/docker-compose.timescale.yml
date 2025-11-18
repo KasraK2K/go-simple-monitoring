@@ -10,8 +10,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      # Persistent data directory
-      - ../data/postgres:/var/lib/postgresql/data
+      # Persistent data directory (host path)
+      # Ensure this path exists and is owned by the postgres UID inside the container (commonly 999:999)
+      # Example: sudo mkdir -p /var/syslogs/database/postgresql && sudo chown -R 999:999 /var/syslogs/database/postgresql
+      - /var/syslogs/database/postgresql:/var/lib/postgresql/data
       # Initialization SQL (runs on first startup only)
       - ./timescale-init:/docker-entrypoint-initdb.d
     healthcheck:
@@ -43,5 +45,5 @@ services:
       TZ: "UTC"
     volumes:
       # Backups will be written inside the container to /backups,
-      # which maps to the host path below.
-      - /var/syslogs/database/postgresql:/backups
+      # which maps to the host path below (separate from data directory)
+      - /var/syslogs/database/postgresql_backups:/backups
