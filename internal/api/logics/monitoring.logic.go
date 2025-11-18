@@ -73,10 +73,10 @@ func InitMonitoringConfig() {
 
             if utils.HasStorage(monitoringConfig.Storage, "sqlite") {
                 if err := utils.InitDatabase(); err != nil {
-                    log.Printf("Failed to initialize database: %v", err)
+                    log.Printf("Failed to initialize SQLite database: %v", err)
                 }
             }
-            if utils.HasStorage(monitoringConfig.Storage, "postgresql") {
+            if utils.HasStorage(monitoringConfig.Storage, "postgres") {
                 if err := utils.InitPostgres(); err != nil {
                     log.Printf("Failed to initialize PostgreSQL: %v", err)
                 }
@@ -169,7 +169,7 @@ func ensureConfigLoaded() {
                                 log.Printf("Failed to initialize database: %v", err)
                             }
                         }
-                        if utils.HasStorage(monitoringConfig.Storage, "postgresql") {
+                        if utils.HasStorage(monitoringConfig.Storage, "postgres") {
                             if err := utils.InitPostgres(); err != nil {
                                 log.Printf("Failed to initialize PostgreSQL: %v", err)
                             }
@@ -231,7 +231,7 @@ func ensureServerTables(cfg *models.MonitoringConfig) {
     }
 
     // PostgreSQL
-    if utils.HasStorage(cfg.Storage, "postgresql") && utils.IsPostgresInitialized() {
+    if utils.HasStorage(cfg.Storage, "postgres") && utils.IsPostgresInitialized() {
         for _, srv := range cfg.Servers {
             if utils.IsEmptyOrWhitespace(srv.TableName) {
                 continue
@@ -770,29 +770,36 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 	var filteredData []models.MonitoringLogEntry
 	var err error
 
-    // Check if this is a historical query (date range provided)
+    // Check if this is a historical query (date range provided) or database query (no date range but database available)
     isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) && !utils.IsEmptyOrWhitespace(to)
+    isDatabaseQuery := (hasSQLite || hasPG) && (isHistoricalQuery || (utils.IsEmptyOrWhitespace(from) && utils.IsEmptyOrWhitespace(to)))
     
     var useSQLite, usePostgres bool
     
-    if isHistoricalQuery {
-        // For historical queries, use the HISTORICAL_QUERY_STORAGE environment variable
-        historicalStorage := config.GetEnvConfig().GetHistoricalQueryStorage()
-        if historicalStorage == "sqlite" && utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite {
-            useSQLite = true
-            usePostgres = false
-        } else if historicalStorage == "postgresql" && utils.HasStorage(cfg.Storage, "postgresql") && hasPG {
-            useSQLite = false
-            usePostgres = true
+    if isDatabaseQuery {
+        if isHistoricalQuery {
+            // For historical queries, use the HISTORICAL_QUERY_STORAGE environment variable
+            historicalStorage := config.GetEnvConfig().GetHistoricalQueryStorage()
+            if historicalStorage == "sqlite" && utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite {
+                useSQLite = true
+                usePostgres = false
+            } else if historicalStorage == "postgres" && utils.HasStorage(cfg.Storage, "postgres") && hasPG {
+                useSQLite = false
+                usePostgres = true
+            } else {
+                // Fallback to original logic if preferred storage is not available
+                useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
+                usePostgres = utils.HasStorage(cfg.Storage, "postgres") && hasPG && !useSQLite
+            }
         } else {
-            // Fallback to original logic if preferred storage is not available
-            useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
-            usePostgres = utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+            // For non-historical queries (dashboard initial load), prefer PostgreSQL for better performance
+            usePostgres = utils.HasStorage(cfg.Storage, "postgres") && hasPG
+            useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite && !usePostgres
         }
     } else {
-        // For non-historical queries, use original logic (prefer sqlite)
-        useSQLite = utils.HasStorage(cfg.Storage, "sqlite") && hasSQLite
-        usePostgres = utils.HasStorage(cfg.Storage, "postgresql") && hasPG && !useSQLite
+        // No database available, will fall back to current data
+        useSQLite = false
+        usePostgres = false
     }
 
     if useSQLite {
@@ -1057,8 +1064,34 @@ func convertFlatLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*mo
 
 	// Map Heartbeat and ServerMetrics if present
 	if heartbeat, ok := entry.Body["heartbeat"]; ok && heartbeat != nil {
-		// Convert heartbeat data if needed
-		// This would require additional conversion logic
+		// Convert heartbeat data from database storage format
+		if heartbeatArray, ok := heartbeat.([]any); ok {
+			for _, rawCheck := range heartbeatArray {
+				checkMap, ok := rawCheck.(map[string]any)
+				if !ok {
+					continue
+				}
+				
+				// Convert timestamps to proper time.Time format
+				var lastChecked time.Time
+				if lastCheckedStr, ok := checkMap["last_checked"].(string); ok {
+					if parsed, err := time.Parse(time.RFC3339, lastCheckedStr); err == nil {
+						lastChecked = parsed
+					}
+				}
+				
+				check := models.ServerCheck{
+					Name:         toString(checkMap["name"]),
+					URL:          toString(checkMap["url"]),
+					Status:       models.ServerStatus(toString(checkMap["status"])),
+					ResponseTime: toString(checkMap["response_time"]),
+					ResponseMs:   int64(toFloat64(checkMap["response_ms"])),
+					LastChecked:  lastChecked,
+					Error:        toString(checkMap["error"]),
+				}
+				snapshot.Heartbeat = append(snapshot.Heartbeat, check)
+			}
+		}
 	}
 
 	if serverMetrics, ok := entry.Body["server_metrics"]; ok && serverMetrics != nil {
@@ -1721,7 +1754,7 @@ func configureLogRotation() {
                 utils.LogWarnWithContext("log-rotation", "sqlite cleanup failed", err)
             }
         }
-        if utils.HasStorage(monitoringConfig.Storage, "postgresql") && utils.IsPostgresInitialized() {
+        if utils.HasStorage(monitoringConfig.Storage, "postgres") && utils.IsPostgresInitialized() {
             if err := utils.CleanOldPostgresEntries(cutoff); err != nil {
                 utils.LogWarnWithContext("log-rotation", "postgres cleanup failed", err)
             }
@@ -1815,7 +1848,7 @@ func persistServerLogs() {
 
     writeFile := utils.HasStorage(cfg.Storage, "file")
     writeSqlite := utils.HasStorage(cfg.Storage, "sqlite") && utils.IsDatabaseInitialized()
-    writePG := utils.HasStorage(cfg.Storage, "postgresql") && utils.IsPostgresInitialized()
+    writePG := utils.HasStorage(cfg.Storage, "postgres") && utils.IsPostgresInitialized()
 
 	if writeFile && utils.IsEmptyOrWhitespace(cfg.Path) {
 		utils.LogWarn("persist_server_logs enabled but log path is empty; skipping file persistence")

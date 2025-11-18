@@ -481,13 +481,19 @@ func MonitoringHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		responseArray = filteredData
 	} else {
-		// Use current metrics and wrap in array
-		currentData, err := logics.MonitoringDataGenerator()
-		if err != nil {
-			setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
-			return
+		// For initial dashboard load, try to get recent historical data if available
+		filteredData, err := logics.MonitoringDataGeneratorWithTableFilter("", "", "")
+		if err != nil || len(filteredData) == 0 {
+			// Fallback to current metrics if no historical data available
+			currentData, err := logics.MonitoringDataGenerator()
+			if err != nil {
+				setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
+				return
+			}
+			responseArray = []any{currentData}
+		} else {
+			responseArray = filteredData
 		}
-		responseArray = []any{currentData}
 	}
 
 	// Convert to JSON

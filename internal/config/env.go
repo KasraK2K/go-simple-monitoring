@@ -149,7 +149,7 @@ func InitEnvConfig() {
         DownsampleMaxPoints: getEnvInt("MONITORING_DOWNSAMPLE_MAX_POINTS", 150),
 
         // Historical Query Storage
-        HistoricalQueryStorage: getEnvString("HISTORICAL_QUERY_STORAGE", "postgresql"),
+        HistoricalQueryStorage: getEnvString("HISTORICAL_QUERY_STORAGE", "postgres"),
 
 		// HTTP Client
 		HTTPMaxConnsPerHost:       getEnvInt("HTTP_MAX_CONNS_PER_HOST", 10),
@@ -305,10 +305,14 @@ func (c *EnvConfig) GetPostgresDSN() string {
 // GetHistoricalQueryStorage returns the preferred database for historical queries
 func (c *EnvConfig) GetHistoricalQueryStorage() string {
     storage := strings.ToLower(strings.TrimSpace(c.HistoricalQueryStorage))
-    if storage == "sqlite" || storage == "postgresql" {
-        return storage
+    switch storage {
+    case "sqlite":
+        return "sqlite"
+    case "postgres", "postgresql":
+        return "postgres" // normalize postgresql to postgres
+    default:
+        return "postgres" // default
     }
-    return "postgresql" // default
 }
 
 // IsRateLimitEnabled returns true if rate limiting is enabled

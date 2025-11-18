@@ -91,7 +91,7 @@ func LogMonitoringData(data *models.SystemMonitoring) error {
 			if err := writeToTableInternal(DefaultTableName, logEntry); err != nil && firstErr == nil {
 				firstErr = err
 			}
-        case "postgresql":
+        case "postgres":
             if IsPostgresInitialized() {
                 if err := WriteToPostgres(DefaultTableName, logEntry); err != nil && firstErr == nil {
                     firstErr = err

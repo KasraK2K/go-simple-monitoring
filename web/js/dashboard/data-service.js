@@ -74,9 +74,8 @@ export async function fetchMetrics() {
       entries = entries ? [entries] : [];
     }
 
-    // For filtered requests, check if we have any entries in the array
-    // For non-filtered requests, check if we have a single entry
-    const hasData = filterPayload ? entries.length > 0 : entries[0] != null;
+    // Check if we have any data entries
+    const hasData = entries.length > 0 && entries[0] != null;
 
     if (!hasData) {
       if (filterPayload) {
@@ -160,7 +159,14 @@ export async function fetchMetrics() {
       if (!state.historicalMode) {
         state.historicalMode = true;
       }
+    } else if (normalizedList.length > 1) {
+      // Initial dashboard load with multiple historical entries - treat as historical data
+      state.historicalSeries = normalizedList;
+      if (!state.historicalMode) {
+        state.historicalMode = true;
+      }
     } else if (state.historicalMode) {
+      // Live update in historical mode - add to existing series
       const latest = normalizedList[0];
       const latestTimestamp = latest.timestamp;
       state.historicalSeries = [
