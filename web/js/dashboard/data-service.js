@@ -91,8 +91,8 @@ export async function fetchMetrics() {
           updateStatus(true);
           updateConnectionStatus("online");
           
-          // Clear other UI elements
-          updateHeartbeat([], null);
+          // Show heartbeat data from latest available entry instead of clearing
+          await updateHeartbeatFromLatestData();
           updateServerMetricsSection([], []);
           updateMetrics({
             cpu_usage: 0,
@@ -130,8 +130,8 @@ export async function fetchMetrics() {
         updateStatus(true);
         updateConnectionStatus("online");
         
-        // Clear other UI elements
-        updateHeartbeat([], null);
+        // Show heartbeat data from latest available entry instead of clearing
+        await updateHeartbeatFromLatestData();
         updateServerMetricsSection([], []);
         updateMetrics({
           cpu_usage: 0,
@@ -670,6 +670,102 @@ function extractPortFromAddress(address) {
     const match = address.match(/:(\d+)$/);
     return match ? match[1] : '80';
   }
+}
+
+// Function to update heartbeat data from latest available entry when no historical data exists
+async function updateHeartbeatFromLatestData() {
+  try {
+    // Fetch the latest monitoring data (without filters) to get current heartbeat status
+    const response = await fetch("/api/v1/monitoring", {
+      method: "POST",
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+    
+    if (!response.ok) {
+      console.warn("Failed to fetch latest heartbeat data:", response.status);
+      updateHeartbeat([], null);
+      return;
+    }
+    
+    const payload = await response.json();
+    let entries = payload;
+    
+    if (payload && typeof payload === "object" && !Array.isArray(payload)) {
+      entries = payload.data ?? [];
+    }
+    
+    if (!Array.isArray(entries)) {
+      entries = entries ? [entries] : [];
+    }
+    
+    if (entries.length === 0) {
+      updateHeartbeat([], null);
+      return;
+    }
+    
+    const latest = normalizeMetrics(entries[0]);
+    const heartbeatData = latest.heartbeat || [];
+    
+    // For date range queries, try to fetch historical data to calculate uptime stats
+    let uptimeStats = null;
+    const filterPayload = state.pendingFilter || state.autoFilter;
+    
+    if (filterPayload && heartbeatData.length > 0) {
+      try {
+        // Query historical data for uptime calculation
+        const historicalResponse = await fetch("/api/v1/monitoring", {
+          method: "POST",
+          cache: "no-store", 
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            from: filterPayload.from,
+            to: filterPayload.to,
+            table_name: findTableNameForCurrentServer()
+          })
+        });
+        
+        if (historicalResponse.ok) {
+          const historicalPayload = await historicalResponse.json();
+          let historicalEntries = historicalPayload;
+          
+          if (historicalPayload && typeof historicalPayload === "object" && !Array.isArray(historicalPayload)) {
+            historicalEntries = historicalPayload.data ?? [];
+          }
+          
+          if (Array.isArray(historicalEntries) && historicalEntries.length > 0) {
+            const normalizedHistoricalList = historicalEntries
+              .map(entry => normalizeMetrics(entry))
+              .filter(item => item && typeof item === "object");
+            
+            // Calculate uptime stats from historical data
+            uptimeStats = calculateHeartbeatUptime(normalizedHistoricalList);
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to fetch historical data for uptime calculation:", error);
+      }
+    }
+    
+    // Update heartbeat display with latest data and calculated uptime stats
+    updateHeartbeat(heartbeatData, uptimeStats);
+    
+  } catch (error) {
+    console.warn("Error fetching latest heartbeat data:", error);
+    updateHeartbeat([], null);
+  }
+}
+
+// Helper function to find table name for current server
+function findTableNameForCurrentServer() {
+  const isRemoteServer = Boolean(state.selectedBaseUrl);
+  
+  if (isRemoteServer) {
+    return findTableNameForServer(state.selectedBaseUrl);
+  }
+  
+  return "default"; // Local server uses default table
 }
 
 state.handleServerSelection = handleServerSelection;
