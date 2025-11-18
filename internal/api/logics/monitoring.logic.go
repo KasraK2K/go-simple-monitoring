@@ -755,7 +755,17 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
     cfg := GetMonitoringConfig()
     hasSQLite := utils.IsDatabaseInitialized()
     hasPG := utils.IsPostgresInitialized()
+
+    // Determine intent: historical query if any date bound provided
+    isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) || !utils.IsEmptyOrWhitespace(to)
+
+    // If no database backend is available:
+    // - For historical (date-range) queries: return empty result (no history to query)
+    // - For non-historical (latest) requests: return a live snapshot
     if !hasSQLite && !hasPG {
+        if isHistoricalQuery {
+            return []any{}, nil
+        }
         currentData, err := MonitoringDataGenerator()
         if err != nil {
             return []any{}, err
@@ -771,7 +781,6 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
 	var err error
 
     // Check if this is a historical query (any date range provided) or database query (no date range but database available)
-    isHistoricalQuery := !utils.IsEmptyOrWhitespace(from) || !utils.IsEmptyOrWhitespace(to)
     isDatabaseQuery := (hasSQLite || hasPG) && (isHistoricalQuery || (utils.IsEmptyOrWhitespace(from) && utils.IsEmptyOrWhitespace(to)))
     
     var useSQLite, usePostgres bool
@@ -815,7 +824,11 @@ func MonitoringDataGeneratorWithTableFilter(tableName, from, to string) ([]any, 
             filteredData, err = utils.QueryFilteredPostgresData(tableName, from, to)
         }
     } else {
-        // Neither backend is usable
+        // Neither backend is usable - if this is a historical query, return empty
+        if isHistoricalQuery {
+            return []any{}, nil
+        }
+        // For non-historical queries, fall back to current data
         currentData, err := MonitoringDataGenerator()
         if err != nil {
             return []any{}, err

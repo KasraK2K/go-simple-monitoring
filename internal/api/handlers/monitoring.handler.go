@@ -168,7 +168,7 @@ func MonitoringRoutes() {
 
 	http.HandleFunc("/api/v1/tables", RateLimitMiddleware(CORSMiddleware(MethodMiddleware(http.MethodGet, http.MethodOptions)(tablesHandler))))
 
-	monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
+    monitoringHandler := func(w http.ResponseWriter, r *http.Request) {
 		// Check token only in production if CHECK_TOKEN_IN_PRODUCTION is enabled
 		if IsProduction() && ShouldCheckTokenInProduction() {
 			_, err := ValidateTokenAndParseGeneric[TokenClaims](r)
@@ -178,28 +178,24 @@ func MonitoringRoutes() {
 			}
 		}
 
-		// Parse optional filter from request body
-		var filter FilterRequest
-		if r.ContentLength > 0 {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Failed to read request body"}`)
-				return
-			}
-			defer r.Body.Close()
+        // Parse optional filter from request body (support chunked/unknown content length)
+        var filter FilterRequest
+        body, err := io.ReadAll(r.Body)
+        if err != nil {
+            setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Failed to read request body"}`)
+            return
+        }
+        defer r.Body.Close()
 
-			if len(body) > 0 {
-				err = json.Unmarshal(body, &filter)
-				if err != nil {
-					setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Invalid JSON format"}`)
-					return
-				}
-			}
-		}
+        if len(strings.TrimSpace(string(body))) > 0 {
+            if err := json.Unmarshal(body, &filter); err != nil {
+                setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Invalid JSON format"}`)
+                return
+            }
+        }
 
-		// Generate monitoring data based on filter
-		var responseArray []any
-		var err error
+        // Generate monitoring data based on filter
+        var responseArray []any
 
 		if filter.From != "" || filter.To != "" || filter.TableName != "" {
 			// Use filtered data from database (with optional table specification)
@@ -219,12 +215,12 @@ func MonitoringRoutes() {
 			responseArray = []any{currentData}
 		}
 
-		// Convert to JSON
-		jsonData, err := json.Marshal(responseArray)
-		if err != nil {
-			setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
-			return
-		}
+        // Convert to JSON
+        jsonData, err := json.Marshal(responseArray)
+        if err != nil {
+            setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
+            return
+        }
 
 		setHeader(w, http.StatusOK, string(jsonData))
 	}
@@ -449,28 +445,24 @@ func MonitoringHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Parse optional filter from request body
-	var filter FilterRequest
-	if r.ContentLength > 0 {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Failed to read request body"}`)
-			return
-		}
-		defer r.Body.Close()
+    // Parse optional filter from request body (support chunked/unknown content length)
+    var filter FilterRequest
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Failed to read request body"}`)
+        return
+    }
+    defer r.Body.Close()
 
-		if len(body) > 0 {
-			err = json.Unmarshal(body, &filter)
-			if err != nil {
-				setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Invalid JSON format"}`)
-				return
-			}
-		}
-	}
+    if len(strings.TrimSpace(string(body))) > 0 {
+        if err := json.Unmarshal(body, &filter); err != nil {
+            setHeader(w, http.StatusBadRequest, `{"status":false, "error": "Invalid JSON format"}`)
+            return
+        }
+    }
 
-	// Generate monitoring data based on filter
-	var responseArray []any
-	var err error
+    // Generate monitoring data based on filter
+    var responseArray []any
 
 	if filter.From != "" || filter.To != "" || filter.TableName != "" {
 		// Use filtered data from database (with optional table specification)
@@ -481,27 +473,21 @@ func MonitoringHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		responseArray = filteredData
 	} else {
-		// For initial dashboard load, try to get recent historical data if available
-		filteredData, err := logics.MonitoringDataGeneratorWithTableFilter("", "", "")
-		if err != nil || len(filteredData) == 0 {
-			// Fallback to current metrics if no historical data available
-			currentData, err := logics.MonitoringDataGenerator()
-			if err != nil {
-				setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
-				return
-			}
-			responseArray = []any{currentData}
-		} else {
-			responseArray = filteredData
+		// Use current metrics and wrap in array
+		currentData, err := logics.MonitoringDataGenerator()
+		if err != nil {
+			setHeader(w, http.StatusInternalServerError, fmt.Sprintf(`{"status":false, "error": "%s"}`, err.Error()))
+			return
 		}
+		responseArray = []any{currentData}
 	}
 
-	// Convert to JSON
-	jsonData, err := json.Marshal(responseArray)
-	if err != nil {
-		setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
-		return
-	}
+    // Convert to JSON
+    jsonData, err := json.Marshal(responseArray)
+    if err != nil {
+        setHeader(w, http.StatusInternalServerError, `{"status":false, "error": "Failed to marshal data"}`)
+        return
+    }
 
 	setHeader(w, http.StatusOK, string(jsonData))
 }
