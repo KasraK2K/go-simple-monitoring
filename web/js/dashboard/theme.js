@@ -32,9 +32,9 @@ function applyTheme(targetTheme, originEl = null) {
   const oldTheme = state.currentTheme;
 
   // Compute the animation origin at the center of the toggle button
-  const rect = originEl ? originEl.getBoundingClientRect() : null;
-  const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
-  const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+  const rectOld = originEl ? originEl.getBoundingClientRect() : null;
+  const x1 = rectOld ? rectOld.left + rectOld.width / 2 : window.innerWidth / 2;
+  const y1 = rectOld ? rectOld.top + rectOld.height / 2 : window.innerHeight / 2;
 
   // If reduced motion or missing API support, do an instant toggle
   const canAnimate =
@@ -66,7 +66,7 @@ function applyTheme(targetTheme, originEl = null) {
   overlay.setAttribute("data-theme", oldTheme);
   document.body.appendChild(overlay);
 
-  // Calculate radius to cover the furthest viewport corner from the origin
+  // Calculate radius to cover the furthest viewport corner from both origins (start and end)
   const vw = Math.max(
     document.documentElement.clientWidth,
     window.innerWidth || 0
@@ -75,12 +75,21 @@ function applyTheme(targetTheme, originEl = null) {
     document.documentElement.clientHeight,
     window.innerHeight || 0
   );
-  const maxX = Math.max(x, vw - x);
-  const maxY = Math.max(y, vh - y);
-  const r = Math.hypot(maxX, maxY);
+  const rectNew = originEl ? originEl.getBoundingClientRect() : null;
+  // After theme switch, the control may have moved; recompute new origin
+  const x2 = rectNew ? rectNew.left + rectNew.width / 2 : window.innerWidth / 2;
+  const y2 = rectNew ? rectNew.top + rectNew.height / 2 : window.innerHeight / 2;
+
+  const maxX1 = Math.max(x1, vw - x1);
+  const maxY1 = Math.max(y1, vh - y1);
+  const r1 = Math.hypot(maxX1, maxY1);
+  const maxX2 = Math.max(x2, vw - x2);
+  const maxY2 = Math.max(y2, vh - y2);
+  const r2 = Math.hypot(maxX2, maxY2);
+  const r = Math.max(r1, r2);
 
   // Ensure initial state applied before animation
-  overlay.style.clipPath = `circle(${r}px at ${x}px ${y}px)`;
+  overlay.style.clipPath = `circle(${r}px at ${x1}px ${y1}px)`;
   // Force style flush
   overlay.getBoundingClientRect();
 
@@ -89,8 +98,8 @@ function applyTheme(targetTheme, originEl = null) {
 
   const animation = overlay.animate(
     [
-      { clipPath: `circle(${r}px at ${x}px ${y}px)`, opacity: 1 },
-      { clipPath: `circle(0px at ${x}px ${y}px)`, opacity: 0.9 },
+      { clipPath: `circle(${r}px at ${x1}px ${y1}px)`, opacity: 1 },
+      { clipPath: `circle(0px at ${x2}px ${y2}px)`, opacity: 0.9 },
     ],
     { duration, easing, fill: "forwards" }
   );
