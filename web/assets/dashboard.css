@@ -1474,6 +1474,33 @@ body[data-theme="light"] .server-card__disk-breakdown {
   font-size: 0.85rem;
 }
 
+/* Compact view: disk badges list inside table cell */
+.disk-cell {
+  vertical-align: middle;
+}
+.disk-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-start;
+}
+.disk-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  color: var(--text-secondary);
+}
+body[data-theme="light"] .disk-badge {
+  background: rgba(148, 163, 184, 0.18);
+}
+.disk-badge__icon {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
 .server-card__timestamp {
   display: inline-flex;
   align-items: center;

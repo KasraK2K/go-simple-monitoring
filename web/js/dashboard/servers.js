@@ -137,19 +137,56 @@ function resolveDiskEntries(metric) {
     return [];
   }
 
-  let primary = normalized.find((disk) => ROOT_DISK_PATHS.includes(disk.path));
-  let remaining = normalized.filter((disk) => disk !== primary);
-  if (!primary) {
-    primary = normalized[0];
-    remaining = normalized.slice(1);
-  }
+  // Group by physical device root where possible to avoid per-partition noise
+  const groupKey = (d) => {
+    const dev = String(d.device || '').trim();
+    if (!dev) return d.path || '';
+    // Linux: /dev/sdXN -> /dev/sdX
+    const mSd = dev.match(/^\/dev\/sd([a-z])[0-9]+$/);
+    if (mSd) return `/dev/sd${mSd[1]}`;
+    // Linux NVMe: /dev/nvme0n1p2 -> /dev/nvme0n1
+    const mNv = dev.match(/^(\/dev\/nvme\d+n\d+)p\d+$/);
+    if (mNv) return mNv[1];
+    // macOS: /dev/disk1s1 -> /dev/disk1
+    const mOsx = dev.match(/^(\/dev\/disk\d+)s\d+$/);
+    if (mOsx) return mOsx[1];
+    return dev;
+  };
+
+  const grouped = new Map();
+  normalized.forEach((d) => {
+    const key = groupKey(d);
+    const g = grouped.get(key) || { total_bytes: 0, used_bytes: 0, paths: [], device: d.device };
+    g.total_bytes += Number(d.total_bytes) || 0;
+    g.used_bytes += Number(d.used_bytes) || 0;
+    if (d.path) g.paths.push(d.path);
+    grouped.set(key, g);
+  });
+
+  const groupedList = Array.from(grouped.entries()).map(([key, g]) => {
+    const value = g.total_bytes > 0 ? (g.used_bytes / g.total_bytes) * 100 : NaN;
+    const path = g.paths.find((p) => ROOT_DISK_PATHS.includes(p)) || g.paths[0] || '';
+    return { key, value, path };
+  }).filter((x) => Number.isFinite(x.value));
+
+  // Identify primary disk (root path) if present
+  const primary = groupedList.find((disk) => ROOT_DISK_PATHS.includes(disk.path));
+  const others = groupedList.filter((d) => d !== primary);
 
   const entries = [];
-  entries.push({ label: 'Primary', value: primary.used_pct, path: primary.path });
+  if (primary) {
+    entries.push({ label: 'Primary', value: primary.value, path: primary.path });
+  }
 
-  if (remaining.length > 0) {
-    const external = remaining[0];
-    entries.push({ label: external.path || 'External', value: external.used_pct, path: external.path });
+  // Append all remaining disks, not just the first
+  others.forEach((d) => {
+    entries.push({ label: d.path || 'External', value: d.value, path: d.path });
+  });
+
+  // If no primary was detected, keep original order but label first as Primary for clarity
+  if (!primary) {
+    const first = entries[0];
+    if (first) first.label = 'Primary';
   }
 
   return entries;

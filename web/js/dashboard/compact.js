@@ -127,14 +127,80 @@ function renderServersTable() {
   }
 
   const fragment = document.createDocumentFragment();
+  // helpers: disk breakdown (all disks)
+  function calcDiskPct(disk = {}) {
+    const v = Number(disk.used_pct);
+    if (Number.isFinite(v)) return v;
+    const used = Number(disk.used_bytes);
+    const total = Number(disk.total_bytes);
+    if (Number.isFinite(used) && Number.isFinite(total) && total > 0) {
+      return (used / total) * 100;
+    }
+    return NaN;
+  }
+
+  function resolveAllDisks(metric) {
+    const disks = metric?.disk_space ?? metric?.diskSpace ?? [];
+    if (!Array.isArray(disks) || disks.length === 0) return [];
+    const normalized = disks
+      .map((d) => ({ ...d, used_pct: calcDiskPct(d) }))
+      .filter((d) => Number.isFinite(d.used_pct));
+    if (normalized.length === 0) return [];
+    // Group per device root where possible to avoid per-partition spam
+    const groupKey = (d) => {
+      const dev = String(d.device || '').trim();
+      if (!dev) return d.path || '';
+      const mSd = dev.match(/^\/dev\/sd([a-z])[0-9]+$/);
+      if (mSd) return `/dev/sd${mSd[1]}`;
+      const mNv = dev.match(/^(\/dev\/nvme\d+n\d+)p\d+$/);
+      if (mNv) return mNv[1];
+      const mOsx = dev.match(/^(\/dev\/disk\d+)s\d+$/);
+      if (mOsx) return mOsx[1];
+      return dev;
+    };
+    const grouped = new Map();
+    normalized.forEach((d) => {
+      const key = groupKey(d);
+      const g = grouped.get(key) || { total_bytes: 0, used_bytes: 0, paths: [], device: d.device };
+      g.total_bytes += Number(d.total_bytes) || 0;
+      g.used_bytes += Number(d.used_bytes) || 0;
+      if (d.path) g.paths.push(d.path);
+      grouped.set(key, g);
+    });
+    const ROOTS = ['/', '\\', '/System/Volumes/Data'];
+    const list = Array.from(grouped.values()).map((g) => {
+      const value = g.total_bytes > 0 ? (g.used_bytes / g.total_bytes) * 100 : NaN;
+      const path = g.paths.find((p) => ROOTS.includes(p)) || g.paths[0] || '';
+      return { path, value };
+    }).filter((x) => Number.isFinite(x.value));
+    const primary = list.find((d) => ROOTS.includes(d.path));
+    const others = list.filter((d) => d !== primary);
+    const out = [];
+    if (primary) out.push({ type: 'primary', path: primary.path, value: primary.value });
+    others.forEach((d) => out.push({ type: 'mounted', path: d.path, value: d.value }));
+    if (!primary && out.length > 0) out[0].type = 'primary';
+    return out;
+  }
+
   rows.forEach((metric) => {
     const tr = document.createElement('tr');
     const status = mapServerStatus(metric.status);
 
     const cpuSeverity = getSeverityFor('cpu', metric.cpu_usage);
     const memSeverity = getSeverityFor('memory', metric.memory_used_percent);
-    const diskSeverity = getSeverityFor('disk', metric.disk_used_percent);
     const loadSeverity = getSeverityFor('load', metric.load_average);
+
+    const disks = resolveAllDisks(metric);
+    const diskBadgesHtml = disks.length
+      ? `<div class="disk-badges">${disks
+          .map((d) => {
+            const sev = getSeverityFor('disk', d.value);
+            const icon = d.type === 'primary' ? '★' : '⦿';
+            const title = d.type === 'primary' ? `Primary (${d.path || ''})` : (d.path || 'Mounted');
+            return `<span class="disk-badge" title="${title}"><span class="disk-badge__icon" aria-hidden="true">${icon}</span><span class="${sev ? `server-card__metric-value--${sev}` : ''}">${formatPercent(d.value)}</span></span>`;
+          })
+          .join('')}</div>`
+      : `<span class="${getSeverityFor('disk', metric.disk_used_percent) ? `server-card__metric-value--${getSeverityFor('disk', metric.disk_used_percent)}` : ''}">${formatPercent(metric.disk_used_percent)}</span>`;
 
     tr.innerHTML = `
       <td>${escapeHtml(metric.name || '')}</td>
@@ -144,7 +210,7 @@ function renderServersTable() {
       </td>
       <td class="num"><span class="${cpuSeverity ? `server-card__metric-value--${cpuSeverity}` : ''}">${formatPercent(metric.cpu_usage)}</span></td>
       <td class="num"><span class="${memSeverity ? `server-card__metric-value--${memSeverity}` : ''}">${formatPercent(metric.memory_used_percent)}</span></td>
-      <td class="num"><span class="${diskSeverity ? `server-card__metric-value--${diskSeverity}` : ''}">${formatPercent(metric.disk_used_percent)}</span></td>
+      <td class="num disk-cell">${diskBadgesHtml}</td>
       <td class="num"><span class="${loadSeverity ? `server-card__metric-value--${loadSeverity}` : ''}">${formatLoad(metric.load_average)}</span></td>
       <td>${escapeHtml(formatLastChecked(metric.timestamp))}</td>
     `;
