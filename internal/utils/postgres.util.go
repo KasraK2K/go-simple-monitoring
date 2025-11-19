@@ -521,9 +521,16 @@ func QueryFilteredPostgresData(tableName, from, to string) ([]models.MonitoringL
     }
 
     tbl := pqQuoteIdent(name)
-    maxPointsCfg := config.GetEnvConfig().DownsampleMaxPoints
+    envCfg := config.GetEnvConfig()
+    
+    // If downsampling is disabled via boolean flag, return raw data
+    if !envCfg.EnableDownsampling {
+        return queryRawData(db, tbl, fromNormalized, toNormalized)
+    }
+    
+    maxPointsCfg := envCfg.DownsampleMaxPoints
 
-    // If downsampling is disabled, return raw data
+    // If downsampling is disabled via maxPoints being 0, return raw data
     if maxPointsCfg <= 0 {
         return queryRawData(db, tbl, fromNormalized, toNormalized)
     }

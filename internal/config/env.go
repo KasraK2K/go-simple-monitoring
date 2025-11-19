@@ -59,6 +59,9 @@ type EnvConfig struct {
     ServerMonitoringTimeout time.Duration
 
     // Downsampling
+    // If false (default): disable server-side downsampling for Postgres historical queries
+    // If true: enable downsampling and use DownsampleMaxPoints for bucketing
+    EnableDownsampling bool
     // If 0 or unset: disable server-side downsampling for Postgres historical queries
     // If >0: target approximately this many points via bucketing
     DownsampleMaxPoints int
@@ -146,6 +149,7 @@ func InitEnvConfig() {
         ServerMonitoringTimeout: getEnvDuration("SERVER_MONITORING_TIMEOUT", 15*time.Second),
 
         // Downsampling
+        EnableDownsampling:  getEnvBool("ENABLE_DOWNSAMPLING", false),
         DownsampleMaxPoints: getEnvInt("MONITORING_DOWNSAMPLE_MAX_POINTS", 150),
 
         // Historical Query Storage
