@@ -615,6 +615,10 @@ func buildMetricsFromGenericMap(server models.ServerEndpoint, body map[string]an
 
 	if value, ok := body["cpu_load_average"]; ok {
 		metric.LoadAverage = fmt.Sprint(value)
+	} else if cpu, ok := body["cpu"].(map[string]any); ok {
+		if loadAvg, exists := cpu["load_average"]; exists {
+			metric.LoadAverage = fmt.Sprint(loadAvg)
+		}
 	}
 
 	return &metric, nil
