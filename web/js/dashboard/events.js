@@ -4,7 +4,7 @@ import { filterHeartbeats } from './heartbeat.js';
 import { fetchMetrics, handleServerSelection } from './data-service.js';
 import { LOCAL_SERVER_OPTION } from './constants.js';
 import { state } from './state.js';
-import { toggleTheme } from './theme.js';
+import { toggleTheme, handleThemeSelectChange } from './theme.js';
 
 const HERO_COLLAPSE_STORAGE_KEY = 'dashboardHeroCollapsed';
 
@@ -14,7 +14,7 @@ export function registerEventHandlers() {
   }
   state.eventsRegistered = true;
 
-  document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('themeSelect')?.addEventListener('change', handleThemeSelectChange);
 
   document.getElementById('exportTrigger')?.addEventListener('click', showExportPanel);
   document.getElementById('exportClose')?.addEventListener('click', hideExportPanel);

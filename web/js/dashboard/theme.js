@@ -4,14 +4,13 @@ import { updateChartTheme } from "./charts.js";
 export function initializeTheme() {
   state.currentTheme = localStorage.getItem("theme") || "dark";
   document.body.setAttribute("data-theme", state.currentTheme);
-  const themeIcon = document.getElementById("themeIcon");
-  if (themeIcon) {
-    themeIcon.className =
-      state.currentTheme === "dark" ? "fas fa-moon" : "fas fa-sun";
+  const select = document.getElementById("themeSelect");
+  if (select) {
+    select.value = state.currentTheme;
   }
 }
 
-export function toggleTheme(event) {
+function applyTheme(targetTheme, originEl = null) {
   const prefersReducedMotion = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
     : false;
@@ -21,12 +20,14 @@ export function toggleTheme(event) {
     return;
   }
 
+  if (targetTheme === state.currentTheme) {
+    return;
+  }
+
   const oldTheme = state.currentTheme;
-  const targetTheme = oldTheme === "dark" ? "light" : "dark";
 
   // Compute the animation origin at the center of the toggle button
-  const toggleEl = document.getElementById("themeToggle");
-  const rect = toggleEl ? toggleEl.getBoundingClientRect() : null;
+  const rect = originEl ? originEl.getBoundingClientRect() : null;
   const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
   const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
 
@@ -37,17 +38,16 @@ export function toggleTheme(event) {
   if (prefersReducedMotion || !canAnimate) {
     state.currentTheme = targetTheme;
     document.body.setAttribute("data-theme", state.currentTheme);
-    const themeIcon = document.getElementById("themeIcon");
-    if (themeIcon) {
-      themeIcon.className =
-        state.currentTheme === "dark" ? "fas fa-moon" : "fas fa-sun";
-    }
     try {
       localStorage.setItem("theme", state.currentTheme);
     } catch {}
     if (state.systemChart) updateChartTheme(state.systemChart);
     if (state.networkChart) updateChartTheme(state.networkChart);
     if (state.usageDonut) updateChartTheme(state.usageDonut);
+    const select = document.getElementById("themeSelect");
+    if (select) {
+      select.value = state.currentTheme;
+    }
     return;
   }
 
@@ -92,22 +92,35 @@ export function toggleTheme(event) {
   const finalize = () => {
     overlay.remove();
     state.currentTheme = targetTheme;
-    const themeIcon = document.getElementById("themeIcon");
-    if (themeIcon) {
-      themeIcon.className =
-        state.currentTheme === "dark" ? "fas fa-moon" : "fas fa-sun";
-    }
     try {
       localStorage.setItem("theme", state.currentTheme);
     } catch {}
     if (state.systemChart) updateChartTheme(state.systemChart);
     if (state.networkChart) updateChartTheme(state.networkChart);
     if (state.usageDonut) updateChartTheme(state.usageDonut);
+    const select = document.getElementById("themeSelect");
+    if (select) {
+      select.value = state.currentTheme;
+    }
     delete document.body.dataset.animatingTheme;
   };
 
   animation.addEventListener("finish", finalize, { once: true });
   animation.addEventListener("cancel", finalize, { once: true });
+}
+
+export function toggleTheme(event) {
+  const targetTheme = state.currentTheme === "dark" ? "light" : "dark";
+  const origin = document.getElementById("themeSelect");
+  applyTheme(targetTheme, origin || null);
+}
+
+export function handleThemeSelectChange(event) {
+  const target = event?.target || null;
+  const value = target ? String(target.value) : "";
+  if (value === "dark" || value === "light") {
+    applyTheme(value, target);
+  }
 }
 
 export async function requestNotificationPermission() {

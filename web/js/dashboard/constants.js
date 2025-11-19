@@ -1,8 +1,7 @@
 export const LOCAL_SERVER_OPTION = { name: 'Local', address: '' };
 
 export const REQUIRED_ELEMENT_IDS = [
-  'themeToggle',
-  'themeIcon',
+  'themeSelect',
   'connectionStatus',
   'connectionText',
   'alertsPanel',

@@ -59,10 +59,6 @@ templ BackgroundComponent() {
 
 templ ChromeComponent() {
     <div data-component="chrome" style="display: contents;">
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
-            <i class="fas fa-moon" id="themeIcon"></i>
-        </button>
-
         <div class="connection-status hidden" id="connectionStatus" role="status" aria-live="polite">
             <span class="status-dot"></span>
             <span id="connectionText">Connected</span>
@@ -89,7 +85,10 @@ templ HeroSection(props HeroProps) {
                 <h1>System Monitoring</h1>
             </div>
             <div class="hero-actions">
-                <span class="section-badge">Live Overview</span>
+                <select id="themeSelect" class="pill theme-select" aria-label="Theme">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                </select>
             </div>
         </div>
         <div class="hero-details" id="heroDetails">

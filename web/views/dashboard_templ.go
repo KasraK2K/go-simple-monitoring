@@ -187,7 +187,7 @@ func ChromeComponent() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div data-component=\"chrome\" style=\"display: contents;\"><button class=\"theme-toggle\" id=\"themeToggle\" aria-label=\"Toggle theme\"><i class=\"fas fa-moon\" id=\"themeIcon\"></i></button><div class=\"connection-status hidden\" id=\"connectionStatus\" role=\"status\" aria-live=\"polite\"><span class=\"status-dot\"></span> <span id=\"connectionText\">Connected</span></div><div class=\"alerts-container\" id=\"alertsPanel\" role=\"region\" aria-label=\"System alerts\"></div><div class=\"export-overlay\" id=\"exportOverlay\"></div><div class=\"export-panel\" id=\"exportPanel\" role=\"dialog\" aria-labelledby=\"exportTitle\"><h3 id=\"exportTitle\">Export Data</h3><div class=\"export-options\"><button class=\"export-btn\" id=\"exportCSV\" type=\"button\">Export CSV</button> <button class=\"export-btn\" id=\"exportJSON\" type=\"button\">Export JSON</button></div><button class=\"filter-action\" id=\"exportClose\" type=\"button\">Close</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div data-component=\"chrome\" style=\"display: contents;\"><div class=\"connection-status hidden\" id=\"connectionStatus\" role=\"status\" aria-live=\"polite\"><span class=\"status-dot\"></span> <span id=\"connectionText\">Connected</span></div><div class=\"alerts-container\" id=\"alertsPanel\" role=\"region\" aria-label=\"System alerts\"></div><div class=\"export-overlay\" id=\"exportOverlay\"></div><div class=\"export-panel\" id=\"exportPanel\" role=\"dialog\" aria-labelledby=\"exportTitle\"><h3 id=\"exportTitle\">Export Data</h3><div class=\"export-options\"><button class=\"export-btn\" id=\"exportCSV\" type=\"button\">Export CSV</button> <button class=\"export-btn\" id=\"exportJSON\" type=\"button\">Export JSON</button></div><button class=\"filter-action\" id=\"exportClose\" type=\"button\">Close</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -216,14 +216,14 @@ func HeroSection(props HeroProps) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><span class=\"section-badge\">Live Overview</span></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><select id=\"themeSelect\" class=\"pill theme-select\" aria-label=\"Theme\"><option value=\"dark\">Dark</option> <option value=\"light\">Light</option></select></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 101, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 100, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -236,7 +236,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 134, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 133, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -383,7 +383,7 @@ func ServersSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 292, Col: 263}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 291, Col: 263}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -443,7 +443,7 @@ func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 316, Col: 273}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 315, Col: 273}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
