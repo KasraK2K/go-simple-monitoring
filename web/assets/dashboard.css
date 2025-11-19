@@ -3347,6 +3347,11 @@ body[data-theme="compact"] .compact-view { display: block; margin-top: 12px; }
   background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
 }
 
+.theme-transition-overlay[data-theme="compact"] {
+  /* Solid dark backdrop for compact theme transitions */
+  background: #0f172a;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .theme-transition-overlay {
     transition: none !important;
