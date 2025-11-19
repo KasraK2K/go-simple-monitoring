@@ -109,7 +109,7 @@ function renderServersTable() {
   const local = state.previousMetrics || null;
   const localRow = local
     ? {
-        name: 'Local',
+        name: 'Local System',
         address: 'local',
         status: state.connectionState === 'offline' ? 'error' : 'ok',
         cpu_usage: local.cpu_usage,
