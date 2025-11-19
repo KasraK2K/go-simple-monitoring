@@ -4,9 +4,11 @@ import { filterHeartbeats } from './heartbeat.js';
 import { fetchMetrics, handleServerSelection } from './data-service.js';
 import { LOCAL_SERVER_OPTION } from './constants.js';
 import { state } from './state.js';
+import { clearAllAlerts } from './alerts.js';
 import { toggleTheme, handleThemeSelectChange } from './theme.js';
 
 const HERO_COLLAPSE_STORAGE_KEY = 'dashboardHeroCollapsed';
+const ALERTS_MUTE_STORAGE_KEY = 'dashboardMuteAlerts';
 
 export function registerEventHandlers() {
   if (state.eventsRegistered) {
@@ -15,6 +17,42 @@ export function registerEventHandlers() {
   state.eventsRegistered = true;
 
   document.getElementById('themeSelect')?.addEventListener('change', handleThemeSelectChange);
+
+  // Alerts mute toggle setup
+  const muteToggle = document.getElementById('alertsMuteToggle');
+  const applyMuteUI = (muted) => {
+    if (!muteToggle) return;
+    muteToggle.classList.toggle('alert-mute-toggle--active', muted);
+    muteToggle.setAttribute('aria-checked', String(muted));
+    const icon = muteToggle.querySelector('i');
+    if (icon) {
+      icon.className = muted ? 'fas fa-bell-slash' : 'fas fa-bell';
+    }
+    const label = muteToggle.querySelector('.alert-mute-toggle__label');
+    if (label) {
+      label.textContent = muted ? 'Muted' : 'Alerts';
+    }
+  };
+
+  if (muteToggle) {
+    // Initialize from localStorage
+    try {
+      const stored = localStorage.getItem(ALERTS_MUTE_STORAGE_KEY);
+      state.muteAlerts = stored === 'true';
+    } catch {}
+    applyMuteUI(state.muteAlerts);
+    if (state.muteAlerts) {
+      clearAllAlerts();
+    }
+    muteToggle.addEventListener('click', () => {
+      state.muteAlerts = !state.muteAlerts;
+      applyMuteUI(state.muteAlerts);
+      try { localStorage.setItem(ALERTS_MUTE_STORAGE_KEY, String(state.muteAlerts)); } catch {}
+      if (state.muteAlerts) {
+        clearAllAlerts();
+      }
+    });
+  }
 
   document.getElementById('exportTrigger')?.addEventListener('click', showExportPanel);
   document.getElementById('exportClose')?.addEventListener('click', hideExportPanel);

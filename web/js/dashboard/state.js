@@ -22,6 +22,7 @@ export const state = {
   activeAlerts: new Map(),
   lastThresholdPhase: new Map(),
   notificationPermission: 'default',
+  muteAlerts: false,
   lastMetricValues: {},
   thresholds: {
     cpu: { warning: 70, critical: 90 },

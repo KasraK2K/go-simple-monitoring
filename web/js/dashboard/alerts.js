@@ -7,6 +7,11 @@ export function showAlert(type, message, duration = 5000) {
     return null;
   }
 
+  // Suppress all alerts if muted
+  if (state.muteAlerts) {
+    return null;
+  }
+
   const alertId = `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const alertEl = document.createElement('div');
   alertEl.className = `alert ${type}`;

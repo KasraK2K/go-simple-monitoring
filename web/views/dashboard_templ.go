@@ -220,14 +220,14 @@ func HeroSection(props HeroProps) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><select id=\"themeSelect\" class=\"pill theme-select\" aria-label=\"Theme\"><option value=\"dark\">Dark</option> <option value=\"light\">Light</option> <option value=\"compact\">Compact</option></select></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><button id=\"alertsMuteToggle\" class=\"pill alert-mute-toggle\" type=\"button\" role=\"switch\" aria-checked=\"false\" aria-label=\"Mute alerts\"><i class=\"fas fa-bell\"></i> <span class=\"alert-mute-toggle__label\">Alerts</span></button> <select id=\"themeSelect\" class=\"pill theme-select\" aria-label=\"Theme\"><option value=\"dark\">Dark</option> <option value=\"light\">Light</option> <option value=\"compact\">Compact</option></select></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 140, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 144, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -240,7 +240,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 173, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 177, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -387,7 +387,7 @@ func ServersSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 331, Col: 263}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 335, Col: 263}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -447,7 +447,7 @@ func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 355, Col: 273}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 359, Col: 273}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {

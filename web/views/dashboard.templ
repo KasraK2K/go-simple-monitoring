@@ -124,6 +124,10 @@ templ HeroSection(props HeroProps) {
                 <h1>System Monitoring</h1>
             </div>
             <div class="hero-actions">
+                <button id="alertsMuteToggle" class="pill alert-mute-toggle" type="button" role="switch" aria-checked="false" aria-label="Mute alerts">
+                    <i class="fas fa-bell"></i>
+                    <span class="alert-mute-toggle__label">Alerts</span>
+                </button>
                 <select id="themeSelect" class="pill theme-select" aria-label="Theme">
                     <option value="dark">Dark</option>
                     <option value="light">Light</option>

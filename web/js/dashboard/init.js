@@ -13,6 +13,10 @@ import { initSectionCollapsibles } from './sections.js';
 
 export async function initDashboard() {
   initializeTheme();
+  // Initialize alerts mute state early to ensure no alerts during startup if muted
+  try {
+    state.muteAlerts = localStorage.getItem('dashboardMuteAlerts') === 'true';
+  } catch {}
   await requestNotificationPermission();
   initializeCharts();
 
