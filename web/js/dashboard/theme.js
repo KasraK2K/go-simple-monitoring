@@ -1,5 +1,6 @@
 import { state } from "./state.js";
 import { updateChartTheme } from "./charts.js";
+import { updateCompactView } from "./compact.js";
 
 export function initializeTheme() {
   state.currentTheme = localStorage.getItem("theme") || "dark";
@@ -8,6 +9,10 @@ export function initializeTheme() {
   if (select) {
     select.value = state.currentTheme;
   }
+  try {
+    // Ensure compact view visibility is synced on load
+    updateCompactView();
+  } catch {}
 }
 
 function applyTheme(targetTheme, originEl = null) {
@@ -48,6 +53,7 @@ function applyTheme(targetTheme, originEl = null) {
     if (select) {
       select.value = state.currentTheme;
     }
+    updateCompactView();
     return;
   }
 
@@ -103,6 +109,7 @@ function applyTheme(targetTheme, originEl = null) {
       select.value = state.currentTheme;
     }
     delete document.body.dataset.animatingTheme;
+    updateCompactView();
   };
 
   animation.addEventListener("finish", finalize, { once: true });
@@ -118,7 +125,7 @@ export function toggleTheme(event) {
 export function handleThemeSelectChange(event) {
   const target = event?.target || null;
   const value = target ? String(target.value) : "";
-  if (value === "dark" || value === "light") {
+  if (value === "dark" || value === "light" || value === "compact") {
     applyTheme(value, target);
   }
 }

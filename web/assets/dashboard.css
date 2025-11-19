@@ -881,12 +881,30 @@ body[data-theme="light"] .glass-panel::after {
 
 .pill.theme-select:hover {
   border-color: rgba(59, 130, 246, 0.42);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
 }
 
 .pill.theme-select:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
   border-color: var(--border-strong);
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+}
+
+/* Ensure themeSelect chevron is white in dark and compact modes */
+body[data-theme="dark"] .pill.theme-select,
+body[data-theme="compact"] .pill.theme-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+}
+body[data-theme="dark"] .pill.theme-select:hover,
+body[data-theme="compact"] .pill.theme-select:hover,
+body[data-theme="dark"] .pill.theme-select:focus-visible,
+body[data-theme="compact"] .pill.theme-select:focus-visible {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
 }
 
 .hero h1 {
@@ -3258,6 +3276,58 @@ body {
   background-attachment: fixed;
   will-change: clip-path, opacity;
 }
+
+/* Compact theme: flat, simple, table-first */
+body[data-theme="compact"] .background,
+body[data-theme="compact"] .orb,
+body[data-theme="compact"] .orb--teal,
+body[data-theme="compact"] .orb--blue {
+  display: none !important;
+}
+
+body[data-theme="compact"] .dashboard-grid,
+body[data-theme="compact"] .date-filter,
+body[data-theme="compact"] .range-presets,
+body[data-theme="compact"] .hero-toggle,
+body[data-theme="compact"] .hero-details {
+  display: none !important;
+}
+
+/* Keep hero minimal */
+body[data-theme="compact"] .hero {
+  padding: 20px 24px;
+  box-shadow: none;
+}
+
+/* Flatten glass-panels */
+body[data-theme="compact"] .glass-panel {
+  background: transparent;
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+
+/* Compact container visibility */
+.compact-view { display: none; }
+body[data-theme="compact"] .compact-view { display: block; margin-top: 12px; }
+
+.compact-section { margin-bottom: 20px; }
+.compact-title { font-size: 1rem; color: var(--text-secondary); margin: 0 0 8px; }
+
+.compact-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.compact-table thead th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+}
+.compact-table tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+.compact-table tbody tr:hover { background: rgba(148, 163, 184, 0.08); }
+.compact-table td.num { text-align: left; font-variant-numeric: tabular-nums; }
+.compact-table td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9em; }
+
+/* Use existing status pill styles in tables */
+.compact-table .server-status { padding: 4px 10px; font-size: 0.75rem; }
 
 .theme-transition-overlay[data-theme="dark"] {
   background: radial-gradient(

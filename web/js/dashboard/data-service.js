@@ -5,6 +5,7 @@ import { calculateHeartbeatUptime, updateHeartbeat } from "./heartbeat.js";
 import { calculateNetworkDelta } from "./network.js";
 import { state } from "./state.js";
 import { updateServerMetricsSection } from "./servers.js";
+import { updateCompactView } from "./compact.js";
 import {
   setLoadingState,
   showErrorState,
@@ -218,6 +219,8 @@ export async function fetchMetrics() {
       latestNormalized.server_metrics || [],
       state.serverConfig?.servers || []
     );
+    // Update compact view if active
+    updateCompactView();
 
     const lastUpdated = document.getElementById("lastUpdated");
     if (lastUpdated) {

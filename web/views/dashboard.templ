@@ -40,6 +40,45 @@ templ DashboardShell(props DashboardProps) {
             RefreshLabel:       computeRefreshLabel(props.Config),
             DefaultRangePreset: props.DefaultRangePreset,
         })
+        <section class="compact-view" id="compactView" role="region" aria-label="Compact overview">
+            <div class="compact-section">
+                <h2 class="compact-title">Servers</h2>
+                <table class="compact-table" id="compactServersTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Address</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">CPU</th>
+                            <th scope="col">Memory</th>
+                            <th scope="col">Disk</th>
+                            <th scope="col">Load</th>
+                            <th scope="col">Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compactServersBody">
+                        <tr><td colspan="8">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="compact-section">
+                <h2 class="compact-title">Heartbeats</h2>
+                <table class="compact-table" id="compactHeartbeatsTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">URL</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Latency</th>
+                            <th scope="col">Last Seen</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compactHeartbeatsBody">
+                        <tr><td colspan="5">Loading…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
         @InitialLoadingOverlay()
         <div class="dashboard-grid" data-dashboard-layout>
             @MetricsSection()
@@ -88,6 +127,7 @@ templ HeroSection(props HeroProps) {
                 <select id="themeSelect" class="pill theme-select" aria-label="Theme">
                     <option value="dark">Dark</option>
                     <option value="light">Light</option>
+                    <option value="compact">Compact</option>
                 </select>
             </div>
         </div>

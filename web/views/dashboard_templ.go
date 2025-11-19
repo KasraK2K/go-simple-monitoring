@@ -105,11 +105,15 @@ func DashboardShell(props DashboardProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section class=\"compact-view\" id=\"compactView\" role=\"region\" aria-label=\"Compact overview\"><div class=\"compact-section\"><h2 class=\"compact-title\">Servers</h2><table class=\"compact-table\" id=\"compactServersTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">Address</th><th scope=\"col\">Status</th><th scope=\"col\">CPU</th><th scope=\"col\">Memory</th><th scope=\"col\">Disk</th><th scope=\"col\">Load</th><th scope=\"col\">Updated</th></tr></thead> <tbody id=\"compactServersBody\"><tr><td colspan=\"8\">Loading…</td></tr></tbody></table></div><div class=\"compact-section\"><h2 class=\"compact-title\">Heartbeats</h2><table class=\"compact-table\" id=\"compactHeartbeatsTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">URL</th><th scope=\"col\">Status</th><th scope=\"col\">Latency</th><th scope=\"col\">Last Seen</th></tr></thead> <tbody id=\"compactHeartbeatsBody\"><tr><td colspan=\"5\">Loading…</td></tr></tbody></table></div></section>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
 		templ_7745c5c3_Err = InitialLoadingOverlay().Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<div class=\"dashboard-grid\" data-dashboard-layout>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"dashboard-grid\" data-dashboard-layout>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -129,7 +133,7 @@ func DashboardShell(props DashboardProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -158,7 +162,7 @@ func BackgroundComponent() templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<div class=\"background\" data-component=\"background\"><span class=\"orb orb--teal\"></span> <span class=\"orb orb--blue\"></span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div class=\"background\" data-component=\"background\"><span class=\"orb orb--teal\"></span> <span class=\"orb orb--blue\"></span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -187,7 +191,7 @@ func ChromeComponent() templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div data-component=\"chrome\" style=\"display: contents;\"><div class=\"connection-status hidden\" id=\"connectionStatus\" role=\"status\" aria-live=\"polite\"><span class=\"status-dot\"></span> <span id=\"connectionText\">Connected</span></div><div class=\"alerts-container\" id=\"alertsPanel\" role=\"region\" aria-label=\"System alerts\"></div><div class=\"export-overlay\" id=\"exportOverlay\"></div><div class=\"export-panel\" id=\"exportPanel\" role=\"dialog\" aria-labelledby=\"exportTitle\"><h3 id=\"exportTitle\">Export Data</h3><div class=\"export-options\"><button class=\"export-btn\" id=\"exportCSV\" type=\"button\">Export CSV</button> <button class=\"export-btn\" id=\"exportJSON\" type=\"button\">Export JSON</button></div><button class=\"filter-action\" id=\"exportClose\" type=\"button\">Close</button></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div data-component=\"chrome\" style=\"display: contents;\"><div class=\"connection-status hidden\" id=\"connectionStatus\" role=\"status\" aria-live=\"polite\"><span class=\"status-dot\"></span> <span id=\"connectionText\">Connected</span></div><div class=\"alerts-container\" id=\"alertsPanel\" role=\"region\" aria-label=\"System alerts\"></div><div class=\"export-overlay\" id=\"exportOverlay\"></div><div class=\"export-panel\" id=\"exportPanel\" role=\"dialog\" aria-labelledby=\"exportTitle\"><h3 id=\"exportTitle\">Export Data</h3><div class=\"export-options\"><button class=\"export-btn\" id=\"exportCSV\" type=\"button\">Export CSV</button> <button class=\"export-btn\" id=\"exportJSON\" type=\"button\">Export JSON</button></div><button class=\"filter-action\" id=\"exportClose\" type=\"button\">Close</button></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -216,33 +220,33 @@ func HeroSection(props HeroProps) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><select id=\"themeSelect\" class=\"pill theme-select\" aria-label=\"Theme\"><option value=\"dark\">Dark</option> <option value=\"light\">Light</option></select></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<header class=\"glass-panel hero hero-collapsed\" data-component=\"hero\" id=\"heroSection\"><div class=\"hero-top\"><div class=\"hero-copy\"><h1>System Monitoring</h1></div><div class=\"hero-actions\"><select id=\"themeSelect\" class=\"pill theme-select\" aria-label=\"Theme\"><option value=\"dark\">Dark</option> <option value=\"light\">Light</option> <option value=\"compact\">Compact</option></select></div></div><div class=\"hero-details\" id=\"heroDetails\"><div class=\"hero-meta\"><span class=\"status-pill online\" id=\"systemStatus\" role=\"status\"><span class=\"status-dot\"></span> <span class=\"status-text\">System Online</span></span> <span class=\"pill\">Refresh <span id=\"refreshDisplay\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 100, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 140, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</span></span> <span class=\"pill\">Last updated <span id=\"lastUpdated\">--</span></span> <button class=\"filter-action\" id=\"exportTrigger\" type=\"button\" aria-label=\"Export data\"><i class=\"fas fa-download\"></i> <span>Export</span></button></div><div class=\"remote-context hidden\" id=\"remoteContext\" role=\"status\" aria-live=\"polite\"><div class=\"remote-context__indicator\"><span class=\"status-dot\"></span> <span class=\"remote-context__label\">Remote Source</span></div><div class=\"remote-context__details\"><span class=\"remote-context__value\" id=\"remoteContextName\">Remote server</span> <span class=\"remote-context__hint\">Live metrics via remote node</span></div><button class=\"remote-context__action\" id=\"remoteContextReset\" type=\"button\" aria-label=\"Return to default server\"><i class=\"fas fa-times\"></i> <span>Disconnect</span></button></div><div class=\"date-filter\"><label><span>From</span> <input type=\"datetime-local\" id=\"filterFrom\" aria-label=\"Start date and time\"></label> <label><span>To</span> <input type=\"datetime-local\" id=\"filterTo\" aria-label=\"End date and time\"></label> <button type=\"button\" class=\"filter-action\" id=\"applyFilter\">Apply</button> <button type=\"button\" class=\"filter-action ghost\" id=\"clearFilter\">Clear</button></div><div class=\"range-presets\" data-default-range=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</span></span> <span class=\"pill\">Last updated <span id=\"lastUpdated\">--</span></span> <button class=\"filter-action\" id=\"exportTrigger\" type=\"button\" aria-label=\"Export data\"><i class=\"fas fa-download\"></i> <span>Export</span></button></div><div class=\"remote-context hidden\" id=\"remoteContext\" role=\"status\" aria-live=\"polite\"><div class=\"remote-context__indicator\"><span class=\"status-dot\"></span> <span class=\"remote-context__label\">Remote Source</span></div><div class=\"remote-context__details\"><span class=\"remote-context__value\" id=\"remoteContextName\">Remote server</span> <span class=\"remote-context__hint\">Live metrics via remote node</span></div><button class=\"remote-context__action\" id=\"remoteContextReset\" type=\"button\" aria-label=\"Return to default server\"><i class=\"fas fa-times\"></i> <span>Disconnect</span></button></div><div class=\"date-filter\"><label><span>From</span> <input type=\"datetime-local\" id=\"filterFrom\" aria-label=\"Start date and time\"></label> <label><span>To</span> <input type=\"datetime-local\" id=\"filterTo\" aria-label=\"End date and time\"></label> <button type=\"button\" class=\"filter-action\" id=\"applyFilter\">Apply</button> <button type=\"button\" class=\"filter-action ghost\" id=\"clearFilter\">Clear</button></div><div class=\"range-presets\" data-default-range=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 133, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 173, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "\"><button class=\"range-btn\" data-range=\"1h\" type=\"button\">1h</button> <button class=\"range-btn\" data-range=\"6h\" type=\"button\">6h</button> <button class=\"range-btn\" data-range=\"24h\" type=\"button\">24h</button> <button class=\"range-btn\" data-range=\"7d\" type=\"button\">7d</button> <button class=\"range-btn\" data-range=\"30d\" type=\"button\">30d</button></div></div><button class=\"hero-toggle\" id=\"heroToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"heroDetails\" aria-label=\"Expand hero panel\"><span class=\"hero-toggle__icon\" aria-hidden=\"true\"><i class=\"fas fa-chevron-down\"></i></span></button></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "\"><button class=\"range-btn\" data-range=\"1h\" type=\"button\">1h</button> <button class=\"range-btn\" data-range=\"6h\" type=\"button\">6h</button> <button class=\"range-btn\" data-range=\"24h\" type=\"button\">24h</button> <button class=\"range-btn\" data-range=\"7d\" type=\"button\">7d</button> <button class=\"range-btn\" data-range=\"30d\" type=\"button\">30d</button></div></div><button class=\"hero-toggle\" id=\"heroToggle\" type=\"button\" aria-expanded=\"false\" aria-controls=\"heroDetails\" aria-label=\"Expand hero panel\"><span class=\"hero-toggle__icon\" aria-hidden=\"true\"><i class=\"fas fa-chevron-down\"></i></span></button></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -271,7 +275,7 @@ func InitialLoadingOverlay() templ.Component {
 			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<div id=\"initialLoading\" data-component=\"initial-loading\" style=\"display: flex;\"><div class=\"loading-spinner\"></div><span class=\"loading-text\">Loading dashboard...</span></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div id=\"initialLoading\" data-component=\"initial-loading\" style=\"display: flex;\"><div class=\"loading-spinner\"></div><span class=\"loading-text\">Loading dashboard...</span></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -300,7 +304,7 @@ func MetricsSection() templ.Component {
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<section class=\"section-block\" data-component=\"metrics\" role=\"region\" aria-label=\"System metrics\" data-dashboard-section data-section-id=\"metrics\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag metrics section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-metrics\" data-section-collapse data-section-target=\"section-content-metrics\" data-section-label=\"Metrics\"><span class=\"sr-only\" data-section-toggle-label>Collapse metrics section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Live Signals</span><h2>Real-time Metrics</h2></div></div><div class=\"section-content\" id=\"section-content-metrics\" data-section-content><div class=\"metrics-grid\"><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">CPU Usage</span> <span class=\"metric-trend\" id=\"cpuTrend\" aria-label=\"CPU trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"cpu\" aria-label=\"CPU usage percentage\">--</span> <span class=\"metric-unit\">%</span></div><div class=\"metric-progress\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span class=\"progress-fill\" id=\"cpuBar\"></span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Memory</span> <span class=\"metric-trend\" id=\"memoryTrend\" aria-label=\"Memory trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"memory\" aria-label=\"Memory usage percentage\">--</span> <span class=\"metric-unit\">%</span></div><div class=\"metric-progress\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span class=\"progress-fill\" id=\"memoryBar\"></span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Network In</span> <span class=\"metric-trend\" id=\"networkRxTrend\" aria-label=\"Network in trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"networkRx\" aria-label=\"Network incoming rate\">--</span> <span class=\"metric-unit\">MB/s</span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Network Out</span> <span class=\"metric-trend\" id=\"networkTxTrend\" aria-label=\"Network out trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"networkTx\" aria-label=\"Network outgoing rate\">--</span> <span class=\"metric-unit\">MB/s</span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Load Average (1m)</span> <span class=\"metric-trend\" id=\"loadTrend\" aria-label=\"Load average trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"loadAvg\" aria-label=\"One minute load average\">--</span></div></article><div id=\"storageGrid\" class=\"storage-grid\" role=\"region\" aria-label=\"Storage drives\"><!-- Storage cards will be dynamically populated here --></div></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<section class=\"section-block\" data-component=\"metrics\" role=\"region\" aria-label=\"System metrics\" data-dashboard-section data-section-id=\"metrics\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag metrics section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-metrics\" data-section-collapse data-section-target=\"section-content-metrics\" data-section-label=\"Metrics\"><span class=\"sr-only\" data-section-toggle-label>Collapse metrics section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Live Signals</span><h2>Real-time Metrics</h2></div></div><div class=\"section-content\" id=\"section-content-metrics\" data-section-content><div class=\"metrics-grid\"><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">CPU Usage</span> <span class=\"metric-trend\" id=\"cpuTrend\" aria-label=\"CPU trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"cpu\" aria-label=\"CPU usage percentage\">--</span> <span class=\"metric-unit\">%</span></div><div class=\"metric-progress\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span class=\"progress-fill\" id=\"cpuBar\"></span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Memory</span> <span class=\"metric-trend\" id=\"memoryTrend\" aria-label=\"Memory trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"memory\" aria-label=\"Memory usage percentage\">--</span> <span class=\"metric-unit\">%</span></div><div class=\"metric-progress\" role=\"progressbar\" aria-valuenow=\"0\" aria-valuemin=\"0\" aria-valuemax=\"100\"><span class=\"progress-fill\" id=\"memoryBar\"></span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Network In</span> <span class=\"metric-trend\" id=\"networkRxTrend\" aria-label=\"Network in trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"networkRx\" aria-label=\"Network incoming rate\">--</span> <span class=\"metric-unit\">MB/s</span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Network Out</span> <span class=\"metric-trend\" id=\"networkTxTrend\" aria-label=\"Network out trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"networkTx\" aria-label=\"Network outgoing rate\">--</span> <span class=\"metric-unit\">MB/s</span></div></article><article class=\"glass-panel metric-card\"><div class=\"metric-header\"><span class=\"metric-label\">Load Average (1m)</span> <span class=\"metric-trend\" id=\"loadTrend\" aria-label=\"Load average trend\">-</span></div><div class=\"metric-value-wrap\"><span class=\"metric-value\" id=\"loadAvg\" aria-label=\"One minute load average\">--</span></div></article><div id=\"storageGrid\" class=\"storage-grid\" role=\"region\" aria-label=\"Storage drives\"><!-- Storage cards will be dynamically populated here --></div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -329,7 +333,7 @@ func ChartsSection() templ.Component {
 			templ_7745c5c3_Var10 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<section class=\"section-block\" data-component=\"charts\" role=\"region\" aria-label=\"Performance charts\" data-dashboard-section data-section-id=\"charts\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag charts section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-charts\" data-section-collapse data-section-target=\"section-content-charts\" data-section-label=\"Charts\"><span class=\"sr-only\" data-section-toggle-label>Collapse charts section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Trends</span><h2>Performance Visualisations</h2></div></div><div class=\"section-content\" id=\"section-content-charts\" data-section-content><div class=\"charts-grid\"><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>System Performance</h3><span class=\"chart-subtitle\">CPU and memory usage over time</span></div><div class=\"chart-wrapper\"><canvas id=\"systemChart\" aria-label=\"System performance chart\"></canvas></div></article><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>Network Throughput</h3><span class=\"chart-subtitle\">Inbound vs outbound throughput (MB/s)</span></div><div class=\"chart-wrapper\"><canvas id=\"networkChart\" aria-label=\"Network throughput chart\"></canvas></div></article><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>Resource Distribution</h3><span class=\"chart-subtitle\">CPU, memory, and disk utilisation snapshot</span></div><div class=\"chart-wrapper\"><canvas id=\"usageDonut\" aria-label=\"Resource usage distribution chart\"></canvas></div></article></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<section class=\"section-block\" data-component=\"charts\" role=\"region\" aria-label=\"Performance charts\" data-dashboard-section data-section-id=\"charts\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag charts section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-charts\" data-section-collapse data-section-target=\"section-content-charts\" data-section-label=\"Charts\"><span class=\"sr-only\" data-section-toggle-label>Collapse charts section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Trends</span><h2>Performance Visualisations</h2></div></div><div class=\"section-content\" id=\"section-content-charts\" data-section-content><div class=\"charts-grid\"><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>System Performance</h3><span class=\"chart-subtitle\">CPU and memory usage over time</span></div><div class=\"chart-wrapper\"><canvas id=\"systemChart\" aria-label=\"System performance chart\"></canvas></div></article><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>Network Throughput</h3><span class=\"chart-subtitle\">Inbound vs outbound throughput (MB/s)</span></div><div class=\"chart-wrapper\"><canvas id=\"networkChart\" aria-label=\"Network throughput chart\"></canvas></div></article><article class=\"glass-panel chart-card\"><div class=\"chart-header\"><h3>Resource Distribution</h3><span class=\"chart-subtitle\">CPU, memory, and disk utilisation snapshot</span></div><div class=\"chart-wrapper\"><canvas id=\"usageDonut\" aria-label=\"Resource usage distribution chart\"></canvas></div></article></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -363,7 +367,7 @@ func ServersSection(isInitiallyHidden bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "<section class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<section class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -376,20 +380,20 @@ func ServersSection(isInitiallyHidden bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "\" data-component=\"servers\" role=\"region\" aria-label=\"Remote server metrics\" data-dashboard-section data-section-id=\"servers\" aria-hidden=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\" data-component=\"servers\" role=\"region\" aria-label=\"Remote server metrics\" data-dashboard-section data-section-id=\"servers\" aria-hidden=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 291, Col: 263}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 331, Col: 263}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag servers section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading servers-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-servers\" data-section-collapse data-section-target=\"section-content-servers\" data-section-label=\"Servers\"><span class=\"sr-only\" data-section-toggle-label>Collapse servers section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Remote Servers</span><h2>Distributed Health</h2></div><div class=\"servers-summary\" id=\"serverMetricsSummary\">-- tracked</div></div><div class=\"section-content\" id=\"section-content-servers\" data-section-content><div class=\"servers-grid\" id=\"serverMetricsList\"><div class=\"servers-empty\" id=\"serverMetricsEmpty\">Server metrics will appear here soon</div></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag servers section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading servers-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-servers\" data-section-collapse data-section-target=\"section-content-servers\" data-section-label=\"Servers\"><span class=\"sr-only\" data-section-toggle-label>Collapse servers section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Remote Servers</span><h2>Distributed Health</h2></div><div class=\"servers-summary\" id=\"serverMetricsSummary\">-- tracked</div></div><div class=\"section-content\" id=\"section-content-servers\" data-section-content><div class=\"servers-grid\" id=\"serverMetricsList\"><div class=\"servers-empty\" id=\"serverMetricsEmpty\">Server metrics will appear here soon</div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -423,7 +427,7 @@ func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 15, "<section class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "<section class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -436,20 +440,20 @@ func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 16, "\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\" data-dashboard-section data-section-id=\"heartbeats\" aria-hidden=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\" data-component=\"heartbeats\" role=\"region\" aria-label=\"Server heartbeat status\" data-dashboard-section data-section-id=\"heartbeats\" aria-hidden=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 315, Col: 273}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 355, Col: 273}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 17, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag heartbeats section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading heartbeat-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-heartbeats\" data-section-collapse data-section-target=\"section-content-heartbeats\" data-section-label=\"Heartbeats\"><span class=\"sr-only\" data-section-toggle-label>Collapse heartbeat section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Heartbeats</span><h2>Domain Availability</h2></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"section-content\" id=\"section-content-heartbeats\" data-section-content><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "\"><button class=\"section-handle\" type=\"button\" data-section-handle aria-label=\"Drag heartbeats section\" draggable=\"true\"><i class=\"fas fa-grip-vertical\"></i></button><div class=\"section-heading heartbeat-heading\" data-section-heading><button class=\"section-collapse-toggle\" type=\"button\" aria-expanded=\"true\" aria-controls=\"section-content-heartbeats\" data-section-collapse data-section-target=\"section-content-heartbeats\" data-section-label=\"Heartbeats\"><span class=\"sr-only\" data-section-toggle-label>Collapse heartbeat section</span> <i class=\"fas fa-chevron-up\" aria-hidden=\"true\"></i></button><div class=\"section-title\"><span class=\"section-badge\">Heartbeats</span><h2>Domain Availability</h2></div><div class=\"heartbeat-meta\" id=\"heartbeatSummary\">-- online / -- total</div></div><div class=\"section-content\" id=\"section-content-heartbeats\" data-section-content><div class=\"heartbeat-controls\"><input type=\"text\" class=\"heartbeat-search\" id=\"heartbeatSearch\" placeholder=\"Search servers...\" aria-label=\"Search heartbeat targets\"></div><div class=\"heartbeat-grid\" id=\"heartbeatList\"><div class=\"heartbeat-empty\">No heartbeat data yet</div></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
