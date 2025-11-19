@@ -1122,7 +1122,7 @@ func convertFlatLogEntryToSystemMonitoring(entry models.MonitoringLogEntry) (*mo
 					DiskUsedPercent:   toFloat64(metricMap["disk_used_percent"]),
 					NetworkInBytes:    toUint64(metricMap["network_in_bytes"]),
 					NetworkOutBytes:   toUint64(metricMap["network_out_bytes"]),
-					LoadAverage:       toString(metricMap["load_average"]),
+					LoadAverage:       toString(metricMap["cpu_load_average"]),
 					Timestamp:         toString(metricMap["timestamp"]),
 					Status:            toString(metricMap["status"]),
 					Message:           toString(metricMap["message"]),
