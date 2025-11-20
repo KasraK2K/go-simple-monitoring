@@ -157,7 +157,7 @@ services:
 - name: monitoring
   source_dir: /
   github:
-    repo: your-username/api.go-monitoring
+    repo: KasraK2K/go-simple-monitoring
     branch: main
   run_command: ./monitoring-server
   environment_slug: go

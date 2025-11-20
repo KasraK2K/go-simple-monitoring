@@ -466,7 +466,7 @@ sudo -u postgres psql -d monitoring -c "\dt"
 
 ### 2. Support Channels
 
-- **🐛 GitHub Issues**: [Create Issue](https://github.com/your-repo/issues/new)
+- **🐛 GitHub Issues**: [Create Issue](https://github.com/KasraK2K/go-simple-monitoring/issues/new)
 - **📖 Documentation**: [Main README](../README.md)
 - **🚀 Deployment**: [Production Guide](production-deployment.md)
 - **🗄️ Database**: [PostgreSQL Setup](postgresql-setup.md)

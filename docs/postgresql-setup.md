@@ -18,7 +18,7 @@ This guide covers setting up PostgreSQL with optional TimescaleDB extension for 
 
 ```bash
 # Clone and navigate to project
-cd api.go-monitoring
+cd go-simple-monitoring
 
 # Make the script executable (fixes Permission denied)
 chmod +x ./scripts/postgres-timescale-up.sh
@@ -402,7 +402,7 @@ ORDER BY mean_exec_time DESC;
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Issues**: [GitHub Issues](https://github.com/KasraK2K/go-simple-monitoring/issues)
 - **Performance**: Check [troubleshooting guide](troubleshooting.md)
 - **Documentation**: [Main README](../README.md)
 

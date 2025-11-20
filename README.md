@@ -10,7 +10,7 @@ A comprehensive Go-based monitoring service that tracks system resources, monito
 | [Configuration](#configuration) | [🌐 Nginx Setup](docs/nginx-setup.md) | [🗄️ PostgreSQL/TimescaleDB](docs/postgresql-setup.md) | [🛠️ Systemd Setup](docs/monitoring-systemd-setup.md) |
 | [API Reference](#api-endpoints) | [☁️ Cloud Deployment](docs/cloud-deployment.md) | [📊 Dashboard Guide](docs/dashboard-guide.md) | [🔍 Troubleshooting](docs/troubleshooting.md) |
 
-> **🔗 All documentation is cross-linked for easy navigation. Missing a document? [Create an issue](https://github.com/your-repo/issues/new)!**
+> **🔗 All documentation is cross-linked for easy navigation. Missing a document? [Create an issue](https://github.com/KasraK2K/go-simple-monitoring/issues/new)!**
 
 ## Features
 

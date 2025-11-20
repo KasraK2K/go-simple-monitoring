@@ -10,8 +10,8 @@ Deploy the monitoring service using Docker containers for easy scaling and manag
 
 ```bash
 # Clone repository
-git clone https://github.com/your-repo/api.go-monitoring.git
-cd api.go-monitoring
+git clone https://github.com/KasraK2K/go-simple-monitoring.git
+cd go-simple-monitoring
 
 # Start with PostgreSQL + TimescaleDB
 docker-compose -f scripts/docker-compose.timescale.yml up -d

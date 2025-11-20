@@ -70,8 +70,8 @@ sudo chown -R monitoring:monitoring /opt/monitoring
 
 ```bash
 # On your development machine
-git clone https://github.com/your-repo/api.go-monitoring.git
-cd api.go-monitoring
+git clone https://github.com/KasraK2K/go-simple-monitoring.git
+cd go-simple-monitoring
 
 # Build for Linux (if building on different OS)
 GOOS=linux GOARCH=amd64 go build -o monitoring-server cmd/main.go
@@ -327,7 +327,7 @@ sudo nano /etc/systemd/system/monitoring.service
 ```ini
 [Unit]
 Description=Go System Monitoring Service
-Documentation=https://github.com/your-repo/api.go-monitoring
+Documentation=https://github.com/KasraK2K/go-simple-monitoring
 After=network.target postgresql.service
 Wants=postgresql.service
 
@@ -556,7 +556,7 @@ SELECT
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Issues**: [GitHub Issues](https://github.com/KasraK2K/go-simple-monitoring/issues)
 - **Security**: [Security Policy](../SECURITY.md)
 - **Documentation**: [Main README](../README.md)
 
