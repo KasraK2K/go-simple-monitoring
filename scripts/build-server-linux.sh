@@ -72,6 +72,7 @@ if [ $? -eq 0 ]; then
     echo "   scp bin/monitoring-linux user@server:/opt/monitoring/monitoring"
     echo "   ssh user@server 'sudo chown monitoring:monitoring /opt/monitoring/monitoring'"
     echo "   ssh user@server 'sudo systemctl restart monitoring'"
+    echo "   ssh user@server 'sudo chmod 0755 /opt/monitoring/monitoring'"
     echo ""
     echo "💡 To remove build container: docker rm -f $CONTAINER_NAME"
 else
