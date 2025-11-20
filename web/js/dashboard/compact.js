@@ -161,7 +161,7 @@ function renderServersTable() {
     const grouped = new Map();
     normalized.forEach((d) => {
       const key = groupKey(d);
-      const g = grouped.get(key) || { total_bytes: 0, used_bytes: 0, paths: [], device: d.device };
+      const g = grouped.get(key) || { total_bytes: 0, used_bytes: 0, paths: [], device: key || d.device };
       g.total_bytes += Number(d.total_bytes) || 0;
       g.used_bytes += Number(d.used_bytes) || 0;
       if (d.path) g.paths.push(d.path);
@@ -171,13 +171,14 @@ function renderServersTable() {
     const list = Array.from(grouped.values()).map((g) => {
       const value = g.total_bytes > 0 ? (g.used_bytes / g.total_bytes) * 100 : NaN;
       const path = g.paths.find((p) => ROOTS.includes(p)) || g.paths[0] || '';
-      return { path, value };
+      const device = g.device || '';
+      return { path, device, value };
     }).filter((x) => Number.isFinite(x.value));
     const primary = list.find((d) => ROOTS.includes(d.path));
     const others = list.filter((d) => d !== primary);
     const out = [];
-    if (primary) out.push({ type: 'primary', path: primary.path, value: primary.value });
-    others.forEach((d) => out.push({ type: 'mounted', path: d.path, value: d.value }));
+    if (primary) out.push({ type: 'primary', path: primary.path, device: primary.device, value: primary.value });
+    others.forEach((d) => out.push({ type: 'mounted', path: d.path, device: d.device, value: d.value }));
     if (!primary && out.length > 0) out[0].type = 'primary';
     return out;
   }
@@ -196,8 +197,8 @@ function renderServersTable() {
           .map((d) => {
             const sev = getSeverityFor('disk', d.value);
             const icon = d.type === 'primary' ? '★' : '⦿';
-            const title = d.type === 'primary' ? `Primary (${d.path || ''})` : (d.path || 'Mounted');
-            return `<span class="disk-badge" title="${title}"><span class="disk-badge__icon" aria-hidden="true">${icon}</span><span class="${sev ? `server-card__metric-value--${sev}` : ''}">${formatPercent(d.value)}</span></span>`;
+            const tooltip = (d.device && String(d.device).trim()) || (d.path || 'Mounted');
+            return `<span class="disk-badge"><span class="disk-badge__icon" aria-hidden="true" data-tooltip="${escapeHtml(tooltip)}">${icon}</span><span class="${sev ? `server-card__metric-value--${sev}` : ''}">${formatPercent(d.value)}</span></span>`;
           })
           .join('')}</div>`
       : `<span class="${getSeverityFor('disk', metric.disk_used_percent) ? `server-card__metric-value--${getSeverityFor('disk', metric.disk_used_percent)}` : ''}">${formatPercent(metric.disk_used_percent)}</span>`;

@@ -1501,6 +1501,44 @@ body[data-theme="light"] .disk-badge {
   line-height: 1;
 }
 
+/* Compact theme: tooltip on disk icon hover */
+body[data-theme="compact"] .disk-badge__icon[data-tooltip] {
+  position: relative;
+  cursor: help;
+}
+body[data-theme="compact"] .disk-badge__icon[data-tooltip]:hover::after,
+body[data-theme="compact"] .disk-badge__icon[data-tooltip]:focus-visible::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  box-shadow: var(--shadow-soft);
+  z-index: 20;
+  pointer-events: none;
+  font-size: 0.78rem;
+}
+body[data-theme="compact"] .disk-badge__icon[data-tooltip]:hover::before,
+body[data-theme="compact"] .disk-badge__icon[data-tooltip]:focus-visible::before {
+  content: "";
+  position: absolute;
+  bottom: 132%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--glass-bg);
+  z-index: 19;
+}
+
 .server-card__timestamp {
   display: inline-flex;
   align-items: center;

@@ -24,8 +24,15 @@ export async function fetchMetrics() {
       setLoadingState("initial", true);
     }
 
-    const usingAutoFilter = Boolean(state.autoFilter);
-    const filterPayload = state.autoFilter || state.pendingFilter;
+    const isCompactTheme =
+      typeof document !== "undefined" &&
+      document.body &&
+      document.body.getAttribute("data-theme") === "compact";
+    // In compact theme we always fetch live data (no date range payload)
+    const usingAutoFilter = !isCompactTheme && Boolean(state.autoFilter);
+    const filterPayload = !isCompactTheme
+      ? (state.autoFilter || state.pendingFilter)
+      : null;
     
     // For remote servers with historical data requests, we need to query local database first
     const isRemoteServer = Boolean(state.selectedBaseUrl);
@@ -154,19 +161,19 @@ export async function fetchMetrics() {
       throw new Error("No monitoring data available");
     }
 
-    if (filterPayload) {
+    if (!isCompactTheme && filterPayload) {
       state.historicalSeries = normalizedList;
       // Set historical mode when we have filter data (including autoFilter) to ensure proper chart rendering
       if (!state.historicalMode) {
         state.historicalMode = true;
       }
-    } else if (normalizedList.length > 1) {
+    } else if (!isCompactTheme && normalizedList.length > 1) {
       // Initial dashboard load with multiple historical entries - treat as historical data
       state.historicalSeries = normalizedList;
       if (!state.historicalMode) {
         state.historicalMode = true;
       }
-    } else if (state.historicalMode) {
+    } else if (!isCompactTheme && state.historicalMode) {
       // Live update in historical mode - add to existing series
       const latest = normalizedList[0];
       const latestTimestamp = latest.timestamp;
@@ -179,7 +186,7 @@ export async function fetchMetrics() {
     }
 
     const activeSeries =
-      state.historicalMode && state.historicalSeries.length > 0
+      !isCompactTheme && state.historicalMode && state.historicalSeries.length > 0
         ? state.historicalSeries
         : normalizedList;
 
@@ -194,7 +201,7 @@ export async function fetchMetrics() {
 
     updateMetrics(latestNormalized, networkDelta);
 
-    if (state.historicalMode) {
+    if (!isCompactTheme && state.historicalMode) {
       renderHistoricalCharts(activeSeries);
     } else {
       updateCharts(latestNormalized, networkDelta);
@@ -211,9 +218,11 @@ export async function fetchMetrics() {
     checkThresholds(latestNormalized);
 
     let uptimeStats = null;
-    if (state.historicalMode) {
+    if (!isCompactTheme && state.historicalMode) {
       uptimeStats = calculateHeartbeatUptime(activeSeries);
     }
+    // Ensure compact view can use latest data immediately
+    state.previousMetrics = latestNormalized;
     updateHeartbeat(latestNormalized.heartbeat || [], uptimeStats);
     updateServerMetricsSection(
       latestNormalized.server_metrics || [],
@@ -227,7 +236,6 @@ export async function fetchMetrics() {
       lastUpdated.textContent = new Date().toLocaleTimeString();
     }
 
-    state.previousMetrics = latestNormalized;
     state.retryCount = 0;
 
     if (filterPayload) {
