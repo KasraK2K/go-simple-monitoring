@@ -1,6 +1,7 @@
 import { state } from "./state.js";
 import { updateChartTheme } from "./charts.js";
 import { updateCompactView } from "./compact.js";
+import { applyAutoFilterUI } from "./data-service.js";
 
 export function initializeTheme() {
   state.currentTheme = localStorage.getItem("theme") || "dark";
@@ -46,6 +47,13 @@ function applyTheme(targetTheme, originEl = null) {
     try {
       localStorage.setItem("theme", state.currentTheme);
     } catch {}
+    if (targetTheme === "compact") {
+      state.autoFilter = null;
+      state.pendingFilter = null;
+      state.historicalMode = false;
+      state.historicalSeries = [];
+      try { applyAutoFilterUI(null, null); } catch {}
+    }
     if (state.systemChart) updateChartTheme(state.systemChart);
     if (state.networkChart) updateChartTheme(state.networkChart);
     if (state.usageDonut) updateChartTheme(state.usageDonut);
@@ -110,6 +118,13 @@ function applyTheme(targetTheme, originEl = null) {
     try {
       localStorage.setItem("theme", state.currentTheme);
     } catch {}
+    if (targetTheme === "compact") {
+      state.autoFilter = null;
+      state.pendingFilter = null;
+      state.historicalMode = false;
+      state.historicalSeries = [];
+      try { applyAutoFilterUI(null, null); } catch {}
+    }
     if (state.systemChart) updateChartTheme(state.systemChart);
     if (state.networkChart) updateChartTheme(state.networkChart);
     if (state.usageDonut) updateChartTheme(state.usageDonut);

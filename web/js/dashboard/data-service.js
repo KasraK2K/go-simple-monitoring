@@ -422,9 +422,15 @@ export async function handleServerSelection(server) {
   state.selectedBaseUrl = address;
   state.serverConfig = null;
   
-  state.autoFilter = state.defaultRangePreset ? buildFilterFromRange(state.defaultRangePreset) : null;
+  const isCompactTheme =
+    typeof document !== "undefined" &&
+    document.body &&
+    document.body.getAttribute("data-theme") === "compact";
+  state.autoFilter = !isCompactTheme && state.defaultRangePreset
+    ? buildFilterFromRange(state.defaultRangePreset)
+    : null;
   state.pendingFilter = null;
-  applyAutoFilterUI(state.autoFilter, state.defaultRangePreset || null);
+  applyAutoFilterUI(state.autoFilter, (!isCompactTheme && state.defaultRangePreset) ? state.defaultRangePreset : null);
   state.historicalMode = false;
   state.historicalSeries = [];
   state.previousMetrics = null;

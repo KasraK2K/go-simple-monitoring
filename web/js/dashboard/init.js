@@ -24,10 +24,11 @@ export async function initDashboard() {
   state.filterElements = elements;
 
   renderServerButtons();
+  const isCompactTheme = document.body.getAttribute('data-theme') === 'compact';
   const defaultRangePreset = detectDefaultRangePreset();
-  state.defaultRangePreset = defaultRangePreset;
-  state.autoFilter = defaultRangePreset ? buildFilterFromRange(defaultRangePreset) : null;
-  applyAutoFilterUI(state.autoFilter, defaultRangePreset || null);
+  state.defaultRangePreset = isCompactTheme ? '' : defaultRangePreset;
+  state.autoFilter = isCompactTheme ? null : (defaultRangePreset ? buildFilterFromRange(defaultRangePreset) : null);
+  applyAutoFilterUI(state.autoFilter, isCompactTheme ? null : (defaultRangePreset || null));
   updateRemoteContext();
   registerEventHandlers();
   initLayoutDragAndDrop();
