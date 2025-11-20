@@ -4,7 +4,7 @@ import { updateCompactView } from "./compact.js";
 import { applyAutoFilterUI } from "./data-service.js";
 
 export function initializeTheme() {
-  state.currentTheme = localStorage.getItem("theme") || "dark";
+  state.currentTheme = localStorage.getItem("theme") || "compact";
   document.body.setAttribute("data-theme", state.currentTheme);
   const select = document.getElementById("themeSelect");
   if (select) {

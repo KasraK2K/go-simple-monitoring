@@ -18,7 +18,7 @@ export const state = {
   historicalMode: false,
   filterElements: null,
   connectionState: 'online',
-  currentTheme: 'dark',
+  currentTheme: 'compact',
   activeAlerts: new Map(),
   lastThresholdPhase: new Map(),
   notificationPermission: 'default',

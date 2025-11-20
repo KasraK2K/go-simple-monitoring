@@ -33,7 +33,7 @@ templ Layout(props LayoutProps) {
                 <link rel="stylesheet" href={ href }/>
             }
         </head>
-        <body>
+        <body data-theme="compact">
             @props.Body
             for _, script := range props.Scripts {
                 if script.Module {
