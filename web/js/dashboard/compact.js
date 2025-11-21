@@ -205,7 +205,6 @@ function renderServersTable() {
 
     tr.innerHTML = `
       <td>${escapeHtml(metric.name || '')}</td>
-      <td class="mono">${escapeHtml(metric.address || '')}</td>
       <td>
         <span class="server-status ${status.className}"><span class="status-dot"></span><span class="status-text">${escapeHtml(status.label)}</span></span>
       </td>
@@ -214,6 +213,7 @@ function renderServersTable() {
       <td class="num disk-cell">${diskBadgesHtml}</td>
       <td class="num"><span class="${loadSeverity ? `server-card__metric-value--${loadSeverity}` : ''}">${formatLoad(metric.load_average)}</span></td>
       <td>${escapeHtml(formatLastChecked(metric.timestamp))}</td>
+      <td class="mono">${escapeHtml(metric.address || '')}</td>
     `;
     fragment.appendChild(tr);
   });

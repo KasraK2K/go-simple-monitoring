@@ -3419,6 +3419,8 @@ body[data-theme="compact"] .compact-view { display: block; margin-top: 12px; }
 .compact-section { margin-bottom: 20px; }
 .compact-title { font-size: 1rem; color: var(--text-secondary); margin: 0 0 8px; }
 
+.compact-table-wrapper { width: 100%; }
+
 .compact-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .compact-table thead th {
   text-align: left;
@@ -3456,6 +3458,32 @@ body[data-theme="compact"] .compact-view { display: block; margin-top: 12px; }
 .theme-transition-overlay[data-theme="compact"] {
   /* Solid dark backdrop for compact theme transitions */
   background: #0f172a;
+}
+
+/* Mobile: allow vertical scroll for compact tables */
+@media (max-width: 640px) {
+  .compact-table-wrapper {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
+  /* Sticky table headers inside scroll wrapper */
+  .compact-table-wrapper .compact-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  .compact-table-wrapper .compact-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg);
+    /* reinforce header separation while sticky */
+    box-shadow: 0 1px 0 var(--border), 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

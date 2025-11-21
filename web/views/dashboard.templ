@@ -43,26 +43,29 @@ templ DashboardShell(props DashboardProps) {
         <section class="compact-view" id="compactView" role="region" aria-label="Compact overview">
             <div class="compact-section">
                 <h2 class="compact-title">Servers</h2>
+                <div class="compact-table-wrapper">
                 <table class="compact-table" id="compactServersTable">
                     <thead>
                         <tr>
                             <th scope="col">Name</th>
-                            <th scope="col">Address</th>
                             <th scope="col">Status</th>
                             <th scope="col">CPU</th>
                             <th scope="col">Memory</th>
                             <th scope="col">Disk</th>
                             <th scope="col">Load</th>
                             <th scope="col">Updated</th>
+                            <th scope="col">Address</th>
                         </tr>
                     </thead>
                     <tbody id="compactServersBody">
                         <tr><td colspan="8">Loading…</td></tr>
                     </tbody>
                 </table>
+                </div>
             </div>
             <div class="compact-section">
                 <h2 class="compact-title">Heartbeats</h2>
+                <div class="compact-table-wrapper">
                 <table class="compact-table" id="compactHeartbeatsTable">
                     <thead>
                         <tr>
@@ -77,6 +80,7 @@ templ DashboardShell(props DashboardProps) {
                         <tr><td colspan="5">Loading…</td></tr>
                     </tbody>
                 </table>
+                </div>
             </div>
         </section>
         @InitialLoadingOverlay()

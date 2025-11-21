@@ -105,7 +105,7 @@ func DashboardShell(props DashboardProps) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section class=\"compact-view\" id=\"compactView\" role=\"region\" aria-label=\"Compact overview\"><div class=\"compact-section\"><h2 class=\"compact-title\">Servers</h2><table class=\"compact-table\" id=\"compactServersTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">Address</th><th scope=\"col\">Status</th><th scope=\"col\">CPU</th><th scope=\"col\">Memory</th><th scope=\"col\">Disk</th><th scope=\"col\">Load</th><th scope=\"col\">Updated</th></tr></thead> <tbody id=\"compactServersBody\"><tr><td colspan=\"8\">Loading…</td></tr></tbody></table></div><div class=\"compact-section\"><h2 class=\"compact-title\">Heartbeats</h2><table class=\"compact-table\" id=\"compactHeartbeatsTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">URL</th><th scope=\"col\">Status</th><th scope=\"col\">Latency</th><th scope=\"col\">Last Seen</th></tr></thead> <tbody id=\"compactHeartbeatsBody\"><tr><td colspan=\"5\">Loading…</td></tr></tbody></table></div></section>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "<section class=\"compact-view\" id=\"compactView\" role=\"region\" aria-label=\"Compact overview\"><div class=\"compact-section\"><h2 class=\"compact-title\">Servers</h2><div class=\"compact-table-wrapper\"><table class=\"compact-table\" id=\"compactServersTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">Status</th><th scope=\"col\">CPU</th><th scope=\"col\">Memory</th><th scope=\"col\">Disk</th><th scope=\"col\">Load</th><th scope=\"col\">Updated</th><th scope=\"col\">Address</th></tr></thead> <tbody id=\"compactServersBody\"><tr><td colspan=\"8\">Loading…</td></tr></tbody></table></div></div><div class=\"compact-section\"><h2 class=\"compact-title\">Heartbeats</h2><div class=\"compact-table-wrapper\"><table class=\"compact-table\" id=\"compactHeartbeatsTable\"><thead><tr><th scope=\"col\">Name</th><th scope=\"col\">URL</th><th scope=\"col\">Status</th><th scope=\"col\">Latency</th><th scope=\"col\">Last Seen</th></tr></thead> <tbody id=\"compactHeartbeatsBody\"><tr><td colspan=\"5\">Loading…</td></tr></tbody></table></div></div></section>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -227,7 +227,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var6 string
 		templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(props.RefreshLabel)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 144, Col: 89}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 148, Col: 89}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 		if templ_7745c5c3_Err != nil {
@@ -240,7 +240,7 @@ func HeroSection(props HeroProps) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(props.DefaultRangePreset)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 177, Col: 84}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 181, Col: 84}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -387,7 +387,7 @@ func ServersSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 335, Col: 263}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 339, Col: 263}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -447,7 +447,7 @@ func HeartbeatSection(isInitiallyHidden bool) templ.Component {
 		var templ_7745c5c3_Var18 string
 		templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%t", isInitiallyHidden))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 359, Col: 273}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `web/views/dashboard.templ`, Line: 363, Col: 273}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 		if templ_7745c5c3_Err != nil {
